@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>The Traze Maze</title>
+  <style>
+    audio {
+      display: none;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start; /* Align content to the top of the screen */
+      min-height: 100vh; /* Change height to min-height to allow content to expand */
+      font-family: Arial, sans-serif;
+      margin: 0; /* Remove default margin to eliminate space at the top */
+      padding: 20px; /* Add padding to the body */
+    }
+
+    h1 {
+      font-size: 40px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .menu {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+    }
+
+    .menu-button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: transparent;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .menu-button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .selected-menu-button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .small-left {
+      text-align: left !important;
+      font-size: 8px;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center; /* Center the button-image pairs */
+      gap: 40px;
+      margin-top: 20px;
+      margin-bottom: 40px; /* Increase margin between button-image pairs */
+    }
+
+    .button-pair {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-left: 40px; /* Increase left margin for the right button-image pair */
+      margin-right: 40px; /* Increase right margin for the left button-image pair */
+    }
+
+    .button {
+      padding: 10px 20px;
+      font-size: 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+    }
+
+    .image-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px; /* Increase margin between button-image pairs */
+    }
+
+    .button-img {
+      width: 345px;
+      height: 345px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 0px;
+    }
+
+    .button-label {
+      text-align: center;
+    }
+
+    /* Add CSS for right-aligning the buttons */
+    .menu-buttons-container {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    
+    /* Add CSS to center-align the title */
+    .menu-title {
+      text-align: center;
+      flex-grow: 1;
+    }
+
+    /* Add CSS to position the dropdown menu */
+    .dropdown-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 10px;
+      margin-top: 20px;
+    }
+
+    .dropdown {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="menu">
+    <h1 class="menu-title">The Traze Maze</h1>
+    <div class="menu-buttons-container">
+      <button class="selected-menu-button">Home</button>
+      <button class="menu-button" onclick="window.location.href = 'howtoplay.html'">How to Play</button>
+      <button class="menu-button" onclick="window.location.href = 'about.html'">About</button>
+      <button class="menu-button" onclick="window.location.href = 'version.html'">Version</button>
+    </div>
+  </div>
+  
+  <!-- Add the dropdown menu -->
+  <div class="dropdown-container">
+    <h3 style="margin-right: 5px;">Select mode:</h3>
+    <select class="dropdown" onchange="handleDropdownChange(this)">
+      <option value="option1" selected>One-way Speedrun</option>
+      <option value="option2">Multi-way Explorer</option>
+    </select>
+  </div>
+  <div class="dropdown-container">
+    <h3 style="margin-right: 5px;">Modifiers:</h3>
+    <select class="dropdown" onchange="handleDropdown(this)">
+      <option value="option1" selected>Normal</option>
+      <option value="option2">Hidden</option>
+    </select>
+  </div>
+
+  <div class="button-container">
+    <!-- Add the first pair of images and buttons -->
+    <div class="button-pair">
+      <div class="image-container">
+        <img class="button-img" src="small-maze-image.png" alt="Small Maze" />
+      </div>
+      <button class="button" onclick="startSmallMaze()">Small Maze</button>
+    </div>
+
+    <!-- Add the second pair of images and buttons -->
+    <div class="button-pair">
+      <div class="image-container">
+        <img class="button-img" src="big-maze-image.png" alt="Medium Maze">
+      </div>
+      <button class="button" onclick="startMediumMaze()">Medium Maze</button>
+    </div>
+
+    <!-- Add the third pair of images and buttons -->
+    <div class="button-pair">
+      <div class="image-container">
+        <img class="button-img" src="image3.png" alt="Image 3">
+      </div>
+      <button class="button" onclick="startBigMaze()">Big Maze</button>
+    </div>
+  </div>
+  
+  <p class="left">Enjoying (or hating) our game? Please take time to fill out this survey: <a href = "https://docs.google.com/forms/d/e/1FAIpQLSdCAaxAK2KeXAvfwnCYAJvJ1YMiSswo0hBN_dABGFm91-KCvg/viewform">Voice Your Thoughts!</a></p>
+
+  <p class="small-left">By continuing to browse and play on our website, you agree not to sue, attack, or in any way harm the physical and mental well-being of the creator and maintainer of this website. ©Tim Tran 2023</p>
+
+
+  <script>
+    // Existing script functions
+    var selectedOption = 'option1';
+    var hidden = 'option1';
+
+    function handleDropdownChange(dropdown) {
+      selectedOption = dropdown.value;
+    }
+    
+    function handleDropdown(dropdown) {
+      hidden = dropdown.value;
+    }
+
+    function startSmallMaze() {
+    if (selectedOption !== '') {
+    switch (selectedOption) {
+        case 'option1':
+        if (hidden === "option2")
+            window.location.href = 'Small Maze.html?type=black';
+        else
+            window.location.href = 'Small Maze.html';
+            break;
+          case 'option2':
+            if (hidden === "option2")
+              window.location.href = 'Easy Small Maze.html?type=black';
+            else
+              window.location.href = 'Easy Small Maze.html';
+            break;
+          default:
+            break;
+        }
+    }
+    }
+    
+    function startMediumMaze() {
+      if (selectedOption !== '') {
+    switch (selectedOption) {
+    case 'option1':
+        if (hidden === "option2")
+              window.location.href = 'Big Maze.html?type=black';
+            else
+              window.location.href = 'Big Maze.html';
+            break;
+          case 'option2':
+            if (hidden === "option2")
+              window.location.href = 'Easy Big Maze.html?type=black';
+            else
+              window.location.href = 'Easy Big Maze.html';
+            break;
+          default:
+            break;
+        }
+    }
+    }
+
+    function startBigMaze() {
+      if (selectedOption !== '') {
+    switch (selectedOption) {
+    case 'option1':
+            if (hidden === "option2")
+              window.location.href = 'Biggest Maze.html?type=black';
+            else
+              window.location.href = 'Biggest Maze.html';
+            break;
+          case 'option2':
+            if (hidden === "option2")
+              window.location.href = 'Easy Biggest Maze.html?type=black';
+            else
+              window.location.href = 'Easy Biggest Maze.html';
+            break;
+          default:
+            break;
+        }
+    }
+    }
+  </script>
+</body>
+</html>

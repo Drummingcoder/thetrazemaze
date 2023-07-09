@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>The Traze Maze</title>
+  <link rel="stylesheet" type="text/css" href="mazestyle.css">
+  <style>
+    body {
+      text-align: center;
+    }
+
+    #maze {
+      position: relative;
+      width: 610px;
+      height: 610px;
+      border: 2px solid black;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    .cell {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border: 1px solid black;
+    }
+
+    .player {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: blue;
+      transition: all 0.2s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div id="title">The Traze Maze</div>
+  <div id="timer">00:00.000</div>
+  <div id="maze"></div>
+
+  <div id="end-screen" class="hidden">
+  <button id="back-button">Back</button>
+  <h2>Congratulations!</h2>
+
+  <div id="end-time-taken"></div>
+  <div id="personal-best">
+    Personal Best: <span id="best-time"></span>
+  </div>
+  <div id="new-personal-best" style = "display:block;">Personal New Best!</div>
+
+  <button id="copy-button">Copy Maze and Time</button>
+  <button id="restart-button">Restart Maze</button>
+</div>
+  
+  <p class = "small-left">By continuing to browse and play on our website, you agree not to sue, attack, or in any way harm the physical and mental well-being of the creator and maintainer of this website. ©Tim Tran 2023</p>
+  
+  <script src="./library.js"></script>
+
+  <script>
+  var searchParams = new URLSearchParams(window.location.search);
+  var type = searchParams.get('type');
+    const mazeSize = 61;
+    const cellSize = 10;
+    const maze = document.getElementById("maze");
+    const timerElement = document.getElementById("timer");
+    const endScreen = document.getElementById("end-screen");
+    const restartButton = document.getElementById("restart-button");
+    const backButton = document.getElementById("back-button");
+    const endContent = document.getElementById("end-time-taken");
+    const personalbest = document.getElementById("personal-best");
+    const newpersonalbest = document.getElementById("new-personal-best");
+
+    let mazeStructure, startRow, startCol, endRow, endCol;
+    let time = 0;
+    let interval, startMaze;
+    let startTime;
+    let first = 0;
+    let easy = true;
+
+    myLibrary.generateStartAndEndPositions();
+    myLibrary.generateRandomMaze();
+    myLibrary.generateEasyPath();
+    myLibrary.createMaze();
+
+    const player = document.createElement("div");
+    player.className = "player";
+    player.style.top = startRow * cellSize + "px";
+    player.style.left = startCol * cellSize + "px";
+    maze.appendChild(player);
+
+  window.addEventListener("keydown", (event) => {
+  if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
+    if (!interval) {
+      interval = true;
+      const { startTime: capturedStartTime, interval: capturedInterval } = myLibrary.startTimer(timer);
+      startTime = capturedStartTime;
+    }
+    if (first === 0)
+    {
+        myLibrary.playMusic();
+        first++;
+    }
+    myLibrary.movePlayer(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest); // Call movePlayer function when arrow keys or WASD keys are pressed
+  }
+});
+
+    restartButton.addEventListener("click", myLibrary.restartMaze);
+    backButton.addEventListener("click", myLibrary.goBack);
+
+    backButton.style.display = "inline-block";
+    backButton.addEventListener("click", myLibrary.hideEndScreen);
+    document.getElementById("copy-button").addEventListener("click", myLibrary.copyEasyMazeAndTime);
+  </script>
+</body>
+</html>

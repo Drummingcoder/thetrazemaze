@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>The Traze Maze</title>
+  <style>
+  audio {
+      display: none;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start; /* Align content to the top of the screen */
+      min-height: 100vh; /* Change height to min-height to allow content to expand */
+      font-family: Arial, sans-serif;
+      margin: 0; /* Remove default margin to eliminate space at the top */
+      padding: 20px; /* Add padding to the body */
+    }
+
+    h1 {
+      font-size: 40px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    h2 {
+      font-size: 25px;
+      margin-bottom: 20px;
+    }
+    
+    p {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    
+    .left {
+      text-align: left !important;
+    }
+    
+    .small-left {
+      text-align: left !important;
+      font-size: 8px;
+    }
+
+    .menu {
+      display: flex;
+      justify-content: center; /* Align the menu items to the center horizontally */
+      align-items: center;
+      width: 96%;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+    }
+
+    .menu-button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: transparent;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .menu-button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .selected-menu-button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center; /* Center the button-image pairs */
+      gap: 40px;
+      margin-top: 20px;
+      margin-bottom: 40px; /* Increase margin between button-image pairs */
+    }
+
+    .button-pair {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-left: 40px; /* Increase left margin for the right button-image pair */
+      margin-right: 40px; /* Increase right margin for the left button-image pair */
+    }
+
+    .button {
+      padding: 10px 20px;
+      font-size: 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+    }
+
+    .image-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px; /* Increase margin between button-image pairs */
+    }
+
+    .button-img {
+      width: 450px;
+      height: auto;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 0px;
+    }
+
+    .button-label {
+      text-align: center;
+    }
+
+    /* Add CSS for right-aligning the buttons */
+    .menu-buttons-container {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    
+    /* Add CSS to center-align the title */
+    .menu-title {
+      text-align: center;
+      flex-grow: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="menu">
+    <h1 class="menu-title">The Traze Maze</h1>
+    <div class="menu-buttons-container">
+      <button class="menu-button" onclick="window.location.href = 'home.html'">Home</button>
+      <button class="menu-button" onclick="window.location.href = 'howtoplay.html'">How to Play</button>
+      <button class="menu-button" onclick="window.location.href = 'about.html'">About</button>
+      <button class="selected-menu-button">Version</button>
+    </div>
+  </div>
+
+  <h2 class = "left">Version History</h2>
+  <p class = "left">Version 1.1.3: Optimized the websites by removing most of the Javascript and CSS from the mazes and put them into different files.</p>
+  <p class = "left">Version 1.1.2: Added a new hidden mode.</p>
+  <p class = "left">Version 1.1.1: Added a link for email and a feedback form. I also added music as well.</p>
+  <p class = "left">Version 1.1: Added a new size to the maze options (the biggest one) and added an extra mode to play. Changed the title screen to accommodate this change. Also added a personal best mechanic. Also updated the copy maze and time function.</p>
+  <p class = "left">Version 1.0: Refined the about, how to play, and version history pages. Edited the mazes so that the timer starts when you move and you can move with the WASD keys. Made sure that the end screen only pops up when reaching the end goal.</p>
+  <p class = "left">Version 0.9: Added the about, how to play, and version history pages.</p>
+  <p class = "left">Version 0.8: Added menu bar to home screen.</p>
+  <p class = "left">Version 0.7.1: Refined the "Copy Maze and Time" button to have a proper maze copied instead of 1 and 0s.</p>
+  <p class = "left">Version 0.7: Ensured that the player can't move on the end screen, added the "Back" button and the "Restart Maze" button.</p>
+  <p class = "left">Version 0.6: First version of the end screen, it didn't have restart maze buttons or the back button: </p>
+  <img src = "version0.6.png" width = "800px" height = "500px" />
+  <p class = "left">Version 0.5: Added a title screen with options for a smaller maze or a bigger maze. Unlike version 1.0, it had no menu bar: </p>
+  <img src = "version0.5.png" width = "800px" height = "500px" />
+  <p class = "left">Version 0.4.1: Added a title and a timer to the top of the maze (it used to be called "The Taze Maze" before it was renamed to "The Traze Maze").</p>
+  <p class = "left">Version 0.4: Made an expanded and more challenging version of the maze (it looks like the bigger maze in version 1.0).</p>
+  <p class = "left">Version 0.3.1: Ensured that the start and finish are always in the upper-left corner and lower-right corner, respectively.</p>
+  <p class = "left">Version 0.3: Refined the random maze generator, mazes are more structed and the path from the start and end squares are always unobstructed: </p>
+  <img src = "version0.3.png" width = "600px" height = "600px" />
+  <p class = "left"><i>Note: This version took ChatGPT and I the longest to make. About a third of the time put into making the version that would be 1.0 was put into this version.</i></p>
+  <p class = "left">Version 0.2: Added a random maze generator, mazes would look like: </p>
+  <img src = "version0.2.png" width = "600px" height = "600px" />
+  <p class = "left">Version 0.1.1: Added smooth movement (the kind of movement in version 1.0).</p>
+  <p class = "left"> Version 0.1: First working version of The Traze Maze. No randomized maze or smooth movement, but this is how it looked like: </p>
+  <img src = "version0.1.png" width = "600px" height = "600px" />
+  
+  <p class = "left"><i>Please note that this game is still under development and that these articles are subject to change without warning.</i></p>
+  <p class = "small-left">By continuing to browse and play on our website, you agree not to sue, attack, or in any way harm the physical and mental well-being of the creator and maintainer of this website. ©Tim Tran 2023</p>
+  
+  <audio controls loop autoplay>
+  <source src="Rasputin.mp3" type="audio/mpeg">
+  Your browser does not support the audio tag.
+  </audio>
+  
+</body>
+</html>

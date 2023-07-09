@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>The Traze Maze</title>
+  <style>
+  audio {
+      display: none;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start; /* Align content to the top of the screen */
+      min-height: 100vh; /* Change height to min-height to allow content to expand */
+      font-family: Arial, sans-serif;
+      margin: 0; /* Remove default margin to eliminate space at the top */
+      padding: 20px; /* Add padding to the body */
+    }
+
+    h1 {
+      font-size: 40px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    h2 {
+      font-size: 25px;
+      margin-bottom: 20px;
+    }
+    
+    p {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    
+    .left {
+      text-align: left !important;
+    }
+
+    .small-left {
+      text-align: left !important;
+      font-size: 8px;
+    }
+    
+    .menu {
+      display: flex;
+      justify-content: center; /* Align the menu items to the center horizontally */
+      align-items: center;
+      width: 96%;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+    }
+
+    .menu-button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: transparent;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .menu-button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .selected-menu-button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center; /* Center the button-image pairs */
+      gap: 40px;
+      margin-top: 20px;
+      margin-bottom: 40px; /* Increase margin between button-image pairs */
+    }
+
+    .button-pair {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-left: 40px; /* Increase left margin for the right button-image pair */
+      margin-right: 40px; /* Increase right margin for the left button-image pair */
+    }
+
+    .button {
+      padding: 10px 20px;
+      font-size: 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+    }
+
+    .image-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px; /* Increase margin between button-image pairs */
+    }
+
+    .button-img {
+      width: 450px;
+      height: auto;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 0px;
+    }
+
+    .button-label {
+      text-align: center;
+    }
+
+    /* Add CSS for right-aligning the buttons */
+    .menu-buttons-container {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    
+    /* Add CSS to center-align the title */
+    .menu-title {
+      text-align: center;
+      flex-grow: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="menu">
+    <h1 class="menu-title">The Traze Maze</h1>
+    <div class="menu-buttons-container">
+      <button class="menu-button" onclick="window.location.href = 'home.html'">Home</button>
+      <button class="selected-menu-button">How to Play</button>
+      <button class="menu-button" onclick="window.location.href = 'about.html'">About</button>
+      <button class="menu-button" onclick="window.location.href = 'version.html'">Version</button>
+    </div>
+  </div>
+
+  <h2 class = "left">How to Play</h2>
+  <p class = "left">The objective of the game is to reach the red square as quickly as possible. You are a blue square, starting at the green square.</p>
+  <p class = "left">Choose a mode and a maze size. You start as soon as you move. Use the arrow or WASD keys to navigate the maze.</p>
+  <p class = "left">Each maze is randomly generated, creating a unique experience every time you play. Some mazes generated may be easier than others.</p>
+  <p class = "left">When you hit the end square, time will be called, and you will be presented with an end screen where you can go back to the main page, copy the maze and your time, or restart the maze.</p>
+  <p class = "left">Please note that this is a work in progress, there are yet more features to be added and more fixes to be implemented.</p>
+  <p class = "left">Have fun!</p>
+  <p class = "left">Note: This website is not mobile-friendly. We are working to add this.</p>
+  <p class = "left">First tip: If you're playing on One-way Speedrun mode, don't think. Move as fast as possible towards the end. If you're playing on Multi-way Explorer, choose the most optimal route, but don't spend too long to find the route.</p>
+  <p class = "left">Second tip: In order to move fast, you need to set the repeat rate of your keys as high as possible. On a chromebook, this setting can be found in Settings at this place: </p>
+  <img src = "repeat.png" width = "600px" height = "400px"/>
+  
+  <p class = "left"><i>Please note that this game is still under development and that these articles are subject to change without warning.</i></p>
+  <p class = "small-left">By continuing to browse and play on our website, you agree not to sue, attack, or in any way harm the physical and mental well-being of the creator and maintainer of this website. ©Tim Tran 2023</p>
+  
+  <audio controls loop autoplay>
+  <source src="Rasputin.mp3" type="audio/mpeg">
+  Your browser does not support the audio tag.
+  </audio>
+  
+</body>
+</html>

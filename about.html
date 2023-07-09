@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>The Traze Maze</title>
+  <style>
+    audio {
+      display: none;
+    } 
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start; /* Align content to the top of the screen */
+      min-height: 100vh; /* Change height to min-height to allow content to expand */
+      font-family: Arial, sans-serif;
+      margin: 0; /* Remove default margin to eliminate space at the top */
+      padding: 20px; /* Add padding to the body */
+    }
+
+    h1 {
+      font-size: 40px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    h2 {
+      font-size: 25px;
+      margin-bottom: 20px;
+    }
+    
+    p {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    
+    .left {
+      text-align: left !important;
+    }
+    .small-left {
+      text-align: left !important;
+      font-size: 8px;
+    }
+
+    .menu {
+      display: flex;
+      justify-content: center; /* Align the menu items to the center horizontally */
+      align-items: center;
+      width: 96%;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+    }
+
+    .menu-button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: transparent;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .menu-button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .selected-menu-button {
+      padding: 5px 10px;
+      font-size: 16px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center; /* Center the button-image pairs */
+      gap: 40px;
+      margin-top: 20px;
+      margin-bottom: 40px; /* Increase margin between button-image pairs */
+    }
+
+    .button-pair {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-left: 40px; /* Increase left margin for the right button-image pair */
+      margin-right: 40px; /* Increase right margin for the left button-image pair */
+    }
+
+    .button {
+      padding: 10px 20px;
+      font-size: 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+    }
+
+    .image-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px; /* Increase margin between button-image pairs */
+    }
+
+    .button-img {
+      width: 450px;
+      height: auto;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 0px;
+    }
+
+    .button-label {
+      text-align: center;
+    }
+
+    /* Add CSS for right-aligning the buttons */
+    .menu-buttons-container {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    
+    /* Add CSS to center-align the title */
+    .menu-title {
+      text-align: center;
+      flex-grow: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="menu">
+    <h1 class="menu-title">The Traze Maze</h1>
+    <div class="menu-buttons-container">
+      <button class="menu-button" onclick="window.location.href = 'home.html'">Home</button>
+      <button class="menu-button" onclick="window.location.href = 'howtoplay.html'">How to Play</button>
+      <button class="selected-menu-button">About</button>
+      <button class="menu-button" onclick="window.location.href = 'version.html'">Version</button>
+    </div>
+  </div>
+
+  <h2 class = "left">About this Game</h2>
+  <p class = "left">This project was made possible by ChatGPT. Most of the coding was done by ChatGPT, with some prompting on my part.</p>
+  <p class = "left">This project was also inspired somewhat by the creator of <a href = "https://sumplete.com">sumplete.com</a>, Daniel Tait. I first got the idea of using ChatGPT to make this game from him.</p>
+  <p class = "left">I wanted to make something like a game where there's a maze and you had to navigate through it, and every time you played, it was different.</p>
+  <p class = "left">So I got to work, and began prompting ChatGPT to make a game. At first, I had no idea what I was doing, so my first prompt and response was: </p>
+  <img src = "first.png" width = "800px" height = "500px" />
+  <p class = "left">which gave me this: </p>
+  <img src = "second.png" width = "600px" height = "600px" />
+  <p class = "left">Just an empty square with a red square that the player can move around. So ChatGPT and I had a long way to go.</p>
+  <p class = "left">The full version history is on display at <a href = "version.html">this link</a>, but after multiple prompting and retries (after hours), this is the result:</p>
+  <img src = "third.png" width = "600px" height = "600px" />
+  <p class = "left">This was the first version of the smaller randomly generated maze that worked properly. After this milestone, I proceeded to add an expanded maze, and added titles, timers, and the end screens.</p>
+  <p class = "left">At one point, the chat file had gotten too big that my computer was getting noticeably getting slower, so I had to open up a fresh chat and continue coding.</p>
+  <p class = "left">After a very long week, we had finally landed on version 1.0 of The Traze Maze!</p>
+  <p class = "left">Big thanks to ChatGPT for coding this game, and thanks to you for playing this game and reading this article!</p>
+  <p class = "left">Any questions or comments, email me at <a href = "mailto: swiftbulldozer@gmail.com">swiftbulldozer@gmail.com</a>, or fill out this feedback form: <a href = "https://docs.google.com/forms/d/e/1FAIpQLSdCAaxAK2KeXAvfwnCYAJvJ1YMiSswo0hBN_dABGFm91-KCvg/viewform">Voice Your Thoughts!</a>.</p>
+  <p class = "left"></p>
+  <p class = "left"><i>Please note that this game is still under development and that these articles are subject to change without warning.</i></p>
+  <p class = "small-left">By continuing to browse and play on our website, you agree not to sue, attack, or in any way harm the physical and mental well-being of the creator and maintainer of this website. ©Tim Tran 2023</p>
+  
+  <audio controls loop autoplay>
+  <source src="Rasputin.mp3" type="audio/mpeg">
+  Your browser does not support the audio tag.
+  </audio>
+  
+</body>
+</html>
