@@ -175,7 +175,7 @@ var myLibrary = {
     maze.appendChild(endCell);
   },
 
-  movePlayer: function(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest ) {
+  movePlayer: function(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval ) {
     if (!endScreen.classList.contains("hidden")) {
       // Player is on the end screen, do not allow movement
       return;
