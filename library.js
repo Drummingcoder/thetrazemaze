@@ -274,7 +274,7 @@ do {
   },
 
   goBack: function() {
-    window.location.href = "home.html";
+    window.location.href = "index.html";
   },
 
   startTimer: function(timer) {
@@ -301,9 +301,9 @@ do {
     let textToCopy;
 
     if (type === "black") {
-      textToCopy = "Mode: Hidden One-way Speedrun\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "www.thetrazemaze.com";
+      textToCopy = "Mode: Hidden One-way Speedrun\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
     } else {
-      textToCopy = "Mode: One-way Speedrun\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "www.thetrazemaze.com";
+      textToCopy = "Mode: One-way Speedrun\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
     }
 
     const tempTextArea = document.createElement("textarea");
@@ -328,9 +328,9 @@ do {
       let textToCopy;
 
 if (type === "black")
-  textToCopy = "Mode: Hidden Multi-way Explorer\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "www.thetrazemaze.com";
+  textToCopy = "Mode: Hidden Multi-way Explorer\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
   else
-  textToCopy = "Mode: Multi-way Explorer\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "www.thetrazemaze.com";
+  textToCopy = "Mode: Multi-way Explorer\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
 
       const tempTextArea = document.createElement("textarea");
       tempTextArea.value = textToCopy;
