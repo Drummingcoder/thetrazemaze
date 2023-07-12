@@ -238,7 +238,7 @@ do {
           }, 200);
         }
         if (this.timeElapsed >= 30000) {
-            clearInterval(interval);
+            window.clearInterval(interval);
             const endTime = new Date();
             const timeTaken = mazecount;
             const formattedTime = this.formatTime(timeTaken);
@@ -252,7 +252,7 @@ do {
         }
     } else {
     if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
-      clearInterval(interval);
+      window.clearInterval(interval);
       const endTime = new Date();
       const timeTaken = endTime - startTime;
       const formattedTime = this.formatTime(timeTaken);
