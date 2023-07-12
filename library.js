@@ -1,5 +1,6 @@
 var myLibrary = {
   timeElapsed: 0,
+  interval: 0,
   
   generateStartAndEndPositions: function() {
     startRow = 1;
@@ -238,7 +239,7 @@ do {
           }, 200);
         }
         if (this.timeElapsed >= 30000) {
-            window.clearInterval(interval);
+            window.clearInterval(this.interval);
             const endTime = new Date();
             const timeTaken = mazecount;
             const formattedTime = this.formatTime(timeTaken);
@@ -252,7 +253,7 @@ do {
         }
     } else {
     if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
-      window.clearInterval(interval);
+      window.clearInterval(this.interval);
       const endTime = new Date();
       const timeTaken = endTime - startTime;
       const formattedTime = this.formatTime(timeTaken);
@@ -279,7 +280,7 @@ do {
 
   startTimer: function(timer) {
   const startTime = new Date();
-  const interval = setInterval(() => {
+  this.interval = setInterval(() => {
     const currentTime = new Date();
     this.timeElapsed = currentTime - startTime;
     timer.textContent = this.formatTime(this.timeElapsed); // Use "this" to refer to the myLibrary object
