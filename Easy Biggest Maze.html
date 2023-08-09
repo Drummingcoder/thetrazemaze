@@ -60,6 +60,8 @@
   <script>
   var searchParams = new URLSearchParams(window.location.search);
   var type = searchParams.get('type');
+  var multiple = searchParams.get('multiple');
+    
     const mazeSize = 61;
     const cellSize = 10;
     const maze = document.getElementById("maze");
