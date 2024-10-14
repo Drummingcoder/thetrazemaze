@@ -21,7 +21,7 @@ var myLibrary = {
   },
     
   playMusic: function() {
-    var audio = new Audio('Rasputin.mp3');
+    var audio = new Audio('Enaudi Experience.mp3');
     audio.play();
   },
 
