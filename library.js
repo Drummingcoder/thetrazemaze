@@ -1,7 +1,7 @@
 var myLibrary = {
   timeElapsed: 0,
   interval: 0,
-  
+
   generateStartAndEndPositions: function() {
     startRow = 1;
     startCol = 1;
@@ -19,7 +19,7 @@ var myLibrary = {
       mazeStructure.push(row);
     }
   },
-    
+
   playMusic: function() {
     var audio = new Audio('Enaudi Experience.mp3');
     audio.play();
@@ -69,76 +69,74 @@ var myLibrary = {
 
     visit(startRow, startCol);
   },
-  
-  
-    generateEasyPath : function() {
-      mazeStructure[startRow][startCol] = 0;
-      mazeStructure[endRow][endCol] = 0;
 
-      const stack = [];
-      const visited = {};
+  generateEasyPath: function() {
+    mazeStructure[startRow][startCol] = 0;
+    mazeStructure[endRow][endCol] = 0;
 
-      function getNeighbor(row, col) {
-  const neighbors = [];
-  if (row >= 2 && !visited[`${row - 2}-${col}`]) {
-    neighbors.push([row - 2, col]);
-  }
-  if (col >= 2 && !visited[`${row}-${col - 2}`]) {
-    neighbors.push([row, col - 2]);
-  }
-  if (row < mazeSize - 2 && !visited[`${row + 2}-${col}`]) {
-    neighbors.push([row + 2, col]);
-  }
-  if (col < mazeSize - 2 && !visited[`${row}-${col + 2}`]) {
-    neighbors.push([row, col + 2]);
-  }
+    const stack = [];
+    const visited = {};
 
-  const randomRemoveChance = 0.2;
-  const randomReplaceChance = 0.9;
-  for (const [nRow, nCol] of neighbors) {
-    if (nRow === row) {
-      const midCol = (col + nCol) / 2;
-      if (mazeStructure[row][midCol] === 1 && Math.random() < randomRemoveChance) {
-        mazeStructure[row][midCol] = 0;
+    function getNeighbor(row, col) {
+      const neighbors = [];
+      if (row >= 2 && !visited[`${row - 2}-${col}`]) {
+        neighbors.push([row - 2, col]);
       }
-    } else if (nCol === col) {
-      const midRow = (row + nRow) / 2;
-      if (mazeStructure[midRow][col] === 1 && Math.random() < randomRemoveChance) {
-        mazeStructure[midRow][col] = 0;
+      if (col >= 2 && !visited[`${row}-${col - 2}`]) {
+        neighbors.push([row, col - 2]);
       }
-    } else {
-      const midRow = (row + nRow) / 2;
-      const midCol = (col + nCol) / 2;
-      if (mazeStructure[midRow][midCol] === 0 && Math.random() < randomReplaceChance) {
-        mazeStructure[midRow][midCol] = 1;
+      if (row < mazeSize - 2 && !visited[`${row + 2}-${col}`]) {
+        neighbors.push([row + 2, col]);
       }
-    }
-  }
+      if (col < mazeSize - 2 && !visited[`${row}-${col + 2}`]) {
+        neighbors.push([row, col + 2]);
+      }
 
-  return neighbors;
-}
-
-
-      function visit(row, col) {
-        visited[`${row}-${col}`] = true;
-        mazeStructure[row][col] = 0;
-
-        const neighbors = getNeighbor(row, col);
-        if (neighbors.length > 0) {
-          stack.push([row, col]);
-          const [nextRow, nextCol] = neighbors[Math.floor(Math.random() * neighbors.length)];
-          const midRow = (row + nextRow) / 2;
-          const midCol = (col + nextCol) / 2;
-          mazeStructure[midRow][midCol] = 0;
-          visit(nextRow, nextCol);
-        } else if (stack.length > 0) {
-          const [prevRow, prevCol] = stack.pop();
-          visit(prevRow, prevCol);
+      const randomRemoveChance = 0.2;
+      const randomReplaceChance = 0.9;
+      for (const [nRow, nCol] of neighbors) {
+        if (nRow === row) {
+          const midCol = (col + nCol) / 2;
+          if (mazeStructure[row][midCol] === 1 && Math.random() < randomRemoveChance) {
+            mazeStructure[row][midCol] = 0;
+          }
+        } else if (nCol === col) {
+          const midRow = (row + nRow) / 2;
+          if (mazeStructure[midRow][col] === 1 && Math.random() < randomRemoveChance) {
+            mazeStructure[midRow][col] = 0;
+          }
+        } else {
+          const midRow = (row + nRow) / 2;
+          const midCol = (col + nCol) / 2;
+          if (mazeStructure[midRow][midCol] === 0 && Math.random() < randomReplaceChance) {
+            mazeStructure[midRow][midCol] = 1;
+          }
         }
       }
 
-      visit(startRow, startCol);
-    },
+      return neighbors;
+    }
+
+    function visit(row, col) {
+      visited[`${row}-${col}`] = true;
+      mazeStructure[row][col] = 0;
+
+      const neighbors = getNeighbor(row, col);
+      if (neighbors.length > 0) {
+        stack.push([row, col]);
+        const [nextRow, nextCol] = neighbors[Math.floor(Math.random() * neighbors.length)];
+        const midRow = (row + nextRow) / 2;
+        const midCol = (col + nextCol) / 2;
+        mazeStructure[midRow][midCol] = 0;
+        visit(nextRow, nextCol);
+      } else if (stack.length > 0) {
+        const [prevRow, prevCol] = stack.pop();
+        visit(prevRow, prevCol);
+      }
+    }
+
+    visit(startRow, startCol);
+  },
 
   createMaze: function() {
     for (let i = 0; i < mazeSize; i++) {
@@ -206,64 +204,64 @@ var myLibrary = {
       player.style.left = leftPos * cellSize + "px"; // Multiply by cellSize
     }
     if (multiple === "true") {
-        if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
-          setTimeout(() => {
+      if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
+        setTimeout(() => {
           // Move start square to the position of the end square
           mazeStructure[startRow][startCol] = 0;
           startRow = endRow;
           startCol = endCol;
 
           // Generate new random position for the end square
-let newEndRow, newEndCol;
-do {
-  newEndRow = Math.floor(Math.random() * (mazeSize - 2)) + 1;
-  newEndCol = Math.floor(Math.random() * (mazeSize - 2)) + 1;
-} while (
-  mazeStructure[newEndRow][newEndCol] === 1 ||
-  (newEndRow === endRow && newEndCol === endCol)
-);
+          let newEndRow, newEndCol;
+          do {
+            newEndRow = Math.floor(Math.random() * (mazeSize - 2)) + 1;
+            newEndCol = Math.floor(Math.random() * (mazeSize - 2)) + 1;
+          } while (
+            mazeStructure[newEndRow][newEndCol] === 1 ||
+            (newEndRow === endRow && newEndCol === endCol)
+          );
 
           // Update end square position
           mazeStructure[newEndRow][newEndCol] = 0;
           endRow = newEndRow;
           endCol = newEndCol;
-          
+
           // Update the maze visually
           this.createMaze();
-          
-          mazecount++;
-          
-            player.style.top = startRow * cellSize + "px";
-            player.style.left = startCol * cellSize + "px";
-            maze.appendChild(player);
-          }, 200);
-        }
-        if (this.timeElapsed >= 30000) {
-            window.clearInterval(this.interval);
-            const endTime = new Date();
-            const timeTaken = mazecount;
-            const formattedTime = this.formatTime(timeTaken);
-      
-            setTimeout(() => {
-              endContent.textContent = "Number of Goals Reached: " + mazecount;
-              const bestTime = this.calculatePersonalBestTime(timeTaken, type);
-              this.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
-              endScreen.classList.remove("hidden");
-          }, 200);
-        }
-    } else {
-    if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
-      window.clearInterval(this.interval);
-      const endTime = new Date();
-      const timeTaken = endTime - startTime;
-      const formattedTime = this.formatTime(timeTaken);
 
-      setTimeout(() => {
-        endContent.textContent = "Time taken: " + formattedTime;
-        const bestTime = this.calculatePersonalBestTime(timeTaken, type);
-        this.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
-        endScreen.classList.remove("hidden");
-      }, 200);
+          mazecount++;
+
+          player.style.top = startRow * cellSize + "px";
+          player.style.left = startCol * cellSize + "px";
+          maze.appendChild(player);
+        }, 200);
+      }
+      if (this.timeElapsed >= 30000) {
+        window.clearInterval(this.interval);
+        const endTime = new Date();
+        const timeTaken = mazecount;
+        const formattedTime = this.formatTime(timeTaken);
+
+        setTimeout(() => {
+          endContent.textContent = "Number of Goals Reached: " + mazecount;
+          const bestTime = this.calculatePersonalBestTime(timeTaken, type);
+          this.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
+          endScreen.classList.remove("hidden");
+        }, 200);
+      }
+    } else {
+      if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
+        window.clearInterval(this.interval);
+        const endTime = new Date();
+        const timeTaken = endTime - startTime;
+        const formattedTime = this.formatTime(timeTaken);
+
+        setTimeout(() => {
+          endContent.textContent = "Time taken: " + formattedTime;
+          const bestTime = this.calculatePersonalBestTime(timeTaken, type);
+          this.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
+          endScreen.classList.remove("hidden");
+        }, 200);
       }
     }
 
@@ -279,15 +277,15 @@ do {
   },
 
   startTimer: function(timer) {
-  const startTime = new Date();
-  this.interval = setInterval(() => {
-    const currentTime = new Date();
-    this.timeElapsed = currentTime - startTime;
-    timer.textContent = this.formatTime(this.timeElapsed); // Use "this" to refer to the myLibrary object
-  }, 10);
+    const startTime = new Date();
+    this.interval = setInterval(() => {
+      const currentTime = new Date();
+      this.timeElapsed = currentTime - startTime;
+      timer.textContent = this.formatTime(this.timeElapsed); // Use "this" to refer to the myLibrary object
+    }, 10);
 
-  return { startTime, interval };
-},
+    return { startTime, interval };
+  },
 
 
   copyMazeAndTime: function() {
@@ -301,10 +299,20 @@ do {
 
     let textToCopy;
 
-    if (type === "black") {
-      textToCopy = "Mode: Hidden One-way Speedrun\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+    if (multiple === "true") {
+      // Multiple goals mode
+      if (type === "black") {
+        textToCopy = "Mode: Hidden One-way Speedrun (Multiple Goals)\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+      } else {
+        textToCopy = "Mode: One-way Speedrun (Multiple Goals)\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+      }
     } else {
-      textToCopy = "Mode: One-way Speedrun\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+      // Single goal mode
+      if (type === "black") {
+        textToCopy = "Mode: Hidden One-way Speedrun\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+      } else {
+        textToCopy = "Mode: One-way Speedrun\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+      }
     }
 
     const tempTextArea = document.createElement("textarea");
@@ -316,32 +324,41 @@ do {
 
     alert("Maze and time have been copied to the clipboard!");
   },
-  
+
   copyEasyMazeAndTime: function() {
-      const mazeString = JSON.stringify(mazeStructure)
-        .replace(/1/g, "⬛️")
-        .replace(/0/g, "⬜️")
-        .replace(/],\[/g, "\n")
-        .replace(/\[|\]|,/g, "");
+    const mazeString = JSON.stringify(mazeStructure)
+      .replace(/1/g, "⬛️")
+      .replace(/0/g, "⬜️")
+      .replace(/],\[/g, "\n")
+      .replace(/\[|\]|,/g, "");
 
-      const timeTaken = document.getElementById("end-time-taken").textContent;
-      
-      let textToCopy;
+    const timeTaken = document.getElementById("end-time-taken").textContent;
 
-if (type === "black")
-  textToCopy = "Mode: Hidden Multi-way Explorer\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
-  else
-  textToCopy = "Mode: Multi-way Explorer\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+    let textToCopy;
 
-      const tempTextArea = document.createElement("textarea");
-      tempTextArea.value = textToCopy;
-      document.body.appendChild(tempTextArea);
-      tempTextArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(tempTextArea);
+    if (multiple === "true") {
+      // Multiple goals mode
+      if (type === "black")
+        textToCopy = "Mode: Hidden Multi-way Explorer (Multiple Goals)\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+      else
+        textToCopy = "Mode: Multi-way Explorer (Multiple Goals)\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+    } else {
+      // Single goal mode
+      if (type === "black")
+        textToCopy = "Mode: Hidden Multi-way Explorer\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+      else
+        textToCopy = "Mode: Multi-way Explorer\n" + "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + "Try The Traze Maze here: " + "drummingcoder.github.io";
+    }
 
-      alert("Maze and time have been copied to the clipboard!");
-    },
+    const tempTextArea = document.createElement("textarea");
+    tempTextArea.value = textToCopy;
+    document.body.appendChild(tempTextArea);
+    tempTextArea.select();
+    document.execCommand("copy");
+    document.body.removeChild(tempTextArea);
+
+    alert("Maze and time have been copied to the clipboard!");
+  },
 
   hideEndScreen: function() {
     endScreen.classList.add("hidden");
@@ -351,7 +368,7 @@ if (type === "black")
   calculatePersonalBestTime: function(currentTime, type) {
     let mazeIdentifier;
     if (easy === false) {
-      if (mazeSize === 15) { 
+      if (mazeSize === 15) {
         if (type === "black") {
           mazeIdentifier = 'bsm';
         } else {
@@ -360,63 +377,58 @@ if (type === "black")
       } else if (mazeSize === 35) {
         if (type === "black") {
           mazeIdentifier = 'bmm';
-        }
-        else {
+        } else {
           mazeIdentifier = 'mm';
         }
       } else if (mazeSize === 61) {
         if (type === "black") {
           mazeIdentifier = 'bbm';
-        }
-        else {
+        } else {
           mazeIdentifier = 'bm';
         }
       }
     } else if (easy === true) {
-      if (mazeSize === 15) { 
+      if (mazeSize === 15) {
         if (type === "black") {
-        mazeIdentifier = 'besm';
-      }
-      else {
-        mazeIdentifier = 'esm';
-      }
+          mazeIdentifier = 'besm';
+        } else {
+          mazeIdentifier = 'esm';
+        }
       } else if (mazeSize === 35) {
         if (type === "black") {
-        mazeIdentifier = 'bemm';
-      }
-      else {
-        mazeIdentifier = 'emm';
-      }
+          mazeIdentifier = 'bemm';
+        } else {
+          mazeIdentifier = 'emm';
+        }
       } else if (mazeSize === 61) {
         if (type === "black") {
-        mazeIdentifier = 'bebm';
-      }
-      else {
-        mazeIdentifier = 'ebm';
-      }
+          mazeIdentifier = 'bebm';
+        } else {
+          mazeIdentifier = 'ebm';
+        }
       }
     }
-    
+
     if (multiple === "true") {
-        mazeIdentifier += 'm';
+      mazeIdentifier += 'm';
     }
-    
+
     const storedBestTime = localStorage.getItem(mazeIdentifier);
     let bestTime = currentTime;
-    
+
     if (multiple === "true") {
-        bestTime = Math.max(currentTime, storedBestTime);
+      bestTime = Math.max(currentTime, storedBestTime);
     } else if (storedBestTime) {
-        bestTime = Math.min(currentTime, parseFloat(storedBestTime));
+      bestTime = Math.min(currentTime, parseFloat(storedBestTime));
     }
-    
+
     return bestTime;
   },
 
   displayPersonalBestTime: function(currentTime, type, personalbest, newpersonalbest) {
     let mazeIdentifier;
     if (easy === false) {
-      if (mazeSize === 15) { 
+      if (mazeSize === 15) {
         if (type === "black") {
           mazeIdentifier = "bsm";
         } else {
@@ -425,53 +437,48 @@ if (type === "black")
       } else if (mazeSize === 35) {
         if (type === "black") {
           mazeIdentifier = 'bmm';
-        }
-        else {
+        } else {
           mazeIdentifier = 'mm';
         }
       } else if (mazeSize === 61) {
         if (type === "black") {
           mazeIdentifier = 'bbm';
-        }
-        else {
+        } else {
           mazeIdentifier = 'bm';
         }
       }
     } else if (easy === true) {
-      if (mazeSize === 15) { 
+      if (mazeSize === 15) {
         if (type === "black") {
-        mazeIdentifier = 'besm';
-      }
-      else {
-        mazeIdentifier = 'esm';
-      }
+          mazeIdentifier = 'besm';
+        } else {
+          mazeIdentifier = 'esm';
+        }
       } else if (mazeSize === 35) {
         if (type === "black") {
-        mazeIdentifier = 'bemm';
-      }
-      else {
-        mazeIdentifier = 'emm';
-      }
+          mazeIdentifier = 'bemm';
+        } else {
+          mazeIdentifier = 'emm';
+        }
       } else if (mazeSize === 61) {
         if (type === "black") {
-        mazeIdentifier = 'bebm';
-      }
-      else {
-        mazeIdentifier = 'ebm';
-      }
+          mazeIdentifier = 'bebm';
+        } else {
+          mazeIdentifier = 'ebm';
+        }
       }
     }
-    
+
     if (multiple === "true") {
-        mazeIdentifier += 'm';
+      mazeIdentifier += 'm';
     }
-    
+
     const storedBestTime = localStorage.getItem(mazeIdentifier);
     let bestTimeDisplay = "";
-    
+
     if (multiple === "true") {
       if (!isNaN(storedBestTime)) {
-         bestTimeDisplay = currentTime;
+        bestTimeDisplay = currentTime;
       }
     } else if (storedBestTime && !isNaN(storedBestTime)) {
       const bestTime = parseFloat(storedBestTime);
@@ -481,19 +488,19 @@ if (type === "black")
     } else {
       bestTimeDisplay = "--:--"; // Display a placeholder if no valid stored time
     }
-    
+
     const personalBestElem = personalbest;
     const newPersonalBestElem = newpersonalbest;
 
     personalBestElem.textContent = "Personal Best: " + bestTimeDisplay;
-    
+
     if (multiple === "true") {
       if (!storedBestTime || currentTime > storedBestTime) {
         newPersonalBestElem.style.display = "block";
         localStorage.setItem(mazeIdentifier, currentTime);
       } else {
         newPersonalBestElem.style.display = "none";
-      } 
+      }
     } else {
       if (!storedBestTime || currentTime < parseFloat(storedBestTime)) {
         newPersonalBestElem.style.display = "block";

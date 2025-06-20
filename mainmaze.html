@@ -2,36 +2,35 @@
 <html>
 <head>
   <title>The Traze Maze</title>
+  <link rel="icon" type="icon/x-image" href="logo.jpg">
   <link rel="stylesheet" type="text/css" href="mazestyle.css">
-  <link rel="icon" type="icon/x-image" href="https://www.w3schools.com/html/programming.gif">
   <style>
+    body {
+      text-align: center;
+    }
+
     #maze {
       position: relative;
-      width: 600px;
-      height: 600px;
       border: 2px solid black;
       margin: 0 auto;
+      overflow: hidden;
     }
-    
+
     .cell {
       position: absolute;
-      width: 40px;
-      height: 40px;
       border: 1px solid black;
     }
-    
+
     .player {
       position: absolute;
-      width: 40px;
-      height: 40px;
       background-color: blue;
       transition: all 0.2s ease-in-out;
     }
   </style>
 </head>
 <body>
-  <h1 class="title">The Traze Maze</h1>
-  <div class="timer" id="timer">00:00.000</div>
+  <div id="title">The Traze Maze</div>
+  <div id="timer">00:00.000</div>
   <div id="maze"></div>
 
   <div id="end-screen" class="hidden">
@@ -49,20 +48,58 @@
 </div>
   
   <p class = "small-left">By continuing to browse and play on our website, you agree not to sue, attack, or in any way harm the physical and mental well-being of the creator and maintainer of this website. ©Tim Tran 2023</p>
- 
-
+  
   <script src="./library.js"></script>
 
   <script>
-  
+ 
   var searchParams = new URLSearchParams(window.location.search);
   var type = searchParams.get('type');
   var multiple = searchParams.get('multiple');
+  var difficulty = searchParams.get('difficulty') || 'medium'; // Default to medium if not specified
+  var mode = searchParams.get('mode') || 'hard'; // Default to hard mode if not specified
+  
+  // Set maze properties based on difficulty
+  let mazeSize, cellSize, mazeContainerSize;
+  
+  if (difficulty === 'small') {
+    mazeSize = 15;
+    cellSize = 40;
+    mazeContainerSize = 600;
+  } else if (difficulty === 'biggest') {
+    mazeSize = 61;
+    cellSize = 10;
+    mazeContainerSize = 610;
+  } else { // medium (default)
+    mazeSize = 35;
+    cellSize = 18;
+    mazeContainerSize = 630;
+  }
+  
+  // Set easy flag based on mode
+  let easy = (mode === 'easy');
+  
+  // Apply dynamic styling
+  const mazeElement = document.getElementById("maze");
+  const style = document.createElement('style');
+  style.textContent = `
+    #maze {
+      width: ${mazeContainerSize}px;
+      height: ${mazeContainerSize}px;
+    }
+    .cell {
+      width: ${cellSize}px;
+      height: ${cellSize}px;
+    }
+    .player {
+      width: ${cellSize}px;
+      height: ${cellSize}px;
+    }
+  `;
+  document.head.appendChild(style);
 
-    const mazeSize = 15;
-    const cellSize = 40;
     const maze = document.getElementById("maze");
-    const timer = document.getElementById("timer");
+    const timerElement = document.getElementById("timer");
     const endScreen = document.getElementById("end-screen");
     const restartButton = document.getElementById("restart-button");
     const backButton = document.getElementById("back-button");
@@ -71,14 +108,18 @@
     const newpersonalbest = document.getElementById("new-personal-best");
 
     let mazeStructure, startRow, startCol, endRow, endCol;
-    let startTime, interval = false;
+    let time = 0;
+    let interval = false, startMaze;
     let first = 0;
-    let easy = false;
     let mazecount = 0;
 
     myLibrary.generateStartAndEndPositions();
     myLibrary.generateRandomMaze();
-    myLibrary.generateClearPath();
+    if (easy) {
+      myLibrary.generateEasyPath();
+    } else {
+      myLibrary.generateClearPath();
+    }
     myLibrary.createMaze();
 
     const player = document.createElement("div");
@@ -87,12 +128,11 @@
     player.style.left = startCol * cellSize + "px";
     maze.appendChild(player);
 
-    // Event listeners
-    window.addEventListener("keydown", (event) => {
+  window.addEventListener("keydown", (event) => {
   if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
     if (!interval) {
       interval = true;
-      const { startTime: capturedStartTime, interval: capturedInterval } = myLibrary.startTimer(timer);
+      const { startTime: capturedStartTime, interval: capturedInterval } = myLibrary.startTimer(timerElement);
       startTime = capturedStartTime;
     }
     if (first === 0)
@@ -103,13 +143,18 @@
     myLibrary.movePlayer(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval); // Call movePlayer function when arrow keys or WASD keys are pressed
   }
 });
-
     restartButton.addEventListener("click", myLibrary.restartMaze);
     backButton.addEventListener("click", myLibrary.goBack);
 
     backButton.style.display = "inline-block";
     backButton.addEventListener("click", myLibrary.hideEndScreen);
-    document.getElementById("copy-button").addEventListener("click", myLibrary.copyMazeAndTime);
+    
+    // Set the appropriate copy function based on mode
+    if (easy) {
+      document.getElementById("copy-button").addEventListener("click", myLibrary.copyEasyMazeAndTime);
+    } else {
+      document.getElementById("copy-button").addEventListener("click", myLibrary.copyMazeAndTime);
+    }
   </script>
 </body>
 </html>

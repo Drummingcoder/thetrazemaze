@@ -306,6 +306,11 @@
     <button class="mode-btn selected_button" id="normal">Classic</button>
     <button class="mode-btn" id="hide">Hidden</button>
   </div>
+  <div class="mode-group">
+    <h2 class="mode">Goal Type: </h2>
+    <button class="mode-btn selected_button" id="single-goal">Single Goal</button>
+    <button class="mode-btn" id="multi-goal">Multiple Goals</button>
+  </div>
 </div>
 
   <div class="button-container">
@@ -343,68 +348,54 @@
     // Existing script functions
     var selectedOption = 'option1';
     var hidden = 'option1';
+    var goalType = 'single'; // New variable for goal type
 
     function startSmallMaze() {
-      if (selectedOption !== '') {
-        switch (selectedOption) {
-          case 'option1':
-            if (hidden === "option2")
-                window.location.href = 'Small Maze.html?type=black';
-            else
-                window.location.href = 'Small Maze.html';
-            break;
-          case 'option2':
-            if (hidden === "option2")
-              window.location.href = 'Easy Small Maze.html?type=black';
-            else
-              window.location.href = 'Easy Small Maze.html';
-            break;
-          default:
-            break;
-        }
-      }
+      let params = new URLSearchParams();
+      
+      // Set size parameter
+      params.set('difficulty', 'small');
+      
+      // Set mode parameter (easy vs hard determines algorithm)
+      if (selectedOption === 'option2') params.set('mode', 'easy');
+      
+      // Set modifiers
+      if (hidden === "option2") params.set('type', 'black');
+      if (goalType === 'multiple') params.set('multiple', 'true');
+      
+      window.location.href = 'mainmaze.html?' + params.toString();
     }
     
     function startMediumMaze() {
-      if (selectedOption !== '') {
-        switch (selectedOption) {
-          case 'option1':
-            if (hidden === "option2")
-              window.location.href = 'Big Maze.html?type=black';
-            else
-              window.location.href = 'Big Maze.html';
-            break;
-          case 'option2':
-            if (hidden === "option2")
-              window.location.href = 'Easy Big Maze.html?type=black';
-            else
-              window.location.href = 'Easy Big Maze.html';
-            break;
-          default:
-            break;
-        }
-      }
+      let params = new URLSearchParams();
+      
+      // Set size parameter
+      params.set('difficulty', 'medium');
+      
+      // Set mode parameter (easy vs hard determines algorithm)
+      if (selectedOption === 'option2') params.set('mode', 'easy');
+      
+      // Set modifiers
+      if (hidden === "option2") params.set('type', 'black');
+      if (goalType === 'multiple') params.set('multiple', 'true');
+      
+      window.location.href = 'mainmaze.html?' + params.toString();
     }
 
     function startBigMaze() {
-      if (selectedOption !== '') {
-        switch (selectedOption) {
-          case 'option1':
-            if (hidden === "option2")
-              window.location.href = 'Biggest Maze.html?type=black';
-            else
-              window.location.href = 'Biggest Maze.html';
-            break;
-          case 'option2':
-            if (hidden === "option2")
-              window.location.href = 'Easy Biggest Maze.html?type=black';
-            else
-              window.location.href = 'Easy Biggest Maze.html';
-            break;
-          default:
-            break;
-        }
-      }
+      let params = new URLSearchParams();
+      
+      // Set size parameter
+      params.set('difficulty', 'biggest');
+      
+      // Set mode parameter (easy vs hard determines algorithm)
+      if (selectedOption === 'option2') params.set('mode', 'easy');
+      
+      // Set modifiers
+      if (hidden === "option2") params.set('type', 'black');
+      if (goalType === 'multiple') params.set('multiple', 'true');
+      
+      window.location.href = 'mainmaze.html?' + params.toString();
     }
 
     // Add event listeners to the mode buttons
@@ -430,6 +421,18 @@
       hidden = 'option2';
       this.classList.add('selected_button');
       document.getElementById('normal').classList.remove('selected_button');
+      this.blur();
+    });
+    document.getElementById('single-goal').addEventListener('click', function() {
+      goalType = 'single';
+      this.classList.add('selected_button');
+      document.getElementById('multi-goal').classList.remove('selected_button');
+      this.blur();
+    });
+    document.getElementById('multi-goal').addEventListener('click', function() {
+      goalType = 'multiple';
+      this.classList.add('selected_button');
+      document.getElementById('single-goal').classList.remove('selected_button');
       this.blur();
     });
   </script>
