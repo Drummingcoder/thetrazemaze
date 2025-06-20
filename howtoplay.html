@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>The Traze Maze</title>
-  <link rel="icon" type="icon/x-image" href="https://www.w3schools.com/html/programming.gif">
+  <link rel="icon" type="icon/x-image" href="logo.jpg">
   <style>
   audio {
       display: none;
@@ -10,11 +10,22 @@
     body {
       display: flex;
       flex-direction: column;
-      justify-content: flex-start; /* Align content to the top of the screen */
-      min-height: 100vh; /* Change height to min-height to allow content to expand */
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
       font-family: Arial, sans-serif;
-      margin: 0; /* Remove default margin to eliminate space at the top */
-      padding: 20px; /* Add padding to the body */
+      margin: 0;
+      padding: 20px;
+      /* Softer maze-like SVG background pattern with blue tones */
+      background-color: #eaf4fb; /* Soft blue overall background */
+      background-image: url('data:image/svg+xml;utf8,<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="60" height="60" fill="none"/><rect x="0" y="0" width="20" height="8" fill="%23b3d8f7" fill-opacity="0.25"/><rect x="20" y="10" width="20" height="8" fill="%2390caf9" fill-opacity="0.18"/><rect x="40" y="20" width="20" height="8" fill="%237ec6f7" fill-opacity="0.18"/><rect x="0" y="30" width="20" height="8" fill="%2390caf9" fill-opacity="0.15"/><rect x="20" y="40" width="20" height="8" fill="%237ec6f7" fill-opacity="0.13"/><rect x="40" y="50" width="20" height="8" fill="%2390caf9" fill-opacity="0.10"/><rect x="10" y="20" width="8" height="20" fill="%23b3d8f7" fill-opacity="0.12"/><rect x="30" y="0" width="8" height="20" fill="%237ec6f7" fill-opacity="0.10"/><rect x="50" y="30" width="8" height="20" fill="%23b3d8f7" fill-opacity="0.10"/></svg>');
+      background-repeat: repeat;
+      background-size: 60px 60px;
+      position: relative;
+    }
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden;
     }
 
     h1 {
@@ -44,34 +55,93 @@
     
     .menu {
       display: flex;
-      justify-content: center; /* Align the menu items to the center horizontally */
+      justify-content: space-between;
       align-items: center;
-      width: 96%;
-      padding: 10px 20px;
-      background-color: #007bff;
+      width: 100%;
+      padding: 30px 32px;
+      background: linear-gradient(90deg, #007bff 0%, #00c6ff 100%);
       color: #fff;
+      top: 0;
+      position: absolute;
+      z-index: 1000;
+      box-shadow: 0 4px 18px rgba(0, 123, 255, 0.18), 0 1.5px 0 #fff2 inset;
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 18px;
     }
 
-    .menu-button {
-      padding: 5px 10px;
-      font-size: 16px;
-      background-color: transparent;
-      color: #fff;
+    .menu-button, .selected-menu-button {
+      padding: 7px 16px;
+      font-size: 1rem;
+      background: rgba(255,255,255,0.10);
+      color: #f4f8fb;
       border: none;
+      border-radius: 6px;
+      margin: 0 2px;
+      font-weight: 500;
+      box-shadow: none;
       cursor: pointer;
+      transition: background 0.18s, color 0.18s, box-shadow 0.15s;
+      outline: none;
+      letter-spacing: 0.2px;
+      font-family: 'Segoe UI', 'Verdana', 'Arial', sans-serif;
+      font-weight: 600;
+    }
+    .menu-button:hover, .menu-button:focus-visible {
+      background: rgba(255,255,255,0.22);
+      color: #fffde7;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .selected-menu-button {
+      background: rgba(255,255,255,0.28);
+      color: #fffde7;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      outline: 1.5px solid #fffde7;
     }
 
-    .menu-button:hover {
-      background-color: rgba(255, 255, 255, 0.2);
+    .menu-buttons-container {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
     }
     
-    .selected-menu-button {
-      padding: 5px 10px;
-      font-size: 16px;
-      background-color: rgba(255, 255, 255, 0.2);
-      color: #fff;
-      border: none;
-      cursor: pointer;
+    .version-adjust {
+      margin-right: 20px; /* Adjust the margin for the version button */
+    }
+    
+    .menu-title {
+      text-align: center;
+      flex-grow: 1;
+      font-family: 'Comic Sans MS', 'Comic Sans', 'Chalkboard SE', 'Segoe Print', cursive, sans-serif;
+      font-size: 2.7rem;
+      letter-spacing: 2.5px;
+      background: linear-gradient(90deg, #fff176 10%, #00c6ff 90%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 900;
+      text-shadow: 0 2px 10px rgba(0,123,255,0.15), 0 1px 0 #fff;
+      margin: 0 32px;
+      transition: text-shadow 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    /* Logo next to title */
+    .logo-title-container {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .site-logo {
+      height: 100px;
+      width: 100px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+      margin-left: 90px;
+      margin-right: 40px;
     }
 
     .button-container {
@@ -141,15 +211,19 @@
 </head>
 <body>
   <div class="menu">
-    <h1 class="menu-title">The Traze Maze</h1>
+    <div class="logo-title-container">
+      <img src="logo.jpg" alt="Site Logo" class="site-logo" />
+      <h1 class="menu-title">The Traze Maze</h1>
+    </div>
     <div class="menu-buttons-container">
       <button class="menu-button" onclick="window.location.href = 'index.html'">Home</button>
       <button class="selected-menu-button">How to Play</button>
       <button class="menu-button" onclick="window.location.href = 'about.html'">About</button>
-      <button class="menu-button" onclick="window.location.href = 'version.html'">Version</button>
+      <button class="menu-button version-adjust" onclick="window.location.href = 'version.html'">Version</button>
     </div>
   </div>
 
+  <div style="margin-top: 150px;">
   <h2 class = "left">How to Play</h2>
   <p class = "left">The objective of the game is to reach the red square as quickly as possible. You are a blue square, starting at the green square.</p>
   <p class = "left">Choose a mode and a maze size. You start as soon as you move. Use the arrow or WASD keys to navigate the maze.</p>
@@ -164,6 +238,7 @@
   
   <p class = "left"><i>Please note that this game is still under development and that these articles are subject to change without warning.</i></p>
   <p class = "small-left">By continuing to browse and play on our website, you agree not to sue, attack, or in any way harm the physical and mental well-being of the creator and maintainer of this website. ©Tim Tran 2023</p>
+  </div>
   
 </body>
 </html>

@@ -2,8 +2,7 @@
 <html>
 <head>
   <title>The Traze Maze</title>
-  <!-- Icon to be changed...-->
-  <link rel="icon" type="icon/x-image" href="https://www.w3schools.com/html/programming.gif">
+  <link rel="icon" type="icon/x-image" href="logo.jpg">
   <style>
     /* ========== Layout & Structure ========== */
     body {
@@ -81,7 +80,7 @@
       align-items: center;
     }
     .first {
-      margin-top: 80px; /* Add space between the first and second mode groups */
+      margin-top: 150px; /* Add space between the first and second mode groups */
     }
 
     /* ========== Text ========== */
@@ -195,6 +194,49 @@
       outline: 2px solid #ffd699;
     }
 
+    .button-container {
+      /* Ensure children are not squished when scaling */
+      align-items: flex-end;
+    }
+
+    .button-pair {
+      transition: transform 0.7s cubic-bezier(.4,2,.6,1), filter 0.25s;
+      z-index: 1;
+    }
+
+    .button-pair:hover,
+    .button-pair:focus-within {
+      transform: scale(1.13) translateY(-18px);
+      z-index: 2;
+      animation: floaty 1.6s infinite ease-in-out alternate;
+      filter: drop-shadow(0 8px 32px #2196f355);
+    }
+
+    .button-pair:hover ~ .button-pair,
+    .button-pair:focus-within ~ .button-pair,
+    .button-pair:not(:hover):not(:focus-within):not(:hover) {
+      /* This ensures all siblings after the hovered one shrink */
+      transform: scale(0.88);
+      filter: grayscale(0.3) brightness(0.93);
+      z-index: 0;
+    }
+
+    .button-container:hover .button-pair:not(:hover):not(:focus-within),
+    .button-container:focus-within .button-pair:not(:hover):not(:focus-within) {
+      /* Shrink all non-hovered pairs when any is hovered/focused */
+      transform: scale(0.88);
+      filter: grayscale(0.3) brightness(0.93);
+      z-index: 0;
+    }
+
+    @keyframes floaty {
+      0%   { transform: scale(1.13) translateY(-18px) translateX(0); }
+      25%  { transform: scale(1.15) translateY(-28px) translateX(8px); }
+      50%  { transform: scale(1.13) translateY(-18px) translateX(-8px);}
+      75%  { transform: scale(1.17) translateY(-32px) translateX(4px);}
+      100% { transform: scale(1.13) translateY(-18px) translateX(0);}
+    }
+
     /* ========== Images ========== */
     .button-img {
       width: 345px;
@@ -214,23 +256,43 @@
       user-select: none;
     }
 
+    /* Logo next to title */
+    .logo-title-container {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .site-logo {
+      height: 100px;
+      width: 100px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+      margin-left: 90px;
+      margin-right: 40px;
+    }
+
     /* ========== Miscellaneous ========== */
     audio {
       display: none;
     }
-  </style>
-</head>
-<body>
+    </style>
+  </head>
+  <body>
 
-  <div class="menu">
-    <h1 class="menu-title">The Traze Maze</h1>
+    <div class="menu">
+    <div class="logo-title-container">
+      <img src="logo.jpg" alt="Site Logo" class="site-logo" />
+      <h1 class="menu-title">The Traze Maze</h1>
+    </div>
     <div class="menu-buttons-container">
       <button class="selected-menu-button">Home</button>
       <button class="menu-button" onclick="window.location.href = 'howtoplay.html'">How to Play</button>
       <button class="menu-button" onclick="window.location.href = 'about.html'">About</button>
       <button class="menu-button version-adjust" onclick="window.location.href = 'version.html'">Version</button>
     </div>
-  </div>
+    </div>
   
   <!-- Add the dropdown menu -->
   <div class="mode-selector">
