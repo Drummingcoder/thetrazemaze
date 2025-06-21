@@ -180,8 +180,12 @@ var myLibrary = {
       return;
     }
 
-    let topPos = parseInt(player.style.top) / cellSize; // Divide by cellSize
-    let leftPos = parseInt(player.style.left) / cellSize; // Divide by cellSize
+    // Calculate sprite offset for proper positioning
+    const offsetX = (48 - cellSize) / 2; // Center horizontally  
+    const offsetY = (48 - cellSize) / 2; // Center vertically
+
+    let topPos = (parseInt(player.style.top) + offsetY) / cellSize; // Account for offset
+    let leftPos = (parseInt(player.style.left) + offsetX) / cellSize; // Account for offset
 
     if (event.key === "ArrowUp" || event.key === "w") {
       topPos--;
@@ -200,8 +204,13 @@ var myLibrary = {
       leftPos < mazeSize &&
       mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== 1
     ) {
-      player.style.top = topPos * cellSize + "px"; // Multiply by cellSize
-      player.style.left = leftPos * cellSize + "px"; // Multiply by cellSize
+      player.style.top = (topPos * cellSize - offsetY) + "px"; // Apply offset
+      player.style.left = (leftPos * cellSize - offsetX) + "px"; // Apply offset
+      
+      // Update camera position if zoom is enabled
+      if (typeof updateCameraPosition === 'function') {
+        updateCameraPosition();
+      }
     }
     if (multiple === "true") {
       if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
@@ -231,9 +240,18 @@ var myLibrary = {
 
           mazecount++;
 
-          player.style.top = startRow * cellSize + "px";
-          player.style.left = startCol * cellSize + "px";
+          // Calculate sprite offset for proper positioning
+          const offsetX = (48 - cellSize) / 2;
+          const offsetY = (48 - cellSize) / 2;
+          
+          player.style.top = (startRow * cellSize - offsetY) + "px";
+          player.style.left = (startCol * cellSize - offsetX) + "px";
           maze.appendChild(player);
+          
+          // Update camera position if zoom is enabled
+          if (typeof updateCameraPosition === 'function') {
+            updateCameraPosition();
+          }
         }, 200);
       }
       if (this.timeElapsed >= 30000) {
@@ -261,6 +279,7 @@ var myLibrary = {
           const bestTime = this.calculatePersonalBestTime(timeTaken, type);
           this.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
           endScreen.classList.remove("hidden");
+          audio.pause();
         }, 200);
       }
     }

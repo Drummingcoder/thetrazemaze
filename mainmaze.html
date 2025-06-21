@@ -14,17 +14,22 @@
       border: 2px solid black;
       margin: 0 auto;
       overflow: hidden;
+      transform-origin: 0 0; /* Use top-left origin for more camera freedom */
     }
 
     .cell {
       position: absolute;
-      border: 1px solid black;
     }
 
     .player {
       position: absolute;
-      background-color: blue;
-      transition: all 0.2s ease-in-out;
+      background-image: url('stickman-running-spritesheet.png');
+      background-size: 192px 192px; /* Larger for better quality when zoomed */
+      background-repeat: no-repeat;
+      background-position: 0px 0px; /* Start with down-facing frame 0 */
+      transition: all 0.1s ease-out;
+      image-rendering: pixelated; /* Keep crisp edges */
+      z-index: 10; /* Ensure player is always on top */
     }
   </style>
 </head>
@@ -92,8 +97,8 @@
       height: ${cellSize}px;
     }
     .player {
-      width: ${cellSize}px;
-      height: ${cellSize}px;
+      width: 48px;
+      height: 48px;
     }
   `;
   document.head.appendChild(style);
@@ -112,6 +117,198 @@
     let interval = false, startMaze;
     let first = 0;
     let mazecount = 0;
+    
+    // Movement state tracking
+    let keysPressed = {};
+    let movementInterval;
+    let currentDirection = null;
+    
+    // Animation tracking
+    let currentAnimationFrame = 0;
+    let animationInterval;
+    let playerDirection = 'down'; // Default facing down
+    
+    // Camera/Zoom system
+    let isZoomedIn = false;
+    let zoomScale = 1;
+    let cameraFollowEnabled = false;
+    
+    // Track player grid position for accurate camera positioning
+    let currentPlayerRow = 1; // Starting position
+    let currentPlayerCol = 1; // Starting position
+    
+    // Camera smoothing
+    let targetCameraX = 0;
+    let targetCameraY = 0;
+    let currentCameraX = 0;
+    let currentCameraY = 0;
+    let cameraSmoothing = 0.15; // Smooth interpolation factor
+    let cameraAnimationId = null;
+    
+    // Smooth camera animation loop
+    function animateCamera() {
+      if (cameraFollowEnabled) {
+        updateCameraPosition();
+      }
+      cameraAnimationId = requestAnimationFrame(animateCamera);
+    }
+    
+    // Animation functions
+    function updatePlayerAnimation() {
+      const directions = {
+        'down': 0,   // Row 0
+        'left': 1,   // Row 1  
+        'right': 2,  // Row 2
+        'up': 3      // Row 3
+      };
+      
+      const row = directions[playerDirection];
+      const col = currentAnimationFrame;
+      
+      // Calculate background position (using pixels for precise positioning)
+      // Each sprite is 32px, but we're scaling to 48px for better quality
+      const x = -(col * 48); // Scale up the offset
+      const y = -(row * 48); // Scale up the offset
+      
+      player.style.backgroundPosition = `${x}px ${y}px`;
+    }
+    
+    function startAnimation() {
+      if (!animationInterval) {
+        animationInterval = setInterval(() => {
+          currentAnimationFrame = (currentAnimationFrame + 1) % 4;
+          updatePlayerAnimation();
+        }, 120); // Slightly faster animation for more natural running
+      }
+    }
+    
+    function stopAnimation() {
+      if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+        currentAnimationFrame = 0;
+        updatePlayerAnimation();
+      }
+    }
+    
+    // Camera/Zoom functions
+    function zoomInOnPlayer() {
+      if (!isZoomedIn) {
+        isZoomedIn = true;
+        
+        // Calculate zoom level based on maze size for optimal view
+        // Balanced zoom to keep player visible while showing enough context
+        if (difficulty === 'small') {
+          zoomScale = 2.8; // Small maze - moderate zoom
+        } else if (difficulty === 'biggest') {
+          zoomScale = 4.5; // Big maze - higher zoom but not excessive
+        } else {
+          zoomScale = 3.5; // Medium maze - balanced zoom
+        }
+        
+        // First, center the camera exactly on the player
+        centerCameraOnPlayer();
+        
+        // Small delay before enabling look-ahead following
+        setTimeout(() => {
+          cameraFollowEnabled = true;
+          maze.classList.add('following'); // Faster transition for following
+          updateCameraPosition();
+          
+          // Start smooth camera animation loop
+          if (!cameraAnimationId) {
+            animateCamera();
+          }
+        }, 200);
+      }
+    }
+    
+    function centerCameraOnPlayer() {
+      // Get the actual player position from style
+      const playerStyleX = parseInt(player.style.left) || 0;
+      const playerStyleY = parseInt(player.style.top) || 0;
+      
+      // Calculate player center (add half sprite size for true center)
+      const playerCenterX = playerStyleX + 24;
+      const playerCenterY = playerStyleY + 24;
+      
+      console.log('INITIAL CENTER - Player center:', playerCenterX, playerCenterY);
+      console.log('INITIAL CENTER - Zoom scale:', zoomScale);
+      
+      // Set transform-origin to the player's center position
+      maze.style.transformOrigin = `${playerCenterX}px ${playerCenterY}px`;
+      
+      // Calculate viewport center
+      const viewportCenterX = mazeContainerSize / 2;
+      const viewportCenterY = mazeContainerSize / 2;
+      
+      // Calculate translation needed to center player in viewport
+      targetCameraX = (viewportCenterX - playerCenterX) / zoomScale;
+      targetCameraY = (viewportCenterY - playerCenterY) / zoomScale;
+      
+      // Set initial camera position immediately (no smoothing for first center)
+      currentCameraX = targetCameraX;
+      currentCameraY = targetCameraY;
+      
+      console.log('INITIAL CENTER - Camera position:', currentCameraX, currentCameraY);
+      
+      // Apply initial centered zoom
+      maze.style.transform = `scale(${zoomScale}) translate(${currentCameraX}px, ${currentCameraY}px)`;
+    }
+    
+    function updateCameraPosition() {
+      if (!cameraFollowEnabled) return;
+      
+      // Get current player position
+      const playerStyleX = parseInt(player.style.left) || 0;
+      const playerStyleY = parseInt(player.style.top) || 0;
+      
+      // Calculate player center
+      const playerCenterX = playerStyleX + 24;
+      const playerCenterY = playerStyleY + 24;
+      
+      // Dynamically set transform-origin to the player's center position
+      maze.style.transformOrigin = `${playerCenterX}px ${playerCenterY}px`;
+      
+      // Calculate where camera should be to center the player
+      const viewportCenterX = mazeContainerSize / 2;
+      const viewportCenterY = mazeContainerSize / 2;
+      
+      // Update target camera position
+      targetCameraX = (viewportCenterX - playerCenterX) / zoomScale;
+      targetCameraY = (viewportCenterY - playerCenterY) / zoomScale;
+      
+      // Smooth interpolation towards target
+      currentCameraX += (targetCameraX - currentCameraX) * cameraSmoothing;
+      currentCameraY += (targetCameraY - currentCameraY) * cameraSmoothing;
+      
+      console.log('Player center:', playerCenterX, playerCenterY);
+      console.log('Target camera:', targetCameraX, targetCameraY);
+      console.log('Current camera:', currentCameraX, currentCameraY);
+      
+      // Apply smooth camera transform
+      maze.style.transform = `scale(${zoomScale}) translate(${currentCameraX}px, ${currentCameraY}px)`;
+    }
+    
+    function resetCamera() {
+      isZoomedIn = false;
+      cameraFollowEnabled = false;
+      zoomScale = 1;
+      maze.classList.remove('following');
+      maze.style.transform = 'scale(1) translate(0px, 0px)';
+      
+      // Stop camera animation
+      if (cameraAnimationId) {
+        cancelAnimationFrame(cameraAnimationId);
+        cameraAnimationId = null;
+      }
+      
+      // Reset camera position
+      currentCameraX = 0;
+      currentCameraY = 0;
+      targetCameraX = 0;
+      targetCameraY = 0;
+    }
 
     myLibrary.generateStartAndEndPositions();
     myLibrary.generateRandomMaze();
@@ -124,26 +321,132 @@
 
     const player = document.createElement("div");
     player.className = "player";
-    player.style.top = startRow * cellSize + "px";
-    player.style.left = startCol * cellSize + "px";
+    // Center the 48px sprite within the cell
+    const offsetX = (48 - cellSize) / 2; // Center horizontally
+    const offsetY = (48 - cellSize) / 2; // Center vertically
+    player.style.top = (startRow * cellSize - offsetY) + "px";
+    player.style.left = (startCol * cellSize - offsetX) + "px";
     maze.appendChild(player);
+    
+    // Initialize the player sprite
+    updatePlayerAnimation();
 
   window.addEventListener("keydown", (event) => {
-  if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
-    if (!interval) {
-      interval = true;
-      const { startTime: capturedStartTime, interval: capturedInterval } = myLibrary.startTimer(timerElement);
-      startTime = capturedStartTime;
-    }
-    if (first === 0)
-    {
+    if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
+      event.preventDefault();
+      
+      if (!interval) {
+        interval = true;
+        const { startTime: capturedStartTime, interval: capturedInterval } = myLibrary.startTimer(timerElement);
+        startTime = capturedStartTime;
+      }
+      if (first === 0) {
         myLibrary.playMusic();
         first++;
+      }
+      
+      // Update player direction for animation
+      if (event.key === "ArrowUp" || event.key === "w") {
+        playerDirection = 'up';
+      } else if (event.key === "ArrowDown" || event.key === "s") {
+        playerDirection = 'down';
+      } else if (event.key === "ArrowLeft" || event.key === "a") {
+        playerDirection = 'left';
+      } else if (event.key === "ArrowRight" || event.key === "d") {
+        playerDirection = 'right';
+      }
+      
+      // Start animation
+      startAnimation();
+      
+      // Zoom in on first movement
+      if (!isZoomedIn) {
+        zoomInOnPlayer();
+      }
+      
+      // Only process if this key wasn't already pressed (prevents auto-repeat)
+      if (!keysPressed[event.key]) {
+        // Mark key as pressed
+        keysPressed[event.key] = true;
+        
+        // Immediate movement on first keypress
+        myLibrary.movePlayer(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
+        
+        // Start continuous movement after a delay if key is still held
+        if (!movementInterval) {
+          setTimeout(() => {
+            if (keysPressed[event.key]) {
+              startContinuousMovement();
+            }
+          }, 100); // Small delay before continuous movement starts
+        }
+      }
     }
-    myLibrary.movePlayer(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval); // Call movePlayer function when arrow keys or WASD keys are pressed
+  });
+
+  window.addEventListener("keyup", (event) => {
+    if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
+      // Mark key as released
+      keysPressed[event.key] = false;
+      
+      // Check if any movement keys are still pressed
+      const movementKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"];
+      const anyKeyPressed = movementKeys.some(key => keysPressed[key]);
+      
+      // Stop continuous movement and animation if no keys are pressed
+      if (!anyKeyPressed) {
+        if (movementInterval) {
+          clearInterval(movementInterval);
+          movementInterval = null;
+          currentDirection = null;
+        }
+        stopAnimation();
+      }
+    }
+  });
+
+  function startContinuousMovement() {
+    movementInterval = setInterval(() => {
+      // Determine current direction based on pressed keys
+      let direction = null;
+      
+      if (keysPressed["ArrowUp"] || keysPressed["w"]) {
+        direction = "up";
+        playerDirection = 'up';
+      } else if (keysPressed["ArrowDown"] || keysPressed["s"]) {
+        direction = "down";
+        playerDirection = 'down';
+      } else if (keysPressed["ArrowLeft"] || keysPressed["a"]) {
+        direction = "left";
+        playerDirection = 'left';
+      } else if (keysPressed["ArrowRight"] || keysPressed["d"]) {
+        direction = "right";
+        playerDirection = 'right';
+      }
+      
+      if (direction) {
+        // Create a synthetic event for the movement
+        const syntheticEvent = {
+          key: direction === "up" ? "ArrowUp" : 
+               direction === "down" ? "ArrowDown" :
+               direction === "left" ? "ArrowLeft" : "ArrowRight",
+          preventDefault: () => {}
+        };
+        
+        myLibrary.movePlayer(syntheticEvent, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
+      } else {
+        // No keys pressed, stop movement and animation
+        clearInterval(movementInterval);
+        movementInterval = null;
+        currentDirection = null;
+        stopAnimation();
+      }
+    }, 50); // Continuous movement speed
   }
-});
-    restartButton.addEventListener("click", myLibrary.restartMaze);
+    restartButton.addEventListener("click", function() {
+      resetCamera();
+      myLibrary.restartMaze();
+    });
     backButton.addEventListener("click", myLibrary.goBack);
 
     backButton.style.display = "inline-block";
