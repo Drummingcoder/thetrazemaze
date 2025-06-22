@@ -133,11 +133,14 @@
     <button id="restart-button">Restart Maze</button>
   </div>
   
-  <script src="./library.js"></script>
+  <script src="./newlibrary.js"></script>
 
   <script>
+    console.log('Script section started');
+    
     // Preload assets immediately when script loads
     window.addEventListener('DOMContentLoaded', function() {
+      console.log('DOMContentLoaded event fired');
       // Preload audio
       myLibrary.preloadAudio();
       
@@ -150,6 +153,8 @@
         document.body.appendChild(img);
       });
     });
+    
+    console.log('About to check myLibrary:', typeof myLibrary);
  
   var searchParams = new URLSearchParams(window.location.search);
   var type = searchParams.get('type');
@@ -157,25 +162,25 @@
   var difficulty = searchParams.get('difficulty') || 'medium'; // Default to medium if not specified
   var mode = searchParams.get('mode') || 'hard'; // Default to hard mode if not specified
   
-  // Set maze properties based on difficulty
-  let mazeSize, cellSize, mazeContainerSize;
+  // Set maze properties based on difficulty - very large dense mazes with 3-wide corridors
+  var mazeSize, cellSize, mazeContainerSize; // Make global for library.js
   
   if (difficulty === 'small') {
-    mazeSize = 15;
-    cellSize = 40;
-    mazeContainerSize = 600;
+    mazeSize = 401; // Large dense maze with viewport rendering (4n+1 pattern)
+    cellSize = 4; // Good cells for viewport rendering
+    mazeContainerSize = 800; // Container for better cells
   } else if (difficulty === 'biggest') {
-    mazeSize = 61;
-    cellSize = 10;
-    mazeContainerSize = 610;
+    mazeSize = 801; // Massive dense maze possible with viewport rendering
+    cellSize = 3; // Smaller cells for huge maze
+    mazeContainerSize = 900; // Large container
   } else { // medium (default)
-    mazeSize = 35;
-    cellSize = 18;
-    mazeContainerSize = 630;
+    mazeSize = 601; // Large medium dense maze
+    cellSize = 3.5; // Good visibility for medium maze
+    mazeContainerSize = 850; // Medium container
   }
   
   // Set easy flag based on mode
-  let easy = (mode === 'easy');
+  var easy = (mode === 'easy'); // Make global for library.js
   
   // Apply dynamic styling
   const mazeElement = document.getElementById("maze");
@@ -190,13 +195,13 @@
       height: ${cellSize}px;
     }
     .player {
-      width: 48px;
-      height: 48px;
+      width: ${Math.max(6, cellSize * 3)}px;
+      height: ${Math.max(6, cellSize * 3)}px;
     }
   `;
   document.head.appendChild(style);
 
-    const maze = document.getElementById("maze");
+    var maze = document.getElementById("maze"); // Make global for library.js
     const timerElement = document.getElementById("timer");
     const endScreen = document.getElementById("end-screen");
     const restartButton = document.getElementById("restart-button");
@@ -205,11 +210,11 @@
     const personalbest = document.getElementById("personal-best");
     const newpersonalbest = document.getElementById("new-personal-best");
 
-    let mazeStructure, startRow, startCol, endRow, endCol;
+    var mazeStructure, startRow, startCol, endRow, endCol; // Make global for library.js
     let time = 0;
     let interval = false, startMaze;
     let first = 0;
-    let mazecount = 0;
+    var mazecount = 0; // Make global for library.js
     
     // Movement state tracking
     let keysPressed = {};
@@ -306,13 +311,13 @@
         isZoomedIn = true;
         
         // Calculate zoom level based on maze size for optimal view
-        // Balanced zoom to keep player visible while showing enough context
+        // Moderate zoom levels for large mazes with visible cells
         if (difficulty === 'small') {
-          zoomScale = 2.8; // Small maze - moderate zoom
+          zoomScale = 4; // Moderate zoom for 500+ maze with 4px cells
         } else if (difficulty === 'biggest') {
-          zoomScale = 4.5; // Big maze - higher zoom but not excessive
+          zoomScale = 6; // Higher zoom for 800+ maze with 3px cells
         } else {
-          zoomScale = 3.5; // Medium maze - balanced zoom
+          zoomScale = 5; // Balanced zoom for 600+ maze with 3.5px cells
         }
         
         // First, center the camera exactly on the player
@@ -337,9 +342,10 @@
       const playerStyleX = parseInt(player.style.left) || 0;
       const playerStyleY = parseInt(player.style.top) || 0;
       
-      // Calculate player center (add half sprite size for true center)
-      const playerCenterX = playerStyleX + 24;
-      const playerCenterY = playerStyleY + 24;
+      // Calculate player center using dynamic player size
+      const playerSize = Math.max(6, cellSize * 3);
+      const playerCenterX = playerStyleX + playerSize / 2;
+      const playerCenterY = playerStyleY + playerSize / 2;
       
       console.log('INITIAL CENTER - Player center:', playerCenterX, playerCenterY);
       console.log('INITIAL CENTER - Zoom scale:', zoomScale);
@@ -372,9 +378,10 @@
       const playerStyleX = parseInt(player.style.left) || 0;
       const playerStyleY = parseInt(player.style.top) || 0;
       
-      // Calculate player center
-      const playerCenterX = playerStyleX + 24;
-      const playerCenterY = playerStyleY + 24;
+      // Calculate player center using dynamic player size
+      const playerSize = Math.max(6, cellSize * 3);
+      const playerCenterX = playerStyleX + playerSize / 2;
+      const playerCenterY = playerStyleY + playerSize / 2;
       
       // Dynamically set transform-origin to the player's center position
       maze.style.transformOrigin = `${playerCenterX}px ${playerCenterY}px`;
@@ -419,20 +426,31 @@
       targetCameraY = 0;
     }
 
+  console.log('About to call generateStartAndEndPositions');
     myLibrary.generateStartAndEndPositions();
+    console.log('Generated start/end positions:', startRow, startCol, endRow, endCol);
+    
     myLibrary.generateRandomMaze();
+    console.log('Generated random maze structure');
+    
     if (easy) {
       myLibrary.generateEasyPath();
     } else {
       myLibrary.generateClearPath();
     }
+    console.log('Generated maze paths');
+    
     myLibrary.createMaze();
+    console.log('Created maze DOM elements');
+    console.log('Maze size:', mazeSize, 'Cell size:', cellSize);
 
-    const player = document.createElement("div");
+    var player = document.createElement("div"); // Make global for library.js
     player.className = "player";
-    // Center the 48px sprite within the cell
-    const offsetX = (48 - cellSize) / 2; // Center horizontally
-    const offsetY = (48 - cellSize) / 2; // Center vertically
+    // Calculate dynamic player size based on cell size
+    const playerSize = Math.max(6, cellSize * 3);
+    // Center the dynamic-sized sprite within the cell
+    const offsetX = (playerSize - cellSize) / 2; // Center horizontally
+    const offsetY = (playerSize - cellSize) / 2; // Center vertically
     player.style.top = (startRow * cellSize - offsetY) + "px";
     player.style.left = (startCol * cellSize - offsetX) + "px";
     maze.appendChild(player);
