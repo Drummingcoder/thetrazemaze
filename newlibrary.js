@@ -515,6 +515,11 @@ var myLibrary = {
   },
 
   updateViewport: function(playerRow, playerCol, forceUpdate = false) {
+    // Safety check: ensure viewport rendering is initialized
+    if (!this.renderedCells || this.lastPlayerRow === undefined || this.lastPlayerCol === undefined) {
+      return;
+    }
+    
     const rowDiff = Math.abs(playerRow - this.lastPlayerRow);
     const colDiff = Math.abs(playerCol - this.lastPlayerCol);
     
@@ -558,15 +563,12 @@ var myLibrary = {
       }
     }
     
-    // Hide preview canvas once interactive elements are loaded
+    // Hide preview canvas immediately since we start zoomed in
     if (forceUpdate) {
-      setTimeout(() => {
-        const preview = document.getElementById('maze-preview');
-        if (preview) {
-          preview.style.opacity = '0.3'; // Fade but keep for reference
-          preview.style.zIndex = '0'; // Move behind interactive elements
-        }
-      }, 100);
+      const preview = document.getElementById('maze-preview');
+      if (preview) {
+        preview.style.display = 'none'; // Hide completely since we start zoomed
+      }
     }
   },
 
@@ -605,13 +607,13 @@ var myLibrary = {
       return;
     }
 
-    // Calculate dynamic player size and sprite offset for proper positioning
-    const playerSize = Math.max(6, cellSize * 3);
-    const offsetX = (playerSize - cellSize) / 2; // Center horizontally  
-    const offsetY = (playerSize - cellSize) / 2; // Center vertically
+    // Use simple positioning for the blue square player (no sprite offsets needed)
+    // Since we're using a centered square that's 80% of cell size, no offset is needed
+    const offsetX = 0; // No offset needed for simple square player
+    const offsetY = 0; // No offset needed for simple square player
 
-    let topPos = (parseInt(player.style.top) + offsetY) / cellSize; // Account for offset
-    let leftPos = (parseInt(player.style.left) + offsetX) / cellSize; // Account for offset
+    let topPos = (parseInt(player.style.top) + offsetY) / cellSize; // No offset applied
+    let leftPos = (parseInt(player.style.left) + offsetX) / cellSize; // No offset applied
 
     if (event.key === "ArrowUp" || event.key === "w") {
       topPos--;
@@ -634,15 +636,18 @@ var myLibrary = {
       mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== undefined && // Ensure cell exists
       mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== 1 // Ensure it's not a wall
     ) {
-      player.style.top = (topPos * cellSize - offsetY) + "px"; // Apply offset
-      player.style.left = (leftPos * cellSize - offsetX) + "px"; // Apply offset
+      player.style.top = (topPos * cellSize - offsetY) + "px"; // No offset subtracted
+      player.style.left = (leftPos * cellSize - offsetX) + "px"; // No offset subtracted
       
       // Update viewport based on new player position
       this.updateViewport(Math.floor(topPos), Math.floor(leftPos));
       
-      // Update camera position if zoom is enabled
-      if (typeof updateCameraPosition === 'function') {
-        updateCameraPosition();
+      // Update player position variables and camera position if zoom is enabled
+      if (typeof updatePlayerPosition === 'function') {
+        updatePlayerPosition();
+      }
+      if (typeof updateCamera === 'function') {
+        updateCamera();
       }
     }
     if (multiple === "true") {
@@ -686,8 +691,8 @@ var myLibrary = {
           this.updateViewport(startRow, startCol, true);
           
           // Update camera position if zoom is enabled
-          if (typeof updateCameraPosition === 'function') {
-            updateCameraPosition();
+          if (typeof updateCamera === 'function') {
+            updateCamera();
           }
         }, 200);
       }

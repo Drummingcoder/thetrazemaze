@@ -75,31 +75,16 @@
       box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
     }
 
-    #maze {
+    #maze-container {
       position: relative;
-      margin: 0 auto;
       overflow: hidden;
-      transform-origin: 0 0; /* Use top-left origin for more camera freedom */
-      background-color: #87CEEB; /* Light blue background for maze area */
-      border: 3px solid #FF8C00; /* Orange border for the entire maze */
-      border-radius: 8px;
+      /* Dynamic sizing will be applied via JavaScript */
     }
 
-    .cell {
-      position: absolute;
-    }
-
-    .player {
-      position: absolute;
-      background-image: url('stickman-running-spritesheet.png');
-      background-size: 192px 192px; /* Larger for better quality when zoomed */
-      background-repeat: no-repeat;
-      background-position: 0px 0px; /* Start with down-facing frame 0 */
-      transition: none; /* Remove transition for better performance */
+    #maze-canvas {
+      display: block;
       image-rendering: pixelated; /* Keep crisp edges */
-      z-index: 10; /* Ensure player is always on top */
-      will-change: background-position, transform; /* Optimize for sprite animation and movement */
-      transform: translateZ(0); /* Force hardware acceleration */
+      /* Dynamic sizing and positioning will be applied via JavaScript */
     }
     
     /* Preload critical images */
@@ -117,7 +102,9 @@
   <!-- <div class="waving-stickman stickman-right"></div> -->
   
   <div id="timer">00:00.000</div>
-  <div id="maze"></div>
+  <div id="maze-container">
+    <canvas id="maze-canvas"></canvas>
+  </div>
 
   <div id="end-screen" class="hidden">
   <button id="back-button">Back</button>
@@ -136,11 +123,16 @@
   <script src="./newlibrary.js"></script>
 
   <script>
-    console.log('Script section started');
+    // FORCE CLEAR all browser storage to prevent any data persistence between sessions
+    try {
+      sessionStorage.clear();
+      // Don't clear localStorage as it contains best times
+    } catch (e) {
+      // Silently handle storage errors
+    }
     
     // Preload assets immediately when script loads
     window.addEventListener('DOMContentLoaded', function() {
-      console.log('DOMContentLoaded event fired');
       // Preload audio
       myLibrary.preloadAudio();
       
@@ -153,8 +145,6 @@
         document.body.appendChild(img);
       });
     });
-    
-    console.log('About to check myLibrary:', typeof myLibrary);
  
   var searchParams = new URLSearchParams(window.location.search);
   var type = searchParams.get('type');
@@ -162,46 +152,125 @@
   var difficulty = searchParams.get('difficulty') || 'medium'; // Default to medium if not specified
   var mode = searchParams.get('mode') || 'hard'; // Default to hard mode if not specified
   
-  // Set maze properties based on difficulty - very large dense mazes with 3-wide corridors
-  var mazeSize, cellSize, mazeContainerSize; // Make global for library.js
+  // Complex navigable maze with 4x4 path areas and 2x2 walls - designed for challenge and fun (1 = wall, 0 = path)
+  const predefinedMaze = [
+     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+  ];
   
-  if (difficulty === 'small') {
-    mazeSize = 401; // Large dense maze with viewport rendering (4n+1 pattern)
-    cellSize = 4; // Good cells for viewport rendering
-    mazeContainerSize = 800; // Container for better cells
-  } else if (difficulty === 'biggest') {
-    mazeSize = 801; // Massive dense maze possible with viewport rendering
-    cellSize = 3; // Smaller cells for huge maze
-    mazeContainerSize = 900; // Large container
-  } else { // medium (default)
-    mazeSize = 601; // Large medium dense maze
-    cellSize = 3.5; // Good visibility for medium maze
-    mazeContainerSize = 850; // Medium container
+  // Set maze size based on predefined maze
+  mazeSize = predefinedMaze.length;
+  
+  // Calculate the maximum possible cell size to fill the screen
+  const availableWidth = window.innerWidth;
+  const availableHeight = window.innerHeight;
+  
+  // Calculate cell size based on screen dimensions and maze size
+  const maxCellSizeWidth = Math.floor(availableWidth / mazeSize);
+  const maxCellSizeHeight = Math.floor(availableHeight / mazeSize);
+  
+  // Use the smaller of the two to ensure the maze fits in both dimensions
+  cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
+  
+  // Ensure minimum cell size for playability (but don't limit maximum)
+  if (cellSize < 3) {
+    cellSize = 3; // Minimum viable cell size
   }
+  
+  // Calculate actual maze dimensions in pixels
+  const mazeWidthPx = mazeSize * cellSize;
+  const mazeHeightPx = mazeSize * cellSize;
   
   // Set easy flag based on mode
   var easy = (mode === 'easy'); // Make global for library.js
   
   // Apply dynamic styling
-  const mazeElement = document.getElementById("maze");
+  const mazeContainer = document.getElementById("maze-container");
+  const canvas = document.getElementById("maze-canvas");
+  const ctx = canvas.getContext("2d");
+  
+  // Set canvas size to the actual maze size
+  canvas.width = mazeWidthPx;
+  canvas.height = mazeHeightPx;
+  
+  // Make the container fill the screen and center the maze
   const style = document.createElement('style');
   style.textContent = `
-    #maze {
-      width: ${mazeContainerSize}px;
-      height: ${mazeContainerSize}px;
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: relative;
+      min-height: 100vh;
+      min-width: 100vw;
     }
-    .cell {
-      width: ${cellSize}px;
-      height: ${cellSize}px;
+    #maze-container {
+      width: ${mazeWidthPx}px;
+      height: ${mazeHeightPx}px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: visible;
     }
-    .player {
-      width: ${Math.max(6, cellSize * 3)}px;
-      height: ${Math.max(6, cellSize * 3)}px;
+    #maze-canvas {
+      display: block;
+      image-rendering: pixelated;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
     }
   `;
   document.head.appendChild(style);
 
-    var maze = document.getElementById("maze"); // Make global for library.js
+    var maze = document.getElementById("maze-container"); // Make global for library.js
     const timerElement = document.getElementById("timer");
     const endScreen = document.getElementById("end-screen");
     const restartButton = document.getElementById("restart-button");
@@ -216,253 +285,319 @@
     let first = 0;
     var mazecount = 0; // Make global for library.js
     
+    // Canvas rendering system - simplified with square player - EXPLICITLY DECLARE ALL VARIABLES
+    // FORCE RESET to 0 to prevent any persistence across reloads
+    let playerX = 0, playerY = 0; // Player position in pixels - EXPLICITLY RESET TO 0
+    
+    // NEW SIMPLIFIED CAMERA SYSTEM - COMPLETE REPLACEMENT
+    let cameraX = 0;
+    let cameraY = 0;
+    let currentZoom = 1.0;
+    let cameraEnabled = false;
+    
+    // Canvas maze rendering functions with optimization
+    let renderPending = false;
+    let lastRenderTime = 0;
+    const RENDER_THROTTLE = 16; // ~60 FPS max
+    
+    function drawMaze() {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Set maze colors
+      const wallColor = '#000000';      // Black walls
+      const pathColor = '#87CEEB';      // Light blue paths
+      const startColor = '#00FF00';     // Green start
+      const endColor = '#FF0000';       // Red end
+      
+      // Draw the entire maze for now to avoid viewport calculation issues
+      // Only optimize with viewport rendering once camera centering is working
+      for (let row = 0; row < mazeSize; row++) {
+        for (let col = 0; col < mazeSize; col++) {
+          const x = col * cellSize;
+          const y = row * cellSize;
+          
+          let color = wallColor;
+          if (mazeStructure && mazeStructure[row] && mazeStructure[row][col] === 0) {
+            color = pathColor;
+            
+            if (row === startRow && col === startCol) {
+              color = startColor;
+            } else if (row === endRow && col === endCol) {
+              color = endColor;
+            }
+          }
+          
+          ctx.fillStyle = color;
+          ctx.fillRect(x, y, cellSize, cellSize);
+        }
+      }
+    }
+    
+    function drawPlayer() {
+      // Simple square player instead of animated sprite
+      const spriteSize = cellSize * 0.8; // 80% of cell size to avoid wall clipping
+      
+      // Center the square within the cell to avoid wall clipping
+      const centerOffset = (cellSize - spriteSize) / 2;
+      
+      // Draw player at the exact pixel position (playerX, playerY)
+      const destX = playerX + centerOffset;
+      const destY = playerY + centerOffset;
+      
+      // Ensure player is visible by using high contrast colors
+      ctx.fillStyle = '#0066FF'; // Blue player square
+      ctx.fillRect(destX, destY, spriteSize, spriteSize);
+      
+      // Add a white border around the player for better visibility
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = Math.max(1, cellSize * 0.05); // Scale border with cell size
+      ctx.strokeRect(destX, destY, spriteSize, spriteSize);
+    }
+    
+    function renderFrame() {
+      const now = performance.now();
+      if (renderPending || (now - lastRenderTime < RENDER_THROTTLE)) return; // Throttle to ~60 FPS
+      
+      renderPending = true;
+      lastRenderTime = now;
+      
+      requestAnimationFrame(() => {
+        try {
+          drawMaze();
+          drawPlayer();
+          renderPending = false;
+        } catch (error) {
+          console.error('Error in renderFrame:', error);
+          renderPending = false;
+        }
+      });
+    }
+    
+    function updatePlayerPosition(newRow, newCol) {
+      // If called with parameters, update to specific position
+      if (newRow !== undefined && newCol !== undefined) {
+        playerX = newCol * cellSize;
+        playerY = newRow * cellSize;
+      }
+      // Otherwise, sync with current player object position
+      else {
+        const currentX = parseInt(player.style.left);
+        const currentY = parseInt(player.style.top);
+        
+        // Only update if significantly different
+        const threshold = cellSize * 0.1;
+        if (Math.abs(playerX - currentX) > threshold) {
+          playerX = currentX;
+        }
+        if (Math.abs(playerY - currentY) > threshold) {
+          playerY = currentY;
+        }
+      }
+      
+      // Update camera and render
+      if (cameraEnabled) {
+        updateCamera();
+      }
+      renderFrame();
+    }
+    
     // Movement state tracking
     let keysPressed = {};
     let movementInterval;
     let currentDirection = null;
     
-    // Animation tracking
-    let currentAnimationFrame = 0;
-    let animationInterval;
-    let playerDirection = 'down'; // Default facing down
-    let animationReady = false; // Track if animation system is warmed up
-    
     // Pre-warm animation system to reduce first-run lag
     function prepareAnimationSystem() {
       // Create a test animation cycle to warm up the browser's animation engine
-      if (!animationReady) {
-        // Simulate one frame update to initialize the animation system
-        updatePlayerAnimation();
-        animationReady = true;
-      }
+      renderFrame();
     }
     
-    // Camera/Zoom system
-    let isZoomedIn = false;
-    let zoomScale = 1;
-    let cameraFollowEnabled = false;
-    
-    // Track player grid position for accurate camera positioning
-    let currentPlayerRow = 1; // Starting position
-    let currentPlayerCol = 1; // Starting position
-    
-    // Camera smoothing
-    let targetCameraX = 0;
-    let targetCameraY = 0;
-    let currentCameraX = 0;
-    let currentCameraY = 0;
-    let cameraSmoothing = 0.15; // Smooth interpolation factor
-    let cameraAnimationId = null;
-    
-    // Smooth camera animation loop
-    function animateCamera() {
-      if (cameraFollowEnabled) {
-        updateCameraPosition();
-      }
-      cameraAnimationId = requestAnimationFrame(animateCamera);
-    }
-    
-    // Animation functions
-    function updatePlayerAnimation() {
-      const directions = {
-        'down': 0,   // Row 0
-        'left': 1,   // Row 1  
-        'right': 2,  // Row 2
-        'up': 3      // Row 3
-      };
+    // NEW SIMPLIFIED CAMERA SYSTEM - COMPLETE REPLACEMENT
+    function initializeNewCamera() {
+      // Calculate optimal zoom level
+      const viewportW = window.innerWidth;
+      const viewportH = window.innerHeight;
+      const smallerDimension = Math.min(viewportW, viewportH);
       
-      const row = directions[playerDirection];
-      const col = currentAnimationFrame;
+      // Show about 12-15 cells in the smaller screen dimension
+      const targetCellsVisible = 12;
+      currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * cellSize)));
       
-      // Calculate background position (using pixels for precise positioning)
-      // Each sprite is 32px, but we're scaling to 48px for better quality
-      const x = -(col * 48); // Scale up the offset
-      const y = -(row * 48); // Scale up the offset
+      // Center camera on player immediately
+      centerOnPlayer();
       
-      player.style.backgroundPosition = `${x}px ${y}px`;
+      // Enable camera following
+      cameraEnabled = true;
     }
-    
-    function startAnimation() {
-      if (!animationInterval) {
-        // Ensure animation system is ready
-        if (!animationReady) {
-          prepareAnimationSystem();
-        }
-        
-        animationInterval = setInterval(() => {
-          currentAnimationFrame = (currentAnimationFrame + 1) % 4;
-          updatePlayerAnimation();
-        }, 120); // Slightly faster animation for more natural running
-      }
+
+    function centerOnPlayer() {
+      // Get player's center position in world coordinates
+      const playerCenterX = playerX + (cellSize / 2);
+      const playerCenterY = playerY + (cellSize / 2);
+      
+      // Calculate where to position the canvas so player appears at screen center
+      const screenCenterX = window.innerWidth / 2;
+      const screenCenterY = window.innerHeight / 2;
+      
+      // Simple formula: translate = (screenCenter / zoom) - playerCenter
+      cameraX = (screenCenterX / currentZoom) - playerCenterX;
+      cameraY = (screenCenterY / currentZoom) - playerCenterY;
+      
+      // Apply the transform
+      applyCamera();
     }
-    
-    function stopAnimation() {
-      if (animationInterval) {
-        clearInterval(animationInterval);
-        animationInterval = null;
-        currentAnimationFrame = 0;
-        updatePlayerAnimation();
-      }
+
+    function applyCamera() {
+      canvas.style.transformOrigin = '0 0';
+      canvas.style.transform = `scale(${currentZoom}) translate(${cameraX}px, ${cameraY}px)`;
     }
-    
-    // Camera/Zoom functions
+
+    function updateCamera() {
+      if (!cameraEnabled) return;
+      centerOnPlayer(); // Just re-center on player - simple and reliable
+    }
+
+    // Replace the old camera functions
     function zoomInOnPlayer() {
-      if (!isZoomedIn) {
-        isZoomedIn = true;
-        
-        // Calculate zoom level based on maze size for optimal view
-        // Moderate zoom levels for large mazes with visible cells
-        if (difficulty === 'small') {
-          zoomScale = 4; // Moderate zoom for 500+ maze with 4px cells
-        } else if (difficulty === 'biggest') {
-          zoomScale = 6; // Higher zoom for 800+ maze with 3px cells
-        } else {
-          zoomScale = 5; // Balanced zoom for 600+ maze with 3.5px cells
-        }
-        
-        // First, center the camera exactly on the player
-        centerCameraOnPlayer();
-        
-        // Small delay before enabling look-ahead following
-        setTimeout(() => {
-          cameraFollowEnabled = true;
-          maze.classList.add('following'); // Faster transition for following
-          updateCameraPosition();
-          
-          // Start smooth camera animation loop
-          if (!cameraAnimationId) {
-            animateCamera();
-          }
-        }, 200);
-      }
+      initializeNewCamera();
     }
-    
+
     function centerCameraOnPlayer() {
-      // Get the actual player position from style
-      const playerStyleX = parseInt(player.style.left) || 0;
-      const playerStyleY = parseInt(player.style.top) || 0;
-      
-      // Calculate player center using dynamic player size
-      const playerSize = Math.max(6, cellSize * 3);
-      const playerCenterX = playerStyleX + playerSize / 2;
-      const playerCenterY = playerStyleY + playerSize / 2;
-      
-      console.log('INITIAL CENTER - Player center:', playerCenterX, playerCenterY);
-      console.log('INITIAL CENTER - Zoom scale:', zoomScale);
-      
-      // Set transform-origin to the player's center position
-      maze.style.transformOrigin = `${playerCenterX}px ${playerCenterY}px`;
-      
-      // Calculate viewport center
-      const viewportCenterX = mazeContainerSize / 2;
-      const viewportCenterY = mazeContainerSize / 2;
-      
-      // Calculate translation needed to center player in viewport
-      targetCameraX = (viewportCenterX - playerCenterX) / zoomScale;
-      targetCameraY = (viewportCenterY - playerCenterY) / zoomScale;
-      
-      // Set initial camera position immediately (no smoothing for first center)
-      currentCameraX = targetCameraX;
-      currentCameraY = targetCameraY;
-      
-      console.log('INITIAL CENTER - Camera position:', currentCameraX, currentCameraY);
-      
-      // Apply initial centered zoom
-      maze.style.transform = `scale(${zoomScale}) translate(${currentCameraX}px, ${currentCameraY}px)`;
+      centerOnPlayer();
     }
-    
+
     function updateCameraPosition() {
-      if (!cameraFollowEnabled) return;
-      
-      // Get current player position
-      const playerStyleX = parseInt(player.style.left) || 0;
-      const playerStyleY = parseInt(player.style.top) || 0;
-      
-      // Calculate player center using dynamic player size
-      const playerSize = Math.max(6, cellSize * 3);
-      const playerCenterX = playerStyleX + playerSize / 2;
-      const playerCenterY = playerStyleY + playerSize / 2;
-      
-      // Dynamically set transform-origin to the player's center position
-      maze.style.transformOrigin = `${playerCenterX}px ${playerCenterY}px`;
-      
-      // Calculate where camera should be to center the player
-      const viewportCenterX = mazeContainerSize / 2;
-      const viewportCenterY = mazeContainerSize / 2;
-      
-      // Update target camera position
-      targetCameraX = (viewportCenterX - playerCenterX) / zoomScale;
-      targetCameraY = (viewportCenterY - playerCenterY) / zoomScale;
-      
-      // Smooth interpolation towards target
-      currentCameraX += (targetCameraX - currentCameraX) * cameraSmoothing;
-      currentCameraY += (targetCameraY - currentCameraY) * cameraSmoothing;
-      
-      console.log('Player center:', playerCenterX, playerCenterY);
-      console.log('Target camera:', targetCameraX, targetCameraY);
-      console.log('Current camera:', currentCameraX, currentCameraY);
-      
-      // Apply smooth camera transform
-      maze.style.transform = `scale(${zoomScale}) translate(${currentCameraX}px, ${currentCameraY}px)`;
+      updateCamera();
     }
-    
+
     function resetCamera() {
-      isZoomedIn = false;
-      cameraFollowEnabled = false;
-      zoomScale = 1;
-      maze.classList.remove('following');
-      maze.style.transform = 'scale(1) translate(0px, 0px)';
-      
-      // Stop camera animation
-      if (cameraAnimationId) {
-        cancelAnimationFrame(cameraAnimationId);
-        cameraAnimationId = null;
+      cameraEnabled = false;
+      currentZoom = 1.0;
+      cameraX = 0;
+      cameraY = 0;
+      // Force reset the canvas transform
+      canvas.style.transform = 'scale(1) translate(0px, 0px)';
+      canvas.style.transformOrigin = '0 0';
+      // Clear any existing transforms
+      canvas.style.webkitTransform = 'scale(1) translate(0px, 0px)';
+    }
+
+    // Remove all the old camera animation complexity
+    function startCameraAnimation() {
+      // No animation needed - camera updates instantly
+      updateCamera();
+    }
+
+    // Setup predefined maze
+    mazeStructure = predefinedMaze;
+    
+    // Set start and end positions for the predefined maze
+    startRow = 2;  // In the expanded wide path area (top-left)
+    startCol = 2;
+    endRow = 46;   // Bottom right corner (last row - 1)
+    endCol = 46;   // Bottom right corner (last column - 1)
+    
+    // CRITICAL: Prevent any changes to start position
+    Object.defineProperty(window, 'startRow', {
+      value: 2,
+      writable: false,
+      configurable: false
+    });
+    Object.defineProperty(window, 'startCol', {
+      value: 2,
+      writable: false,
+      configurable: false
+    });
+    
+    // IMMEDIATE FORCE RESET player position to starting position (BEFORE ANY OTHER CODE)
+    // EXPLICIT reset with logging
+    playerX = startCol * cellSize;
+    playerY = startRow * cellSize;
+    
+    // Don't call createMaze since we're using our own Canvas rendering
+    // myLibrary.createMaze();
+
+    // Create a virtual player object that mimics DOM behavior for library compatibility
+    var player = {
+      style: {
+        get top() { 
+          return playerY + "px"; 
+        },
+        set top(value) { 
+          const newY = parseInt(value);
+          // Always update position, no threshold needed
+          playerY = newY;
+          // Update camera when player moves
+          if (cameraEnabled) {
+            updateCamera();
+          }
+          // Render immediately when player moves
+          renderFrame();
+        },
+        get left() { 
+          return playerX + "px"; 
+        },
+        set left(value) { 
+          const newX = parseInt(value);
+          // Always update position, no threshold needed
+          playerX = newX;
+          // Update camera when player moves
+          if (cameraEnabled) {
+            updateCamera();
+          }
+          // Render immediately when player moves
+          renderFrame();
+        }
       }
+    };
+    
+    // Initialize the canvas rendering system
+    function initializeGame() {
+      // FORCE RESET all state variables
+      playerIsMoving = false;
       
-      // Reset camera position
-      currentCameraX = 0;
-      currentCameraY = 0;
-      targetCameraX = 0;
-      targetCameraY = 0;
+      // FORCE RESET player position to starting position
+      playerX = startCol * cellSize;
+      playerY = startRow * cellSize;
+      
+      // Force a complete camera reset first
+      resetCamera();
+      
+      // Force initial render to ensure maze is visible
+      renderFrame();
+      prepareAnimationSystem();
+      
+      // Initialize new camera system after reset
+      setTimeout(() => {
+        initializeNewCamera();
+        // Force another render to ensure everything is visible
+        renderFrame();
+      }, 50); // Small delay to ensure reset is complete
     }
+    
+    // Force complete reset on page load
+    window.addEventListener('load', function() {
+      resetCamera();
+      initializeGame();
+    });
+    
+    // No need to wait for sprite loading - initialize immediately
+    initializeGame();
 
-  console.log('About to call generateStartAndEndPositions');
-    myLibrary.generateStartAndEndPositions();
-    console.log('Generated start/end positions:', startRow, startCol, endRow, endCol);
-    
-    myLibrary.generateRandomMaze();
-    console.log('Generated random maze structure');
-    
-    if (easy) {
-      myLibrary.generateEasyPath();
-    } else {
-      myLibrary.generateClearPath();
-    }
-    console.log('Generated maze paths');
-    
-    myLibrary.createMaze();
-    console.log('Created maze DOM elements');
-    console.log('Maze size:', mazeSize, 'Cell size:', cellSize);
-
-    var player = document.createElement("div"); // Make global for library.js
-    player.className = "player";
-    // Calculate dynamic player size based on cell size
-    const playerSize = Math.max(6, cellSize * 3);
-    // Center the dynamic-sized sprite within the cell
-    const offsetX = (playerSize - cellSize) / 2; // Center horizontally
-    const offsetY = (playerSize - cellSize) / 2; // Center vertically
-    player.style.top = (startRow * cellSize - offsetY) + "px";
-    player.style.left = (startCol * cellSize - offsetX) + "px";
-    maze.appendChild(player);
-    
-    // Initialize the player sprite and prepare animation system
-    updatePlayerAnimation();
-    prepareAnimationSystem();
-    
-    // Pre-warm the camera system
-    updateCameraPosition();
-
+  // Add 'y' key handler to log player position for manual bounds testing
   window.addEventListener("keydown", (event) => {
+    if (event.key === "y" || event.key === "Y") {
+      // Calculate player's grid position
+      const playerGridRow = Math.round(playerY / cellSize);
+      const playerGridCol = Math.round(playerX / cellSize);
+      const mazeCenter = Math.round(mazeSize / 2);
+      const distanceFromCenter = Math.sqrt(Math.pow(playerGridRow - mazeCenter, 2) + Math.pow(playerGridCol - mazeCenter, 2));
+      
+      console.log(`Player Position: Row ${playerGridRow}, Col ${playerGridCol} (distance from center: ${distanceFromCenter.toFixed(2)})`);
+      return;
+    }
+    
     if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
       event.preventDefault();
       
@@ -478,32 +613,31 @@
         first++;
       }
       
-      // Update player direction for animation
-      if (event.key === "ArrowUp" || event.key === "w") {
-        playerDirection = 'up';
-      } else if (event.key === "ArrowDown" || event.key === "s") {
-        playerDirection = 'down';
-      } else if (event.key === "ArrowLeft" || event.key === "a") {
-        playerDirection = 'left';
-      } else if (event.key === "ArrowRight" || event.key === "d") {
-        playerDirection = 'right';
-      }
+      // COMMENTED OUT - Update player direction for animation (no longer needed)
+      // if (event.key === "ArrowUp" || event.key === "w") {
+      //   playerDirection = 'up';
+      // } else if (event.key === "ArrowDown" || event.key === "s") {
+      //   playerDirection = 'down';
+      // } else if (event.key === "ArrowLeft" || event.key === "a") {
+      //   playerDirection = 'left';
+      // } else if (event.key === "ArrowRight" || event.key === "d") {
+      //   playerDirection = 'right';
+      // }
       
-      // Start animation immediately for responsive feel
-      startAnimation();
+      // COMMENTED OUT - Start animation immediately for responsive feel
+      // startAnimation();
       
-      // Zoom in on first movement (non-blocking)
-      if (!isZoomedIn) {
-        setTimeout(() => zoomInOnPlayer(), 0);
-      }
+      // Mark player as moving and update camera
+      playerIsMoving = true;
+      updateCamera(); // Simple immediate camera update
       
-      // Only process if this key wasn't already pressed (prevents auto-repeat)
-      if (!keysPressed[event.key]) {
-        // Mark key as pressed
-        keysPressed[event.key] = true;
-        
-        // Immediate movement on first keypress
-        myLibrary.movePlayer(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
+      // No need to zoom in on first movement since we start zoomed        // Only process if this key wasn't already pressed (prevents auto-repeat)
+        if (!keysPressed[event.key]) {
+          // Mark key as pressed
+          keysPressed[event.key] = true;
+          
+          // Immediate movement on first keypress
+          myLibrary.movePlayer(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
         
         // Start continuous movement after a delay if key is still held
         if (!movementInterval) {
@@ -526,14 +660,14 @@
       const movementKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"];
       const anyKeyPressed = movementKeys.some(key => keysPressed[key]);
       
-      // Stop continuous movement and animation if no keys are pressed
+      // Stop continuous movement if no keys are pressed
       if (!anyKeyPressed) {
+        playerIsMoving = false; // Mark player as stopped
         if (movementInterval) {
           clearInterval(movementInterval);
           movementInterval = null;
           currentDirection = null;
         }
-        stopAnimation();
       }
     }
   });
@@ -545,16 +679,12 @@
       
       if (keysPressed["ArrowUp"] || keysPressed["w"]) {
         direction = "up";
-        playerDirection = 'up';
       } else if (keysPressed["ArrowDown"] || keysPressed["s"]) {
         direction = "down";
-        playerDirection = 'down';
       } else if (keysPressed["ArrowLeft"] || keysPressed["a"]) {
         direction = "left";
-        playerDirection = 'left';
       } else if (keysPressed["ArrowRight"] || keysPressed["d"]) {
         direction = "right";
-        playerDirection = 'right';
       }
       
       if (direction) {
@@ -568,13 +698,13 @@
         
         myLibrary.movePlayer(syntheticEvent, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
       } else {
-        // No keys pressed, stop movement and animation
+        // No keys pressed, stop movement
+        playerIsMoving = false; // Mark player as stopped
         clearInterval(movementInterval);
         movementInterval = null;
         currentDirection = null;
-        stopAnimation();
       }
-    }, 50); // Continuous movement speed
+    }, 75); // Slower continuous movement for better performance (was 50ms)
   }
     restartButton.addEventListener("click", function() {
       resetCamera();
@@ -591,6 +721,66 @@
     } else {
       document.getElementById("copy-button").addEventListener("click", myLibrary.copyMazeAndTime);
     }
+    
+    // Handle window resize to recalculate maze size
+    function resizeMaze() {
+      // Recalculate the maximum possible cell size to fill the screen
+      const availableWidth = window.innerWidth;
+      const availableHeight = window.innerHeight;
+      
+      // Calculate cell size based on screen dimensions and maze size
+      const maxCellSizeWidth = Math.floor(availableWidth / mazeSize);
+      const maxCellSizeHeight = Math.floor(availableHeight / mazeSize);
+      
+      // Use the smaller of the two to ensure the maze fits in both dimensions
+      cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
+      
+      // Ensure minimum cell size for playability
+      if (cellSize < 3) {
+        cellSize = 3;
+      }
+      
+      // Calculate actual maze dimensions in pixels
+      const mazeWidthPx = mazeSize * cellSize;
+      const mazeHeightPx = mazeSize * cellSize;
+      
+      // Update canvas size
+      canvas.width = mazeWidthPx;
+      canvas.height = mazeHeightPx;
+      
+      // Update container size
+      mazeContainer.style.width = mazeWidthPx + 'px';
+      mazeContainer.style.height = mazeHeightPx + 'px';
+      
+      // Update player position to match new cell size
+      const currentCol = Math.round(playerX / (canvas.width / mazeSize));
+      const currentRow = Math.round(playerY / (canvas.height / mazeSize));
+      playerX = currentCol * cellSize;
+      playerY = currentRow * cellSize;
+      
+      // Re-calculate zoom and camera position for new dimensions
+      if (cameraEnabled) {
+        // Recalculate zoom scale for new screen size
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const smallerDimension = Math.min(viewportWidth, viewportHeight);
+        const targetCellsVisible = 12;
+        currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * cellSize)));
+        
+        // Re-center camera on player
+        centerOnPlayer();
+      }
+      
+      // Re-render the maze
+      renderFrame();
+    }
+    
+    // Add resize event listener with debouncing
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(resizeMaze, 100);
+    });
   </script>
 </body>
 </html>

@@ -91,8 +91,8 @@
 
     .player {
       position: absolute;
-      background-image: url('stickman-running-spritesheet.png');
-      background-size: 192px 192px; /* Larger for better quality when zoomed */
+      background-image: url('stickman-running-spritesheet-topdown.png');
+      background-size: 128px 128px; /* 4 frames x 4 directions, each 32px */
       background-repeat: no-repeat;
       background-position: 0px 0px; /* Start with down-facing frame 0 */
       transition: none; /* Remove transition for better performance */
@@ -107,7 +107,7 @@
       content: '';
       position: absolute;
       left: -9999px;
-      background-image: url('stickman-running-spritesheet.png'), url('waving-stickman-spritesheet.png');
+      background-image: url('stickman-running-spritesheet-topdown.png'), url('waving-stickman-spritesheet.png');
     }
   </style>
 </head>
@@ -142,7 +142,7 @@
       myLibrary.preloadAudio();
       
       // Preload sprite images by creating hidden elements
-      const preloadImages = ['stickman-running-spritesheet.png', 'waving-stickman-spritesheet.png'];
+      const preloadImages = ['stickman-running-spritesheet-topdown.png', 'waving-stickman-spritesheet.png'];
       preloadImages.forEach(src => {
         const img = new Image();
         img.src = src;
@@ -190,8 +190,8 @@
       height: ${cellSize}px;
     }
     .player {
-      width: 48px;
-      height: 48px;
+      width: 32px;
+      height: 32px;
     }
   `;
   document.head.appendChild(style);
@@ -269,10 +269,10 @@
       const row = directions[playerDirection];
       const col = currentAnimationFrame;
       
-      // Calculate background position (using pixels for precise positioning)
-      // Each sprite is 32px, but we're scaling to 48px for better quality
-      const x = -(col * 48); // Scale up the offset
-      const y = -(row * 48); // Scale up the offset
+      // Calculate background position for 32px sprites
+      // Each sprite is 32px in the new top-down spritesheet
+      const x = -(col * 32);
+      const y = -(row * 32);
       
       player.style.backgroundPosition = `${x}px ${y}px`;
     }
@@ -338,11 +338,10 @@
       const playerStyleY = parseInt(player.style.top) || 0;
       
       // Calculate player center (add half sprite size for true center)
-      const playerCenterX = playerStyleX + 24;
-      const playerCenterY = playerStyleY + 24;
+      const playerCenterX = playerStyleX + 16;
+      const playerCenterY = playerStyleY + 16;
       
-      console.log('INITIAL CENTER - Player center:', playerCenterX, playerCenterY);
-      console.log('INITIAL CENTER - Zoom scale:', zoomScale);
+
       
       // Set transform-origin to the player's center position
       maze.style.transformOrigin = `${playerCenterX}px ${playerCenterY}px`;
@@ -359,7 +358,7 @@
       currentCameraX = targetCameraX;
       currentCameraY = targetCameraY;
       
-      console.log('INITIAL CENTER - Camera position:', currentCameraX, currentCameraY);
+
       
       // Apply initial centered zoom
       maze.style.transform = `scale(${zoomScale}) translate(${currentCameraX}px, ${currentCameraY}px)`;
@@ -373,8 +372,8 @@
       const playerStyleY = parseInt(player.style.top) || 0;
       
       // Calculate player center
-      const playerCenterX = playerStyleX + 24;
-      const playerCenterY = playerStyleY + 24;
+      const playerCenterX = playerStyleX + 16;
+      const playerCenterY = playerStyleY + 16;
       
       // Dynamically set transform-origin to the player's center position
       maze.style.transformOrigin = `${playerCenterX}px ${playerCenterY}px`;
@@ -391,9 +390,7 @@
       currentCameraX += (targetCameraX - currentCameraX) * cameraSmoothing;
       currentCameraY += (targetCameraY - currentCameraY) * cameraSmoothing;
       
-      console.log('Player center:', playerCenterX, playerCenterY);
-      console.log('Target camera:', targetCameraX, targetCameraY);
-      console.log('Current camera:', currentCameraX, currentCameraY);
+
       
       // Apply smooth camera transform
       maze.style.transform = `scale(${zoomScale}) translate(${currentCameraX}px, ${currentCameraY}px)`;
@@ -430,9 +427,9 @@
 
     const player = document.createElement("div");
     player.className = "player";
-    // Center the 48px sprite within the cell
-    const offsetX = (48 - cellSize) / 2; // Center horizontally
-    const offsetY = (48 - cellSize) / 2; // Center vertically
+    // Center the 32px sprite within the cell
+    const offsetX = (32 - cellSize) / 2; // Center horizontally
+    const offsetY = (32 - cellSize) / 2; // Center vertically
     player.style.top = (startRow * cellSize - offsetY) + "px";
     player.style.left = (startCol * cellSize - offsetX) + "px";
     maze.appendChild(player);
