@@ -673,8 +673,14 @@ var myLibrary = {
           endRow = newEndRow;
           endCol = newEndCol;
 
+          // Invalidate canvas maze cache due to structure change
+          this.invalidateCanvasMazeCache();
+
           // Update the maze visually
           this.createMaze();
+          
+          // Force re-render for canvas mode
+          this.forceRerenderMaze();
 
           mazecount++;
 
@@ -985,5 +991,24 @@ var myLibrary = {
   // Pad the value with leading zeros and optional length
   padTime: function(value, length = 2) {
     return value.toString().padStart(length, "0");
+  },
+
+  // Canvas maze cache invalidation for performance optimization
+  invalidateCanvasMazeCache: function() {
+    // Call the global invalidation function if it exists (for canvas rendering)
+    if (typeof invalidateMazeCache === 'function') {
+      invalidateMazeCache();
+    }
+  },
+
+  // Function to force cache regeneration and render
+  forceRerenderMaze: function() {
+    // Call the global cache invalidation and render functions if they exist
+    if (typeof invalidateMazeCache === 'function') {
+      invalidateMazeCache();
+    }
+    if (typeof renderFrame === 'function') {
+      renderFrame();
+    }
   },
 };

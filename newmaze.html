@@ -308,9 +308,166 @@
     let first = 0;
     var mazecount = 0; // Make global for library.js
     
-    // Canvas rendering system - simplified with square player - EXPLICITLY DECLARE ALL VARIABLES
+    // Canvas rendering system - smooth pixel-based movement system
     // FORCE RESET to 0 to prevent any persistence across reloads
     let playerX = 0, playerY = 0; // Player position in pixels - EXPLICITLY RESET TO 0
+    
+    // Smooth movement system variables
+    let playerIsMoving = false;
+    let movementSpeed = 6; // Increased from 3 to 6 pixels per frame for faster movement
+    let smoothMovementKeys = {};
+    let animationFrameId = null;
+    
+    // Collision detection for smooth movement
+    function checkCollision(newX, newY) {
+      // Calculate which cells the player would occupy
+      const spriteSize = cellSize * 0.8;
+      const centerOffset = (cellSize - spriteSize) / 2;
+      
+      // Check all four corners of the player sprite plus center
+      const checkPoints = [
+        { x: newX + centerOffset + 2, y: newY + centerOffset + 2 }, // Top-left (with small margin)
+        { x: newX + centerOffset + spriteSize - 3, y: newY + centerOffset + 2 }, // Top-right
+        { x: newX + centerOffset + 2, y: newY + centerOffset + spriteSize - 3 }, // Bottom-left
+        { x: newX + centerOffset + spriteSize - 3, y: newY + centerOffset + spriteSize - 3 }, // Bottom-right
+        { x: newX + centerOffset + spriteSize/2, y: newY + centerOffset + spriteSize/2 } // Center
+      ];
+      
+      // Check if any point is in a wall
+      for (const point of checkPoints) {
+        const col = Math.floor(point.x / cellSize);
+        const row = Math.floor(point.y / cellSize);
+        
+        // Check bounds
+        if (row < 0 || row >= mazeSize || col < 0 || col >= mazeSize) {
+          return true; // Collision with maze boundary
+        }
+        
+        // Check if this cell is a wall
+        if (mazeStructure[row] && mazeStructure[row][col] === 1) {
+          return true; // Collision with wall
+        }
+      }
+      
+      return false; // No collision
+    }
+    
+    // Check if player reached the end
+    function checkEndReached() {
+      const spriteSize = cellSize * 0.8;
+      const centerOffset = (cellSize - spriteSize) / 2;
+      const playerCenterX = playerX + centerOffset + spriteSize / 2;
+      const playerCenterY = playerY + centerOffset + spriteSize / 2;
+      
+      const playerCol = Math.floor(playerCenterX / cellSize);
+      const playerRow = Math.floor(playerCenterY / cellSize);
+      
+      return (playerRow === endRow && playerCol === endCol);
+    }
+    
+    // Smooth movement animation loop
+    function smoothMovementLoop() {
+      let moved = false;
+      let newX = playerX;
+      let newY = playerY;
+      
+      // Calculate movement based on pressed keys
+      if (smoothMovementKeys["ArrowUp"] || smoothMovementKeys["w"]) {
+        newY -= movementSpeed;
+        moved = true;
+      }
+      if (smoothMovementKeys["ArrowDown"] || smoothMovementKeys["s"]) {
+        newY += movementSpeed;
+        moved = true;
+      }
+      if (smoothMovementKeys["ArrowLeft"] || smoothMovementKeys["a"]) {
+        newX -= movementSpeed;
+        moved = true;
+      }
+      if (smoothMovementKeys["ArrowRight"] || smoothMovementKeys["d"]) {
+        newX += movementSpeed;
+        moved = true;
+      }
+      
+      // Apply movement if no collision - check each axis separately for wall sliding
+      if (moved) {
+        let finalX = playerX;
+        let finalY = playerY;
+        
+        // Try horizontal movement first
+        if (newX !== playerX && !checkCollision(newX, playerY)) {
+          finalX = newX;
+        }
+        
+        // Try vertical movement
+        if (newY !== playerY && !checkCollision(finalX, newY)) {
+          finalY = newY;
+        }
+        
+        // Update player position if it changed
+        if (finalX !== playerX || finalY !== playerY) {
+          playerX = finalX;
+          playerY = finalY;
+          
+          // Update virtual player object for library compatibility
+          player.style.left = playerX + "px";
+          player.style.top = playerY + "px";
+          
+          // Check if player reached the end
+          if (checkEndReached()) {
+            // Clean up all movement and animation systems
+            cleanupGameSystems();
+            
+            // Trigger end game
+            setTimeout(() => {
+              myLibrary.endGame(endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
+            }, 100);
+          }
+          
+          // Update camera and render (throttled to reduce excessive redraws)
+          updateCameraAndRender();
+        }
+      }
+      
+      // Continue animation loop if any keys are pressed
+      const anyKeyPressed = Object.values(smoothMovementKeys).some(pressed => pressed);
+      if (anyKeyPressed) {
+        animationFrameId = requestAnimationFrame(smoothMovementLoop);
+      } else {
+        animationFrameId = null;
+        playerIsMoving = false;
+      }
+    }
+    
+    // Comprehensive cleanup function to prevent memory leaks and accumulation
+    function cleanupGameSystems() {
+      // Stop smooth movement
+      smoothMovementKeys = {};
+      keysPressed = {};
+      playerIsMoving = false;
+      
+      // Cancel any pending animation frames
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      
+      // Clear any audio check intervals
+      if (audioCheckInterval) {
+        clearInterval(audioCheckInterval);
+        audioCheckInterval = null;
+      }
+      
+      // Reset render state
+      renderPending = false;
+      renderQueued = false;
+      cameraUpdatePending = false;
+      
+      // Reset timer variables
+      lastRenderTime = 0;
+      
+      console.log('Game systems cleaned up');
+    }
     
     // NEW SIMPLIFIED CAMERA SYSTEM - COMPLETE REPLACEMENT
     let cameraX = 0;
@@ -321,10 +478,11 @@
     // Optimized canvas rendering system with better throttling
     let renderPending = false;
     let lastRenderTime = 0;
-    const RENDER_THROTTLE = 16; // 60 FPS max
+    const RENDER_THROTTLE = 8; // 120 FPS max for smoother movement
     let renderQueued = false;
     
     function drawMaze() {
+      // Always redraw the entire maze - this is actually faster and simpler
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
@@ -395,13 +553,9 @@
     }
     
     function drawPlayer() {
-      // Simple square player instead of animated sprite
+      // Simple player drawing - let the render throttling handle performance
       const spriteSize = cellSize * 0.8; // 80% of cell size to avoid wall clipping
-      
-      // Center the square within the cell to avoid wall clipping
       const centerOffset = (cellSize - spriteSize) / 2;
-      
-      // Draw player at the exact pixel position (playerX, playerY)
       const destX = playerX + centerOffset;
       const destY = playerY + centerOffset;
       
@@ -415,19 +569,40 @@
       ctx.strokeRect(destX, destY, spriteSize, spriteSize);
     }
     
+    // Performance monitoring to detect issues early
+    let frameCount = 0;
+    let lastPerformanceCheck = performance.now();
+    
+    function monitorPerformance() {
+      frameCount++;
+      const now = performance.now();
+      
+      // Check performance every 5 seconds
+      if (now - lastPerformanceCheck > 5000) {
+        const fps = frameCount / ((now - lastPerformanceCheck) / 1000);
+        if (fps < 30) {
+          console.warn(`Low FPS detected: ${fps.toFixed(1)} FPS`);
+        }
+        frameCount = 0;
+        lastPerformanceCheck = now;
+      }
+    }
+
     function renderFrame() {
       // Prevent multiple pending renders
-      if (renderPending || renderQueued) return;
+      if (renderPending) return;
       
       const now = performance.now();
       if (now - lastRenderTime < RENDER_THROTTLE) {
-        // Queue a render for later if we're throttling
+        // Use requestAnimationFrame instead of setTimeout to avoid accumulation
         if (!renderQueued) {
           renderQueued = true;
-          setTimeout(() => {
+          requestAnimationFrame(() => {
             renderQueued = false;
-            renderFrame();
-          }, RENDER_THROTTLE - (now - lastRenderTime));
+            if (performance.now() - lastRenderTime >= RENDER_THROTTLE) {
+              renderFrame();
+            }
+          });
         }
         return;
       }
@@ -437,8 +612,12 @@
       
       requestAnimationFrame(() => {
         try {
+          // Simple approach: always redraw everything 
           drawMaze();
           drawPlayer();
+          
+          // Monitor performance
+          monitorPerformance();
         } catch (error) {
           console.error('Error in renderFrame:', error);
         } finally {
@@ -448,34 +627,17 @@
     }
     
     function updatePlayerPosition(newRow, newCol) {
-      // If called with parameters, update to specific position
+      // For smooth movement, this function is simplified
+      // Position updates happen directly in smoothMovementLoop()
       if (newRow !== undefined && newCol !== undefined) {
         playerX = newCol * cellSize;
         playerY = newRow * cellSize;
+        updateCameraAndRender();
       }
-      // Otherwise, sync with current player object position
-      else {
-        const currentX = parseInt(player.style.left);
-        const currentY = parseInt(player.style.top);
-        
-        // Only update if significantly different
-        const threshold = cellSize * 0.1;
-        if (Math.abs(playerX - currentX) > threshold) {
-          playerX = currentX;
-        }
-        if (Math.abs(playerY - currentY) > threshold) {
-          playerY = currentY;
-        }
-      }
-      
-      // Batch camera and render updates - only call once
-      updateCameraAndRender();
     }
     
-    // Movement state tracking
+    // Movement state tracking - simplified for smooth movement
     let keysPressed = {};
-    let movementInterval;
-    let currentDirection = null;
     
     // Pre-warm animation system to reduce first-run lag
     function prepareAnimationSystem() {
@@ -672,18 +834,21 @@
     // No need to wait for sprite loading - initialize immediately
     initializeGame();
 
-  // Add 'y' key handler to log player position for manual bounds testing
+  // Smooth pixel-based movement system - replaces cell-based movement
   window.addEventListener("keydown", (event) => {
     if (event.key === "y" || event.key === "Y") {
-      // Calculate player's grid position
+      // Calculate player's grid position for debugging
       const playerGridRow = Math.round(playerY / cellSize);
       const playerGridCol = Math.round(playerX / cellSize);
       const mazeCenter = Math.round(mazeSize / 2);
       const distanceFromCenter = Math.sqrt(Math.pow(playerGridRow - mazeCenter, 2) + Math.pow(playerGridCol - mazeCenter, 2));
       
-      console.log(`Player Position: Row ${playerGridRow}, Col ${playerGridCol} (distance from center: ${distanceFromCenter.toFixed(2)})`);
+      console.log(`Player Position: Row ${playerGridRow}, Col ${playerGridCol} (Pixel: ${playerX}, ${playerY}) (distance from center: ${distanceFromCenter.toFixed(2)})`);
       return;
     }
+    
+    // Audio interval tracking to prevent leaks
+    let audioCheckInterval = null;
     
     if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
       event.preventDefault();
@@ -707,146 +872,95 @@
               console.warn('Music playback failed:', error);
             }
           }, 0);
-        } else if (!musicStarted) {
+        } else if (!musicStarted && !audioCheckInterval) {
           // Audio not ready - set up a check to start music when available
           console.log('Audio still loading, will start music when ready...');
-          const checkAudioInterval = setInterval(() => {
+          audioCheckInterval = setInterval(() => {
             if (audioPreloaded && !musicStarted) {
               try {
                 myLibrary.playMusic();
                 musicStarted = true;
                 console.log('Music started after audio loading completed');
-                clearInterval(checkAudioInterval);
+                clearInterval(audioCheckInterval);
+                audioCheckInterval = null;
               } catch (error) {
                 console.warn('Music playback failed:', error);
-                clearInterval(checkAudioInterval);
+                clearInterval(audioCheckInterval);
+                audioCheckInterval = null;
               }
             }
           }, 100);
           
           // Safety timeout to prevent infinite checking (stop trying after 10 seconds)
           setTimeout(() => {
-            if (!musicStarted) {
+            if (!musicStarted && audioCheckInterval) {
               console.warn('Audio loading timeout - continuing without music');
-              clearInterval(checkAudioInterval);
+              clearInterval(audioCheckInterval);
+              audioCheckInterval = null;
             }
           }, 10000);
         }
         first++;
       }
       
-      // COMMENTED OUT - Update player direction for animation (no longer needed)
-      // if (event.key === "ArrowUp" || event.key === "w") {
-      //   playerDirection = 'up';
-      // } else if (event.key === "ArrowDown" || event.key === "s") {
-      //   playerDirection = 'down';
-      // } else if (event.key === "ArrowLeft" || event.key === "a") {
-      //   playerDirection = 'left';
-      // } else if (event.key === "ArrowRight" || event.key === "d") {
-      //   playerDirection = 'right';
-      // }
-      
-      // COMMENTED OUT - Start animation immediately for responsive feel
-      // startAnimation();
-      
-      // Mark player as moving and update camera
+      // Mark player as moving
       playerIsMoving = true;
       
-      // Only process if this key wasn't already pressed (prevents auto-repeat)
-      if (!keysPressed[event.key]) {
-        // Mark key as pressed
-        keysPressed[event.key] = true;
-        
-        // Immediate movement on first keypress
-        myLibrary.movePlayer(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
-        
-        // Single batched camera and render update after movement
-        updateCameraAndRender();
-        
-        // Start continuous movement after a delay if key is still held
-        if (!movementInterval) {
-          setTimeout(() => {
-            if (keysPressed[event.key]) {
-              startContinuousMovement();
-            }
-          }, 100); // Small delay before continuous movement starts
-        }
+      // Add key to smooth movement keys
+      smoothMovementKeys[event.key] = true;
+      
+      // Start smooth movement loop if not already running
+      if (!animationFrameId) {
+        animationFrameId = requestAnimationFrame(smoothMovementLoop);
       }
     }
   });
 
   window.addEventListener("keyup", (event) => {
     if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
-      // Mark key as released
-      keysPressed[event.key] = false;
+      // Remove key from smooth movement keys
+      smoothMovementKeys[event.key] = false;
       
       // Check if any movement keys are still pressed
-      const movementKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"];
-      const anyKeyPressed = movementKeys.some(key => keysPressed[key]);
+      const anyKeyPressed = Object.values(smoothMovementKeys).some(pressed => pressed);
       
-      // Stop continuous movement if no keys are pressed
+      // Stop movement if no keys are pressed
       if (!anyKeyPressed) {
-        playerIsMoving = false; // Mark player as stopped
-        if (movementInterval) {
-          clearInterval(movementInterval);
-          movementInterval = null;
-          currentDirection = null;
-        }
+        playerIsMoving = false;
+        // Animation loop will stop itself when no keys are pressed
       }
     }
   });
 
-  function startContinuousMovement() {
-    movementInterval = setInterval(() => {
-      // Determine current direction based on pressed keys
-      let direction = null;
-      
-      if (keysPressed["ArrowUp"] || keysPressed["w"]) {
-        direction = "up";
-      } else if (keysPressed["ArrowDown"] || keysPressed["s"]) {
-        direction = "down";
-      } else if (keysPressed["ArrowLeft"] || keysPressed["a"]) {
-        direction = "left";
-      } else if (keysPressed["ArrowRight"] || keysPressed["d"]) {
-        direction = "right";
-      }
-      
-      if (direction) {
-        // Create a synthetic event for the movement
-        const syntheticEvent = {
-          key: direction === "up" ? "ArrowUp" : 
-               direction === "down" ? "ArrowDown" :
-               direction === "left" ? "ArrowLeft" : "ArrowRight",
-          preventDefault: () => {}
-        };
-        
-        myLibrary.movePlayer(syntheticEvent, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
-        
-        // Single batched camera and render update after movement
-        updateCameraAndRender();
-      } else {
-        // No keys pressed, stop movement
-        playerIsMoving = false; // Mark player as stopped
-        clearInterval(movementInterval);
-        movementInterval = null;
-        currentDirection = null;
-      }
-    }, 75); // Slower continuous movement for better performance (was 50ms)
-  }
-    restartButton.addEventListener("click", function() {
-      resetCamera();
-      myLibrary.restartMaze();
-    });
-    backButton.addEventListener("click", myLibrary.goBack);
-
-    backButton.style.display = "inline-block";
-    backButton.addEventListener("click", myLibrary.hideEndScreen);
+  // Remove old cell-based movement function - replaced with smooth movement
+  // function startContinuousMovement() { ... } - REMOVED
     
-    // Set the appropriate copy function based on mode
-    if (easy) {
-      document.getElementById("copy-button").addEventListener("click", myLibrary.copyEasyMazeAndTime);
-    } else {
-      document.getElementById("copy-button").addEventListener("click", myLibrary.copyMazeAndTime);
+    // Prevent duplicate event listeners
+    if (!restartButton.hasAttribute('data-initialized')) {
+      restartButton.addEventListener("click", function() {
+        cleanupGameSystems();
+        resetCamera();
+        myLibrary.restartMaze();
+      });
+      restartButton.setAttribute('data-initialized', 'true');
+    }
+    
+    if (!backButton.hasAttribute('data-initialized')) {
+      backButton.addEventListener("click", myLibrary.goBack);
+      backButton.style.display = "inline-block";
+      backButton.addEventListener("click", myLibrary.hideEndScreen);
+      backButton.setAttribute('data-initialized', 'true');
+    }
+    
+    // Set the appropriate copy function based on mode (prevent duplicates)
+    const copyButton = document.getElementById("copy-button");
+    if (copyButton && !copyButton.hasAttribute('data-initialized')) {
+      if (easy) {
+        copyButton.addEventListener("click", myLibrary.copyEasyMazeAndTime);
+      } else {
+        copyButton.addEventListener("click", myLibrary.copyMazeAndTime);
+      }
+      copyButton.setAttribute('data-initialized', 'true');
     }
     
     // Handle window resize to recalculate maze size
@@ -902,12 +1016,16 @@
       renderFrame();
     }
     
-    // Add resize event listener with debouncing
+    // Add resize event listener with debouncing (prevent duplicates)
     let resizeTimeout;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(resizeMaze, 100);
-    });
+    if (!window.hasAttribute || !window.hasAttribute('data-resize-initialized')) {
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resizeMaze, 100);
+      });
+      // Mark as initialized (use a global flag since window doesn't support setAttribute)
+      window.resizeHandlerInitialized = true;
+    }
   </script>
 </body>
 </html>
