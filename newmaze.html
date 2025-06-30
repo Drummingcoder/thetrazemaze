@@ -120,9 +120,31 @@
     <button id="restart-button">Restart Maze</button>
   </div>
   
-  <script src="./newlibrary.js"></script>
+  <!-- Modular JavaScript Files - Load in dependency order -->
+  <script src="./js/audio-manager.js"></script>
+  <script src="./js/game-timer.js"></script>
+  <script src="./js/personal-best-manager.js"></script>
+  <script src="./js/maze-generator.js"></script>
+  <script src="./js/maze-renderer.js"></script>
+  <script src="./js/camera-system.js"></script>
+  <script src="./js/canvas-renderer.js"></script>
+  <script src="./js/player-controller.js"></script>
+  <script src="./js/game-initializer.js"></script>
+  <script src="./js/game-actions.js"></script>
+  <script src="./js/main-library.js"></script>
 
   <script>
+    // =================================================================
+    // MAIN GAME INITIALIZATION AND COORDINATION
+    // =================================================================
+    // This script coordinates the various JavaScript modules and handles
+    // game-specific setup. Most game logic has been moved to modules:
+    // - Camera functions → js/camera-system.js
+    // - Rendering functions → js/canvas-renderer.js  
+    // - Player movement → js/player-controller.js
+    // - Game initialization → js/game-initializer.js
+    // =================================================================
+    
     // FORCE CLEAR all browser storage to prevent any data persistence between sessions
     try {
       sessionStorage.clear();
@@ -135,6 +157,7 @@
     let audioPreloaded = false;
     let musicStarted = false;
     let audioLoadingInProgress = false;
+    let audioCheckInterval = null; // Global audio check interval tracker
 
     function preloadAudioAsync() {
       if (audioPreloaded || audioLoadingInProgress) return;
@@ -145,10 +168,45 @@
       // Use setTimeout to prevent blocking the main thread
       setTimeout(() => {
         try {
-          myLibrary.preloadAudio();
-          audioPreloaded = true;
-          audioLoadingInProgress = false;
-          console.log('Audio preloaded successfully');
+          // Use AudioManager directly instead of myLibrary
+          if (window.AudioManager) {
+            console.log('Calling AudioManager.preloadAudio()...');
+            window.AudioManager.preloadAudio();
+            
+            // Add event listeners to check if audio actually loads
+            if (window.AudioManager.preloadedAudio) {
+              window.AudioManager.preloadedAudio.addEventListener('canplaythrough', () => {
+                audioPreloaded = true;
+                audioLoadingInProgress = false;
+                console.log('Audio preloaded successfully via AudioManager - canplaythrough event');
+              });
+              
+              window.AudioManager.preloadedAudio.addEventListener('error', (e) => {
+                console.error('Audio loading error:', e);
+                audioPreloaded = false;
+                audioLoadingInProgress = false;
+              });
+              
+              // Fallback timeout - mark as loaded after 2 seconds even if no event fires
+              setTimeout(() => {
+                if (audioLoadingInProgress) {
+                  console.log('Audio preload timeout - assuming loaded');
+                  audioPreloaded = true;
+                  audioLoadingInProgress = false;
+                }
+              }, 2000);
+            } else {
+              console.warn('AudioManager.preloadedAudio is null after preloadAudio call');
+              audioPreloaded = false;
+              audioLoadingInProgress = false;
+            }
+          } else {
+            console.warn('AudioManager not available, trying myLibrary fallback');
+            myLibrary.preloadAudio();
+            audioPreloaded = true;
+            audioLoadingInProgress = false;
+            console.log('Audio preloaded successfully via myLibrary');
+          }
         } catch (error) {
           console.warn('Audio preload failed:', error);
           audioPreloaded = false;
@@ -302,9 +360,22 @@
     const personalbest = document.getElementById("personal-best");
     const newpersonalbest = document.getElementById("new-personal-best");
 
+    // Make all variables global for module access
+    window.maze = maze;
+    window.timerElement = timerElement;
+    window.endScreen = endScreen;
+    window.restartButton = restartButton;
+    window.backButton = backButton;
+    window.endContent = endContent;
+    window.personalbest = personalbest;
+    window.newpersonalbest = newpersonalbest;
+    window.mazeContainer = mazeContainer;
+    window.canvas = canvas;
+    window.ctx = ctx;
+
     var mazeStructure, startRow, startCol, endRow, endCol; // Make global for library.js
     let time = 0;
-    let interval = false, startMaze;
+    let interval = false, startTime, startMaze;
     let first = 0;
     var mazecount = 0; // Make global for library.js
     
@@ -312,431 +383,71 @@
     // FORCE RESET to 0 to prevent any persistence across reloads
     let playerX = 0, playerY = 0; // Player position in pixels - EXPLICITLY RESET TO 0
     
-    // Smooth movement system variables
+    // Make all maze and player variables global for module access
+    window.mazeStructure = mazeStructure;
+    window.startRow = startRow;
+    window.startCol = startCol;
+    window.endRow = endRow;
+    window.endCol = endCol;
+    window.mazeSize = mazeSize;
+    window.cellSize = cellSize;
+    window.playerX = playerX;
+    window.playerY = playerY;
+    window.time = time;
+    window.interval = interval;
+    window.startTime = startTime;
+    window.first = first;
+    window.mazecount = mazecount;
+    window.type = type;
+    window.easy = easy;
+    window.audioCheckInterval = audioCheckInterval;
+    
+    // Smooth movement system variables (keep some references for compatibility)
     let playerIsMoving = false;
     let movementSpeed = 6; // Increased from 3 to 6 pixels per frame for faster movement
     let smoothMovementKeys = {};
     let animationFrameId = null;
     
-    // Collision detection for smooth movement
-    function checkCollision(newX, newY) {
-      // Calculate which cells the player would occupy
-      const spriteSize = cellSize * 0.8;
-      const centerOffset = (cellSize - spriteSize) / 2;
-      
-      // Check all four corners of the player sprite plus center
-      const checkPoints = [
-        { x: newX + centerOffset + 2, y: newY + centerOffset + 2 }, // Top-left (with small margin)
-        { x: newX + centerOffset + spriteSize - 3, y: newY + centerOffset + 2 }, // Top-right
-        { x: newX + centerOffset + 2, y: newY + centerOffset + spriteSize - 3 }, // Bottom-left
-        { x: newX + centerOffset + spriteSize - 3, y: newY + centerOffset + spriteSize - 3 }, // Bottom-right
-        { x: newX + centerOffset + spriteSize/2, y: newY + centerOffset + spriteSize/2 } // Center
-      ];
-      
-      // Check if any point is in a wall
-      for (const point of checkPoints) {
-        const col = Math.floor(point.x / cellSize);
-        const row = Math.floor(point.y / cellSize);
-        
-        // Check bounds
-        if (row < 0 || row >= mazeSize || col < 0 || col >= mazeSize) {
-          return true; // Collision with maze boundary
-        }
-        
-        // Check if this cell is a wall
-        if (mazeStructure[row] && mazeStructure[row][col] === 1) {
-          return true; // Collision with wall
-        }
+    // Bridge functions to connect modules with remaining inline code
+    function updateCameraAndRender() {
+      if (window.CameraSystem && window.CameraSystem.cameraEnabled) {
+        window.CameraSystem.updateCamera();
       }
-      
-      return false; // No collision
-    }
-    
-    // Check if player reached the end
-    function checkEndReached() {
-      const spriteSize = cellSize * 0.8;
-      const centerOffset = (cellSize - spriteSize) / 2;
-      const playerCenterX = playerX + centerOffset + spriteSize / 2;
-      const playerCenterY = playerY + centerOffset + spriteSize / 2;
-      
-      const playerCol = Math.floor(playerCenterX / cellSize);
-      const playerRow = Math.floor(playerCenterY / cellSize);
-      
-      return (playerRow === endRow && playerCol === endCol);
-    }
-    
-    // Smooth movement animation loop
-    function smoothMovementLoop() {
-      let moved = false;
-      let newX = playerX;
-      let newY = playerY;
-      
-      // Calculate movement based on pressed keys
-      if (smoothMovementKeys["ArrowUp"] || smoothMovementKeys["w"]) {
-        newY -= movementSpeed;
-        moved = true;
-      }
-      if (smoothMovementKeys["ArrowDown"] || smoothMovementKeys["s"]) {
-        newY += movementSpeed;
-        moved = true;
-      }
-      if (smoothMovementKeys["ArrowLeft"] || smoothMovementKeys["a"]) {
-        newX -= movementSpeed;
-        moved = true;
-      }
-      if (smoothMovementKeys["ArrowRight"] || smoothMovementKeys["d"]) {
-        newX += movementSpeed;
-        moved = true;
-      }
-      
-      // Apply movement if no collision - check each axis separately for wall sliding
-      if (moved) {
-        let finalX = playerX;
-        let finalY = playerY;
-        
-        // Try horizontal movement first
-        if (newX !== playerX && !checkCollision(newX, playerY)) {
-          finalX = newX;
-        }
-        
-        // Try vertical movement
-        if (newY !== playerY && !checkCollision(finalX, newY)) {
-          finalY = newY;
-        }
-        
-        // Update player position if it changed
-        if (finalX !== playerX || finalY !== playerY) {
-          playerX = finalX;
-          playerY = finalY;
-          
-          // Update virtual player object for library compatibility
-          player.style.left = playerX + "px";
-          player.style.top = playerY + "px";
-          
-          // Check if player reached the end
-          if (checkEndReached()) {
-            // Clean up all movement and animation systems
-            cleanupGameSystems();
-            
-            // Trigger end game
-            setTimeout(() => {
-              myLibrary.endGame(endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
-            }, 100);
-          }
-          
-          // Update camera and render (throttled to reduce excessive redraws)
-          updateCameraAndRender();
-        }
-      }
-      
-      // Continue animation loop if any keys are pressed
-      const anyKeyPressed = Object.values(smoothMovementKeys).some(pressed => pressed);
-      if (anyKeyPressed) {
-        animationFrameId = requestAnimationFrame(smoothMovementLoop);
-      } else {
-        animationFrameId = null;
-        playerIsMoving = false;
+      if (window.CanvasRenderer) {
+        window.CanvasRenderer.renderFrame();
       }
     }
     
-    // Comprehensive cleanup function to prevent memory leaks and accumulation
     function cleanupGameSystems() {
-      // Stop smooth movement
-      smoothMovementKeys = {};
-      keysPressed = {};
-      playerIsMoving = false;
-      
-      // Cancel any pending animation frames
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
+      if (window.GameInitializer) {
+        window.GameInitializer.cleanupGameSystems();
       }
-      
-      // Clear any audio check intervals
-      if (audioCheckInterval) {
-        clearInterval(audioCheckInterval);
-        audioCheckInterval = null;
-      }
-      
-      // Reset render state
-      renderPending = false;
-      renderQueued = false;
-      cameraUpdatePending = false;
-      
-      // Reset timer variables
-      lastRenderTime = 0;
-      
-      console.log('Game systems cleaned up');
     }
     
-    // NEW SIMPLIFIED CAMERA SYSTEM - COMPLETE REPLACEMENT
+    // Collision detection and end checking moved to PlayerController module
+    
+    // Smooth movement animation loop moved to PlayerController module
+    
+    // Cleanup functions moved to GameInitializer module
+    
+    // Camera system moved to CameraSystem module
     let cameraX = 0;
     let cameraY = 0;
     let currentZoom = 1.0;
     let cameraEnabled = false;
     
-    // Optimized canvas rendering system with better throttling
+    // Canvas rendering system moved to CanvasRenderer module
     let renderPending = false;
     let lastRenderTime = 0;
     const RENDER_THROTTLE = 8; // 120 FPS max for smoother movement
     let renderQueued = false;
     
-    function drawMaze() {
-      // Always redraw the entire maze - this is actually faster and simpler
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Set maze colors
-      const wallColor = '#000000';      // Black walls
-      const pathColor = '#87CEEB';      // Light blue paths
-      const startColor = '#00FF00';     // Green start
-      const endColor = '#FF0000';       // Red end
-      
-      // Collect cells by color for batched drawing
-      const walls = [];
-      const paths = [];
-      let startCell = null;
-      let endCell = null;
-      
-      // First pass: categorize all cells
-      for (let row = 0; row < mazeSize; row++) {
-        for (let col = 0; col < mazeSize; col++) {
-          const x = col * cellSize;
-          const y = row * cellSize;
-          
-          if (mazeStructure && mazeStructure[row] && mazeStructure[row][col] === 0) {
-            if (row === startRow && col === startCol) {
-              startCell = [x, y];
-            } else if (row === endRow && col === endCol) {
-              endCell = [x, y];
-            } else {
-              paths.push([x, y]);
-            }
-          } else {
-            walls.push([x, y]);
-          }
-        }
-      }
-      
-      // Second pass: draw all cells of same color together
-      // Draw walls
-      if (walls.length > 0) {
-        ctx.fillStyle = wallColor;
-        ctx.beginPath();
-        for (const [x, y] of walls) {
-          ctx.rect(x, y, cellSize, cellSize);
-        }
-        ctx.fill();
-      }
-      
-      // Draw paths
-      if (paths.length > 0) {
-        ctx.fillStyle = pathColor;
-        ctx.beginPath();
-        for (const [x, y] of paths) {
-          ctx.rect(x, y, cellSize, cellSize);
-        }
-        ctx.fill();
-      }
-      
-      // Draw start cell
-      if (startCell) {
-        ctx.fillStyle = startColor;
-        ctx.fillRect(startCell[0], startCell[1], cellSize, cellSize);
-      }
-      
-      // Draw end cell
-      if (endCell) {
-        ctx.fillStyle = endColor;
-        ctx.fillRect(endCell[0], endCell[1], cellSize, cellSize);
-      }
-    }
-    
-    function drawPlayer() {
-      // Simple player drawing - let the render throttling handle performance
-      const spriteSize = cellSize * 0.8; // 80% of cell size to avoid wall clipping
-      const centerOffset = (cellSize - spriteSize) / 2;
-      const destX = playerX + centerOffset;
-      const destY = playerY + centerOffset;
-      
-      // Ensure player is visible by using high contrast colors
-      ctx.fillStyle = '#0066FF'; // Blue player square
-      ctx.fillRect(destX, destY, spriteSize, spriteSize);
-      
-      // Add a white border around the player for better visibility
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = Math.max(1, cellSize * 0.05); // Scale border with cell size
-      ctx.strokeRect(destX, destY, spriteSize, spriteSize);
-    }
-    
-    // Performance monitoring to detect issues early
-    let frameCount = 0;
-    let lastPerformanceCheck = performance.now();
-    
-    function monitorPerformance() {
-      frameCount++;
-      const now = performance.now();
-      
-      // Check performance every 5 seconds
-      if (now - lastPerformanceCheck > 5000) {
-        const fps = frameCount / ((now - lastPerformanceCheck) / 1000);
-        if (fps < 30) {
-          console.warn(`Low FPS detected: ${fps.toFixed(1)} FPS`);
-        }
-        frameCount = 0;
-        lastPerformanceCheck = now;
-      }
-    }
+    // drawMaze and drawPlayer functions moved to CanvasRenderer module
 
-    function renderFrame() {
-      // Prevent multiple pending renders
-      if (renderPending) return;
-      
-      const now = performance.now();
-      if (now - lastRenderTime < RENDER_THROTTLE) {
-        // Use requestAnimationFrame instead of setTimeout to avoid accumulation
-        if (!renderQueued) {
-          renderQueued = true;
-          requestAnimationFrame(() => {
-            renderQueued = false;
-            if (performance.now() - lastRenderTime >= RENDER_THROTTLE) {
-              renderFrame();
-            }
-          });
-        }
-        return;
-      }
-      
-      renderPending = true;
-      lastRenderTime = now;
-      
-      requestAnimationFrame(() => {
-        try {
-          // Simple approach: always redraw everything 
-          drawMaze();
-          drawPlayer();
-          
-          // Monitor performance
-          monitorPerformance();
-        } catch (error) {
-          console.error('Error in renderFrame:', error);
-        } finally {
-          renderPending = false;
-        }
-      });
-    }
+    // renderFrame and related functions moved to CanvasRenderer module
     
-    function updatePlayerPosition(newRow, newCol) {
-      // For smooth movement, this function is simplified
-      // Position updates happen directly in smoothMovementLoop()
-      if (newRow !== undefined && newCol !== undefined) {
-        playerX = newCol * cellSize;
-        playerY = newRow * cellSize;
-        updateCameraAndRender();
-      }
-    }
-    
-    // Movement state tracking - simplified for smooth movement
-    let keysPressed = {};
-    
-    // Pre-warm animation system to reduce first-run lag
-    function prepareAnimationSystem() {
-      // Create a test animation cycle to warm up the browser's animation engine
-      renderFrame();
-    }
-    
-    // NEW SIMPLIFIED CAMERA SYSTEM - COMPLETE REPLACEMENT
+    // Camera functions moved to CameraSystem module
     let cameraUpdatePending = false;
-    
-    function initializeNewCamera() {
-      // Calculate optimal zoom level
-      const viewportW = window.innerWidth;
-      const viewportH = window.innerHeight;
-      const smallerDimension = Math.min(viewportW, viewportH);
-      
-      // Show about 12-15 cells in the smaller screen dimension
-      const targetCellsVisible = 12;
-      currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * cellSize)));
-      
-      // Center camera on player immediately
-      centerOnPlayer();
-      
-      // Enable camera following
-      cameraEnabled = true;
-    }
-
-    function centerOnPlayer() {
-      // Get player's center position in world coordinates
-      const playerCenterX = playerX + (cellSize / 2);
-      const playerCenterY = playerY + (cellSize / 2);
-      
-      // Calculate where to position the canvas so player appears at screen center
-      const screenCenterX = window.innerWidth / 2;
-      const screenCenterY = window.innerHeight / 2;
-      
-      // Simple formula: translate = (screenCenter / zoom) - playerCenter
-      cameraX = (screenCenterX / currentZoom) - playerCenterX;
-      cameraY = (screenCenterY / currentZoom) - playerCenterY;
-      
-      // Apply the transform immediately
-      applyCamera();
-    }
-
-    function applyCamera() {
-      // Batch transform application - single transform string
-      const transform = `scale(${currentZoom}) translate(${cameraX}px, ${cameraY}px)`;
-      canvas.style.transform = transform;
-      canvas.style.transformOrigin = '0 0';
-    }
-
-    function updateCamera() {
-      if (!cameraEnabled || cameraUpdatePending) return;
-      
-      cameraUpdatePending = true;
-      requestAnimationFrame(() => {
-        centerOnPlayer(); // This already calls applyCamera()
-        cameraUpdatePending = false;
-      });
-    }
-    
-    // Batched update function - combines camera and render
-    function updateCameraAndRender() {
-      if (cameraEnabled) {
-        updateCamera();
-      }
-      renderFrame();
-    }
-
-    // Replace the old camera functions
-    function zoomInOnPlayer() {
-      initializeNewCamera();
-    }
-
-    function centerCameraOnPlayer() {
-      centerOnPlayer();
-    }
-
-    function updateCameraPosition() {
-      updateCamera();
-    }
-
-    function resetCamera() {
-      cameraEnabled = false;
-      currentZoom = 1.0;
-      cameraX = 0;
-      cameraY = 0;
-      // Force reset the canvas transform
-      canvas.style.transform = 'scale(1) translate(0px, 0px)';
-      canvas.style.transformOrigin = '0 0';
-      // Clear any existing transforms
-      canvas.style.webkitTransform = 'scale(1) translate(0px, 0px)';
-    }
-
-    // Remove all the old camera animation complexity
-    function startCameraAnimation() {
-      // No animation needed - camera updates instantly
-      updateCamera();
-    }
 
     // Setup predefined maze
     mazeStructure = predefinedMaze;
@@ -746,6 +457,15 @@
     startCol = 2;
     endRow = 46;   // Bottom right corner (last row - 1)
     endCol = 46;   // Bottom right corner (last column - 1)
+    
+    // Update global variables after assignment
+    window.mazeStructure = mazeStructure;
+    window.startRow = startRow;
+    window.startCol = startCol;
+    window.endRow = endRow;
+    window.endCol = endCol;
+    window.mazeSize = mazeSize;
+    window.cellSize = cellSize;
     
     // CRITICAL: Prevent any changes to start position
     Object.defineProperty(window, 'startRow', {
@@ -764,6 +484,10 @@
     playerX = startCol * cellSize;
     playerY = startRow * cellSize;
     
+    // Update global player position
+    window.playerX = playerX;
+    window.playerY = playerY;
+    
     // Don't call createMaze since we're using our own Canvas rendering
     // myLibrary.createMaze();
 
@@ -771,68 +495,136 @@
     var player = {
       style: {
         get top() { 
-          return playerY + "px"; 
+          return window.playerY + "px"; 
         },
         set top(value) { 
           const newY = parseInt(value);
-          playerY = newY;
+          window.playerY = newY;
           // Don't trigger camera/render immediately - let movement system batch updates
         },
         get left() { 
-          return playerX + "px"; 
+          return window.playerX + "px"; 
         },
         set left(value) { 
           const newX = parseInt(value);
-          playerX = newX;
+          window.playerX = newX;
           // Don't trigger camera/render immediately - let movement system batch updates
         }
       }
     };
     
+    // Make player global
+    window.player = player;
+    
     // Initialize the canvas rendering system
     function initializeGame() {
-      // FORCE RESET all state variables
-      playerIsMoving = false;
-      
-      // FORCE RESET player position to starting position
-      playerX = startCol * cellSize;
-      playerY = startRow * cellSize;
-      
-      // Force a complete camera reset first
-      resetCamera();
-      
-      // Force initial render to ensure maze is visible
-      renderFrame();
-      prepareAnimationSystem();
-      
-      // Initialize new camera system after reset
-      setTimeout(() => {
-        initializeNewCamera();
-        // Force another render to ensure everything is visible
-        renderFrame();
+      if (window.GameInitializer) {
+        window.GameInitializer.initializeGame();
         
-        // Start lazy audio loading AFTER maze is fully initialized
-        setTimeout(() => {
-          preloadAudioAsync();
-        }, 100); // Additional delay to ensure smooth maze startup
-      }, 50); // Small delay to ensure reset is complete
+        // Ensure virtual player is created
+        if (window.GameInitializer.createVirtualPlayer) {
+          const virtualPlayer = window.GameInitializer.createVirtualPlayer();
+          if (virtualPlayer) {
+            window.player = virtualPlayer;
+          }
+        }
+      } else {
+        // Fallback initialization if module not loaded
+        console.warn('GameInitializer module not loaded, using fallback');
+        if (window.CameraSystem) {
+          window.CameraSystem.resetCamera();
+        }
+        if (window.CanvasRenderer) {
+          window.CanvasRenderer.renderFrame();
+        }
+      }
+      
+      // Start the smooth movement system
+      if (window.PlayerController && window.PlayerController.startSmoothMovement) {
+        window.PlayerController.startSmoothMovement();
+      }
+      
+      // Initialize performance monitoring
+      if (window.CanvasRenderer && window.CanvasRenderer.monitorPerformance) {
+        window.CanvasRenderer.monitorPerformance();
+      }
+      
+      // Prepare animation system
+      if (window.CanvasRenderer && window.CanvasRenderer.prepareAnimationSystem) {
+        window.CanvasRenderer.prepareAnimationSystem();
+      }
     }
     
     // Force complete reset on page load
     window.addEventListener('load', function() {
-      resetCamera();
+      if (window.CameraSystem) {
+        window.CameraSystem.resetCamera();
+      }
       initializeGame();
       
       // Start audio loading after page is fully loaded and maze is initialized
       setTimeout(() => {
-        if (!audioPreloaded && !audioLoadingInProgress) {
-          preloadAudioAsync();
+        console.log('Checking audio loading conditions...');
+        console.log('audioPreloaded:', audioPreloaded);
+        console.log('audioLoadingInProgress:', audioLoadingInProgress);
+        console.log('AudioManager available:', !!window.AudioManager);
+        console.log('myLibrary available:', !!window.myLibrary);
+        
+        if (typeof audioPreloaded !== 'undefined' && !audioPreloaded && typeof audioLoadingInProgress !== 'undefined' && !audioLoadingInProgress) {
+          if (window.GameInitializer) {
+            console.log('Starting audio preload via GameInitializer...');
+            window.GameInitializer.preloadAudioAsync();
+          } else {
+            console.log('Starting audio preload via local function...');
+            preloadAudioAsync(); // Fallback to local function
+          }
+        } else {
+          console.log('Audio loading conditions not met - skipping preload');
         }
       }, 200); // Ensure maze has time to fully initialize
     });
     
+    // Add missing resize handler
+    window.addEventListener('resize', function() {
+      if (window.GameInitializer && window.GameInitializer.resizeMaze) {
+        window.GameInitializer.resizeMaze();
+      }
+    });
+    
     // No need to wait for sprite loading - initialize immediately
     initializeGame();
+
+    // Force an immediate render to ensure maze displays
+    setTimeout(() => {
+      console.log('Forcing initial maze render...');
+      console.log('Maze structure exists:', !!window.mazeStructure);
+      console.log('Canvas exists:', !!window.canvas);
+      console.log('Context exists:', !!window.ctx);
+      console.log('CanvasRenderer exists:', !!window.CanvasRenderer);
+      console.log('Maze size:', window.mazeSize);
+      console.log('Cell size:', window.cellSize);
+      console.log('Player position:', window.playerX, window.playerY);
+      
+      if (window.CanvasRenderer) {
+        window.CanvasRenderer.renderFrame();
+      }
+    }, 100);
+
+    // Add missing player position update function
+    function updatePlayerPosition() {
+      if (window.player && window.player.style) {
+        window.player.style.left = window.playerX + "px";
+        window.player.style.top = window.playerY + "px";
+      }
+      
+      // Also call the PlayerController update if it exists
+      if (window.PlayerController && window.PlayerController.updatePlayerPosition) {
+        window.PlayerController.updatePlayerPosition();
+      }
+    }
+
+    // Make this function globally available
+    window.updatePlayerPosition = updatePlayerPosition;
 
   // Smooth pixel-based movement system - replaces cell-based movement
   window.addEventListener("keydown", (event) => {
@@ -847,17 +639,17 @@
       return;
     }
     
-    // Audio interval tracking to prevent leaks
-    let audioCheckInterval = null;
-    
     if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
       event.preventDefault();
       
       // Start timer and music only once
       if (!interval) {
         interval = true;
-        const { startTime: capturedStartTime, interval: capturedInterval } = myLibrary.startTimer(timerElement);
-        startTime = capturedStartTime;
+        const timerResult = myLibrary.startTimer(timerElement);
+        if (timerResult && timerResult.startTime) {
+          startTime = timerResult.startTime;
+          window.startTime = startTime;
+        }
       }
       if (first === 0) {
         // Smart music playback - play immediately if loaded, queue if still loading
@@ -865,69 +657,76 @@
           // Audio ready - start music immediately
           setTimeout(() => {
             try {
-              myLibrary.playMusic();
-              musicStarted = true;
-              console.log('Music started successfully');
+              // Use AudioManager directly instead of myLibrary
+              if (window.AudioManager) {
+                window.AudioManager.playMusic();
+                musicStarted = true;
+                console.log('Music started successfully via AudioManager');
+              } else {
+                console.warn('AudioManager not available, trying myLibrary fallback');
+                myLibrary.playMusic();
+                musicStarted = true;
+                console.log('Music started successfully via myLibrary');
+              }
             } catch (error) {
               console.warn('Music playback failed:', error);
             }
           }, 0);
-        } else if (!musicStarted && !audioCheckInterval) {
+        } else if (!musicStarted && !window.audioCheckInterval) {
           // Audio not ready - set up a check to start music when available
           console.log('Audio still loading, will start music when ready...');
-          audioCheckInterval = setInterval(() => {
+          window.audioCheckInterval = setInterval(() => {
             if (audioPreloaded && !musicStarted) {
               try {
-                myLibrary.playMusic();
-                musicStarted = true;
-                console.log('Music started after audio loading completed');
-                clearInterval(audioCheckInterval);
-                audioCheckInterval = null;
+                // Use AudioManager directly instead of myLibrary
+                if (window.AudioManager) {
+                  window.AudioManager.playMusic();
+                  musicStarted = true;
+                  console.log('Music started after audio loading completed via AudioManager');
+                } else {
+                  console.warn('AudioManager not available, trying myLibrary fallback');
+                  myLibrary.playMusic();
+                  musicStarted = true;
+                  console.log('Music started after audio loading completed via myLibrary');
+                }
+                clearInterval(window.audioCheckInterval);
+                window.audioCheckInterval = null;
               } catch (error) {
                 console.warn('Music playback failed:', error);
-                clearInterval(audioCheckInterval);
-                audioCheckInterval = null;
+                clearInterval(window.audioCheckInterval);
+                window.audioCheckInterval = null;
               }
             }
           }, 100);
           
           // Safety timeout to prevent infinite checking (stop trying after 10 seconds)
           setTimeout(() => {
-            if (!musicStarted && audioCheckInterval) {
+            if (!musicStarted && window.audioCheckInterval) {
               console.warn('Audio loading timeout - continuing without music');
-              clearInterval(audioCheckInterval);
-              audioCheckInterval = null;
+              clearInterval(window.audioCheckInterval);
+              window.audioCheckInterval = null;
             }
           }, 10000);
         }
         first++;
       }
       
-      // Mark player as moving
-      playerIsMoving = true;
-      
-      // Add key to smooth movement keys
-      smoothMovementKeys[event.key] = true;
-      
-      // Start smooth movement loop if not already running
-      if (!animationFrameId) {
-        animationFrameId = requestAnimationFrame(smoothMovementLoop);
+      // Mark player as moving and handle smooth movement
+      if (window.PlayerController) {
+        // Start smooth movement system if not already running
+        if (window.PlayerController.startSmoothMovement && !window.PlayerController.isMovementActive) {
+          window.PlayerController.startSmoothMovement();
+        }
+        window.PlayerController.handleKeyDown(event.key);
       }
     }
   });
 
   window.addEventListener("keyup", (event) => {
     if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
-      // Remove key from smooth movement keys
-      smoothMovementKeys[event.key] = false;
-      
-      // Check if any movement keys are still pressed
-      const anyKeyPressed = Object.values(smoothMovementKeys).some(pressed => pressed);
-      
-      // Stop movement if no keys are pressed
-      if (!anyKeyPressed) {
-        playerIsMoving = false;
-        // Animation loop will stop itself when no keys are pressed
+      // Handle key release through PlayerController
+      if (window.PlayerController) {
+        window.PlayerController.handleKeyUp(event.key);
       }
     }
   });
@@ -935,97 +734,30 @@
   // Remove old cell-based movement function - replaced with smooth movement
   // function startContinuousMovement() { ... } - REMOVED
     
-    // Prevent duplicate event listeners
-    if (!restartButton.hasAttribute('data-initialized')) {
-      restartButton.addEventListener("click", function() {
-        cleanupGameSystems();
-        resetCamera();
-        myLibrary.restartMaze();
-      });
-      restartButton.setAttribute('data-initialized', 'true');
+    // Event listeners setup moved to GameInitializer module
+    if (window.GameInitializer) {
+      window.GameInitializer.setupEventListeners();
+    } else {
+      console.warn('GameInitializer module not loaded for event listeners');
     }
+
+    // =================================================================
+    // GAME COORDINATION AND EVENT HANDLING
+    // =================================================================
+    // The following code coordinates the various modules and handles
+    // browser events. Core game logic has been moved to modules.
     
-    if (!backButton.hasAttribute('data-initialized')) {
-      backButton.addEventListener("click", myLibrary.goBack);
-      backButton.style.display = "inline-block";
-      backButton.addEventListener("click", myLibrary.hideEndScreen);
-      backButton.setAttribute('data-initialized', 'true');
-    }
-    
-    // Set the appropriate copy function based on mode (prevent duplicates)
-    const copyButton = document.getElementById("copy-button");
-    if (copyButton && !copyButton.hasAttribute('data-initialized')) {
-      if (easy) {
-        copyButton.addEventListener("click", myLibrary.copyEasyMazeAndTime);
-      } else {
-        copyButton.addEventListener("click", myLibrary.copyMazeAndTime);
+    // Add cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+      if (window.GameInitializer && window.GameInitializer.cleanupGameSystems) {
+        window.GameInitializer.cleanupGameSystems();
       }
-      copyButton.setAttribute('data-initialized', 'true');
-    }
-    
-    // Handle window resize to recalculate maze size
-    function resizeMaze() {
-      // Recalculate the maximum possible cell size to fill the screen
-      const availableWidth = window.innerWidth;
-      const availableHeight = window.innerHeight;
-      
-      // Calculate cell size based on screen dimensions and maze size
-      const maxCellSizeWidth = Math.floor(availableWidth / mazeSize);
-      const maxCellSizeHeight = Math.floor(availableHeight / mazeSize);
-      
-      // Use the smaller of the two to ensure the maze fits in both dimensions
-      cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
-      
-      // Ensure minimum cell size for playability
-      if (cellSize < 3) {
-        cellSize = 3;
+      if (window.PlayerController && window.PlayerController.cleanupMovementSystems) {
+        window.PlayerController.cleanupMovementSystems();
       }
-      
-      // Calculate actual maze dimensions in pixels
-      const mazeWidthPx = mazeSize * cellSize;
-      const mazeHeightPx = mazeSize * cellSize;
-      
-      // Update canvas size
-      canvas.width = mazeWidthPx;
-      canvas.height = mazeHeightPx;
-      
-      // Update container size
-      mazeContainer.style.width = mazeWidthPx + 'px';
-      mazeContainer.style.height = mazeHeightPx + 'px';
-      
-      // Update player position to match new cell size
-      const currentCol = Math.round(playerX / (canvas.width / mazeSize));
-      const currentRow = Math.round(playerY / (canvas.height / mazeSize));
-      playerX = currentCol * cellSize;
-      playerY = currentRow * cellSize;
-      
-      // Re-calculate zoom and camera position for new dimensions
-      if (cameraEnabled) {
-        // Recalculate zoom scale for new screen size
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const smallerDimension = Math.min(viewportWidth, viewportHeight);
-        const targetCellsVisible = 12;
-        currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * cellSize)));
-        
-        // Re-center camera on player
-        centerOnPlayer();
-      }
-      
-      // Re-render the maze
-      renderFrame();
-    }
+    });
     
-    // Add resize event listener with debouncing (prevent duplicates)
-    let resizeTimeout;
-    if (!window.hasAttribute || !window.hasAttribute('data-resize-initialized')) {
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resizeMaze, 100);
-      });
-      // Mark as initialized (use a global flag since window doesn't support setAttribute)
-      window.resizeHandlerInitialized = true;
-    }
+    // Resize handling moved to GameInitializer module
   </script>
 </body>
 </html>
