@@ -49,8 +49,8 @@
       display: flex;
       justify-content: center; /* Center the button-image pairs */
       gap: 40px;
-      margin-top: 140px;
-      margin-bottom: 10px; /* Reduced margin between button and text below */
+      margin-top: 20px;
+      margin-bottom: 40px; /* Increase margin between button-image pairs */
     }
     .button-pair {
       display: flex;
@@ -287,21 +287,56 @@
       <h1 class="menu-title">The Traze Maze</h1>
     </div>
     <div class="menu-buttons-container">
-      <button class="selected-menu-button">Home</button>
-      <button class="menu-button" onclick="window.location.href = 'classic.html'">Classic</button>
+      <button class="menu-button" onclick="window.location.href = 'index.html'">Home</button>
+      <button class="selected-menu-button">Classic</button>
       <button class="menu-button" onclick="window.location.href = 'howtoplay.html'">How to Play</button>
       <button class="menu-button" onclick="window.location.href = 'about.html'">About</button>
       <button class="menu-button version-adjust" onclick="window.location.href = 'version.html'">Version</button>
     </div>
     </div>
   
+  <!-- Add the dropdown menu -->
+  <div class="mode-selector">
+  <div class="mode-group first">
+    <h2 class="mode">Modes: </h2>
+    <button class="mode-btn selected_button" id="easy">One-way Speedrun</button>
+    <button class="mode-btn" id="hard">Multi-Way Explorer</button>
+  </div>
+  <div class="mode-group">
+    <h2 class="mode">Modifiers: </h2>
+    <button class="mode-btn selected_button" id="normal">Classic</button>
+    <button class="mode-btn" id="hide">Hidden</button>
+  </div>
+  <div class="mode-group">
+    <h2 class="mode">Goal Type: </h2>
+    <button class="mode-btn selected_button" id="single-goal">Single Goal</button>
+    <button class="mode-btn" id="multi-goal">Multiple Goals</button>
+  </div>
+</div>
+
   <div class="button-container">
-    <!-- Single maze button for the new modular maze -->
+    <!-- Add the first pair of images and buttons -->
     <div class="button-pair">
       <div class="image-container">
-        <img class="button-img" src="newimg.png" alt="The Traze Maze" />
+        <img class="button-img" src="small-maze-image.png" alt="Small Maze" />
       </div>
-      <button class="button" onclick="startNewMaze()">Play The Traze Maze</button>
+      <button class="button" onclick="startSmallMaze()">Small Maze</button>
+    </div>
+
+    <!-- Add the second pair of images and buttons -->
+    <div class="button-pair">
+      <div class="image-container">
+        <img class="button-img" src="big-maze-image.png" alt="Medium Maze">
+      </div>
+      <button class="button" onclick="startMediumMaze()">Medium Maze</button>
+    </div>
+
+    <!-- Add the third pair of images and buttons -->
+    <div class="button-pair">
+      <div class="image-container">
+        <img class="button-img" src="image3.png" alt="Image 3">
+      </div>
+      <button class="button" onclick="startBigMaze()">Big Maze</button>
     </div>
   </div>
   
@@ -311,9 +346,96 @@
 
 
   <script>
-    function startNewMaze() {
-      window.location.href = 'newmaze.html';
+    // Existing script functions
+    var selectedOption = 'option1';
+    var hidden = 'option1';
+    var goalType = 'single'; // New variable for goal type
+
+    function startSmallMaze() {
+      let params = new URLSearchParams();
+      
+      // Set size parameter
+      params.set('difficulty', 'small');
+      
+      // Set mode parameter (easy vs hard determines algorithm)
+      if (selectedOption === 'option2') params.set('mode', 'easy');
+      
+      // Set modifiers
+      if (hidden === "option2") params.set('type', 'black');
+      if (goalType === 'multiple') params.set('multiple', 'true');
+      
+      window.location.href = 'mainmaze.html?' + params.toString();
     }
+    
+    function startMediumMaze() {
+      let params = new URLSearchParams();
+      
+      // Set size parameter
+      params.set('difficulty', 'medium');
+      
+      // Set mode parameter (easy vs hard determines algorithm)
+      if (selectedOption === 'option2') params.set('mode', 'easy');
+      
+      // Set modifiers
+      if (hidden === "option2") params.set('type', 'black');
+      if (goalType === 'multiple') params.set('multiple', 'true');
+      
+      window.location.href = 'mainmaze.html?' + params.toString();
+    }
+
+    function startBigMaze() {
+      let params = new URLSearchParams();
+      
+      // Set size parameter
+      params.set('difficulty', 'biggest');
+      
+      // Set mode parameter (easy vs hard determines algorithm)
+      if (selectedOption === 'option2') params.set('mode', 'easy');
+      
+      // Set modifiers
+      if (hidden === "option2") params.set('type', 'black');
+      if (goalType === 'multiple') params.set('multiple', 'true');
+      
+      window.location.href = 'mainmaze.html?' + params.toString();
+    }
+
+    // Add event listeners to the mode buttons
+    document.getElementById('easy').addEventListener('click', function() {
+      selectedOption = 'option1';
+      this.classList.add('selected_button');
+      document.getElementById('hard').classList.remove('selected_button');
+      this.blur();
+    });
+    document.getElementById('hard').addEventListener('click', function() {
+      selectedOption = 'option2';
+      this.classList.add('selected_button');
+      document.getElementById('easy').classList.remove('selected_button');
+      this.blur();
+    });
+    document.getElementById('normal').addEventListener('click', function() {
+      hidden = 'option1';
+      this.classList.add('selected_button');
+      document.getElementById('hide').classList.remove('selected_button');
+      this.blur();
+    });
+    document.getElementById('hide').addEventListener('click', function() {
+      hidden = 'option2';
+      this.classList.add('selected_button');
+      document.getElementById('normal').classList.remove('selected_button');
+      this.blur();
+    });
+    document.getElementById('single-goal').addEventListener('click', function() {
+      goalType = 'single';
+      this.classList.add('selected_button');
+      document.getElementById('multi-goal').classList.remove('selected_button');
+      this.blur();
+    });
+    document.getElementById('multi-goal').addEventListener('click', function() {
+      goalType = 'multiple';
+      this.classList.add('selected_button');
+      document.getElementById('single-goal').classList.remove('selected_button');
+      this.blur();
+    });
   </script>
 </body>
 </html>
