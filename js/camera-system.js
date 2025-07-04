@@ -11,10 +11,15 @@ const CameraSystem = {
   cameraY: 0,
   currentZoom: 1.0,
   cameraEnabled: false,
-  cameraUpdatePending: false,
+  
+  // Performance optimization - cache transform
+  lastTransform: '',
+  
+  // 60 FPS camera update loop
+  cameraAnimationId: null,
 
   /**
-   * Initialize the camera system with optimal zoom and position
+   * Initialize the camera system with optimal zoom and position (optimized)
    */
   initializeNewCamera: function() {
     // Calculate optimal zoom level
@@ -29,8 +34,9 @@ const CameraSystem = {
     // Center camera on player immediately
     this.centerOnPlayer();
     
-    // Enable camera following
+    // Enable camera following and start 60 FPS update loop
     this.cameraEnabled = true;
+    this.startCameraLoop();
   },
 
   /**
@@ -54,51 +60,82 @@ const CameraSystem = {
   },
 
   /**
-   * Apply camera transformations to the canvas
+   * Apply camera transformations to the canvas (optimized with caching)
    */
   applyCamera: function() {
-    // Batch transform application - single transform string
+    // Build transform string
     const transform = `scale(${this.currentZoom}) translate(${this.cameraX}px, ${this.cameraY}px)`;
-    window.canvas.style.transform = transform;
-    window.canvas.style.transformOrigin = '0 0';
-  },
-
-  /**
-   * Update camera position (throttled)
-   */
-  updateCamera: function() {
-    if (!this.cameraEnabled || this.cameraUpdatePending) return;
     
-    this.cameraUpdatePending = true;
-    requestAnimationFrame(() => {
-      this.centerOnPlayer(); // This already calls applyCamera()
-      this.cameraUpdatePending = false;
-    });
-  },
-
-  /**
-   * Reset camera to default state
-   */
-  resetCamera: function() {
-    this.cameraEnabled = false;
-    this.currentZoom = 1.0;
-    this.cameraX = 0;
-    this.cameraY = 0;
-    // Force reset the canvas transform
-    if (window.canvas) {
-      window.canvas.style.transform = 'scale(1) translate(0px, 0px)';
+    // Only apply if transform actually changed (major performance optimization)
+    if (transform !== this.lastTransform) {
+      window.canvas.style.transform = transform;
       window.canvas.style.transformOrigin = '0 0';
-      // Clear any existing transforms
-      window.canvas.style.webkitTransform = 'scale(1) translate(0px, 0px)';
+      this.lastTransform = transform;
     }
   },
 
   /**
-   * Start camera animation (simplified - no animation needed)
+   * Start 60 FPS camera update loop
+   */
+  startCameraLoop: function() {
+    if (this.cameraAnimationId) {
+      cancelAnimationFrame(this.cameraAnimationId);
+    }
+    
+    const updateLoop = () => {
+      if (this.cameraEnabled) {
+        this.centerOnPlayer();
+        this.cameraAnimationId = requestAnimationFrame(updateLoop);
+      }
+    };
+    
+    this.cameraAnimationId = requestAnimationFrame(updateLoop);
+  },
+
+  /**
+   * Stop camera update loop
+   */
+  stopCameraLoop: function() {
+    if (this.cameraAnimationId) {
+      cancelAnimationFrame(this.cameraAnimationId);
+      this.cameraAnimationId = null;
+    }
+  },
+
+  /**
+   * Update camera position (legacy - now handled by loop)
+   */
+  updateCamera: function() {
+    if (!this.cameraEnabled) return;
+    this.centerOnPlayer();
+  },
+
+  /**
+   * Reset camera to default state (optimized)
+   */
+  resetCamera: function() {
+    this.stopCameraLoop(); // Stop the update loop
+    this.cameraEnabled = false;
+    this.currentZoom = 1.0;
+    this.cameraX = 0;
+    this.cameraY = 0;
+    this.lastTransform = ''; // Clear cached transform
+    
+    // Apply reset transform efficiently
+    if (window.canvas) {
+      const resetTransform = 'scale(1) translate(0px, 0px)';
+      window.canvas.style.transform = resetTransform;
+      window.canvas.style.transformOrigin = '0 0';
+      window.canvas.style.webkitTransform = resetTransform; // Webkit compatibility
+      this.lastTransform = resetTransform;
+    }
+  },
+
+  /**
+   * Start camera animation (now starts the 60 FPS loop)
    */
   startCameraAnimation: function() {
-    // No animation needed - camera updates instantly
-    this.updateCamera();
+    this.startCameraLoop();
   },
 
   // Legacy function aliases for backward compatibility

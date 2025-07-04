@@ -17,9 +17,9 @@ const GameInitializer = {
     }
     
     // Clear any audio check intervals
-    if (window.audioCheckInterval) {
-      clearInterval(window.audioCheckInterval);
-      window.audioCheckInterval = null;
+    if (audioCheckInterval) {
+      clearInterval(audioCheckInterval);
+      audioCheckInterval = null;
     }
     
     // Reset render state

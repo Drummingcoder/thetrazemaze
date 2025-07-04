@@ -8,7 +8,7 @@ console.log('Player Controller module loaded');
 const PlayerController = {
   // Smooth movement system variables
   playerIsMoving: false,
-  movementSpeed: 6, // Pixels per frame for faster movement
+  movementSpeed: 4, // Pixels per frame for faster movement
   smoothMovementKeys: {},
   animationFrameId: null,
   keysPressed: {},
@@ -20,32 +20,47 @@ const PlayerController = {
    * @returns {boolean} - True if collision detected
    */
   checkCollision: function(newX, newY) {
-    // Calculate which cells the player would occupy
+    // Calculate sprite boundaries with proper margins to prevent clipping
     const spriteSize = window.cellSize * 0.8;
     const centerOffset = (window.cellSize - spriteSize) / 2;
+    const margin = Math.max(2, window.cellSize * 0.15); // Dynamic margin based on cell size
     
-    // Check all four corners of the player sprite plus center
-    const checkPoints = [
-      { x: newX + centerOffset + 2, y: newY + centerOffset + 2 }, // Top-left (with small margin)
-      { x: newX + centerOffset + spriteSize - 3, y: newY + centerOffset + 2 }, // Top-right
-      { x: newX + centerOffset + 2, y: newY + centerOffset + spriteSize - 3 }, // Bottom-left
-      { x: newX + centerOffset + spriteSize - 3, y: newY + centerOffset + spriteSize - 3 }, // Bottom-right
-      { x: newX + centerOffset + spriteSize/2, y: newY + centerOffset + spriteSize/2 } // Center
+    // Calculate the actual corners with proper margins
+    const left = newX + centerOffset + margin;
+    const right = newX + centerOffset + spriteSize - margin;
+    const top = newY + centerOffset + margin;
+    const bottom = newY + centerOffset + spriteSize - margin;
+    
+    // Calculate grid positions - this is the key fix
+    const leftCol = Math.floor(left / window.cellSize);
+    const rightCol = Math.floor(right / window.cellSize);
+    const topRow = Math.floor(top / window.cellSize);
+    const bottomRow = Math.floor(bottom / window.cellSize);
+    
+    // Check bounds first
+    if (leftCol < 0 || rightCol >= window.mazeSize || topRow < 0 || bottomRow >= window.mazeSize) {
+      return true; // Collision with maze boundary
+    }
+    
+    // Check all corners and edges to prevent any overlap
+    const positionsToCheck = [
+      [topRow, leftCol],     // Top-left corner
+      [topRow, rightCol],    // Top-right corner
+      [bottomRow, leftCol],  // Bottom-left corner
+      [bottomRow, rightCol], // Bottom-right corner
+      // Add edge checks for more precise collision
+      [topRow, Math.floor((left + right) / 2 / window.cellSize)],    // Top center
+      [bottomRow, Math.floor((left + right) / 2 / window.cellSize)], // Bottom center
+      [Math.floor((top + bottom) / 2 / window.cellSize), leftCol],   // Left center
+      [Math.floor((top + bottom) / 2 / window.cellSize), rightCol]   // Right center
     ];
     
-    // Check if any point is in a wall
-    for (const point of checkPoints) {
-      const col = Math.floor(point.x / window.cellSize);
-      const row = Math.floor(point.y / window.cellSize);
-      
-      // Check bounds
-      if (row < 0 || row >= window.mazeSize || col < 0 || col >= window.mazeSize) {
-        return true; // Collision with maze boundary
-      }
-      
-      // Check if this cell is a wall
-      if (window.mazeStructure[row] && window.mazeStructure[row][col] === 1) {
-        return true; // Collision with wall
+    for (const [row, col] of positionsToCheck) {
+      // Ensure we're within bounds
+      if (row >= 0 && row < window.mazeSize && col >= 0 && col < window.mazeSize) {
+        if (window.mazeStructure[row] && window.mazeStructure[row][col] === 1) {
+          return true; // Collision with wall
+        }
       }
     }
     
@@ -129,9 +144,10 @@ const PlayerController = {
               window.myLibrary.endGame(window.endScreen, window.startTime, window.endContent, window.type, window.personalbest, window.newpersonalbest, window.interval);
             }
           }, 100);
+          return; // Exit early to prevent further processing
         }
         
-        // Update camera and render (throttled to reduce excessive redraws)
+        // Update camera and render (back to original - throttling was causing lag)
         this.updateCameraAndRender();
       }
     }
@@ -180,12 +196,10 @@ const PlayerController = {
   },
 
   /**
-   * Batched update function - combines camera and render
+   * Batched update function - only renders, camera updates automatically
    */
   updateCameraAndRender: function() {
-    if (window.CameraSystem && window.CameraSystem.cameraEnabled) {
-      window.CameraSystem.updateCamera();
-    }
+    // Camera updates automatically at 60 FPS, no need to call it manually
     if (window.CanvasRenderer) {
       window.CanvasRenderer.renderFrame();
     }
