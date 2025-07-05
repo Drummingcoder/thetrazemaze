@@ -145,24 +145,24 @@
   var mode = searchParams.get('mode') || 'hard'; // Default to hard mode if not specified
   
   // Set maze properties based on difficulty
-  let mazeSize, mazeContainerSize;
+  let mazeContainerSize;
   
   if (difficulty === 'small') {
-    mazeSize = 15;
+    window.mazeSize = 15;
     window.cellSize = 40;
     mazeContainerSize = 600;
   } else if (difficulty === 'biggest') {
-    mazeSize = 61;
+    window.mazeSize = 61;
     window.cellSize = 10;
     mazeContainerSize = 610;
   } else { // medium (default)
-    mazeSize = 35;
+    window.mazeSize = 35;
     window.cellSize = 18;
     mazeContainerSize = 630;
   }
   
   // Set easy flag based on mode
-  let easy = (mode === 'easy');
+  window.easy = (mode === 'easy');
   
   // Apply dynamic styling
   const mazeElement = document.getElementById("maze");
@@ -177,8 +177,8 @@
       height: ${window.cellSize}px;
     }
     .player {
-      width: ${Math.max(window.cellSize * 0.8, 8)}px;
-      height: ${Math.max(window.cellSize * 0.8, 8)}px;
+      width: ${Math.floor(Math.max(window.cellSize * 0.8, 8))}px;
+      height: ${Math.floor(Math.max(window.cellSize * 0.8, 8))}px;
     }
   `;
   document.head.appendChild(style);
@@ -358,7 +358,7 @@
     window.player = document.createElement("div");
     window.player.className = "player";
     // Calculate player size and center it within the cell
-    const playerSize = Math.max(window.cellSize * 0.8, 8);
+    const playerSize = Math.floor(Math.max(window.cellSize * 0.8, 8));
     const offsetX = (window.cellSize - playerSize) / 2; // Center horizontally
     const offsetY = (window.cellSize - playerSize) / 2; // Center vertically
     window.player.style.top = (startRow * window.cellSize + offsetY) + "px";

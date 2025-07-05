@@ -5,15 +5,15 @@ var myLibrary = {
   generateStartAndEndPositions: function() {
     startRow = 1;
     startCol = 1;
-    endRow = mazeSize - 2;
-    endCol = mazeSize - 2;
+    endRow = window.mazeSize - 2;
+    endCol = window.mazeSize - 2;
   },
 
   generateRandomMaze: function() {
     mazeStructure = [];
-    for (let i = 0; i < mazeSize; i++) {
+    for (let i = 0; i < window.mazeSize; i++) {
       const row = [];
-      for (let j = 0; j < mazeSize; j++) {
+      for (let j = 0; j < window.mazeSize; j++) {
         row.push(1);
       }
       mazeStructure.push(row);
@@ -40,10 +40,10 @@ var myLibrary = {
       if (col >= 2 && !visited[`${row}-${col - 2}`]) {
         neighbors.push([row, col - 2]);
       }
-      if (row < mazeSize - 2 && !visited[`${row + 2}-${col}`]) {
+      if (row < window.mazeSize - 2 && !visited[`${row + 2}-${col}`]) {
         neighbors.push([row + 2, col]);
       }
-      if (col < mazeSize - 2 && !visited[`${row}-${col + 2}`]) {
+      if (col < window.mazeSize - 2 && !visited[`${row}-${col + 2}`]) {
         neighbors.push([row, col + 2]);
       }
       return neighbors;
@@ -85,10 +85,10 @@ var myLibrary = {
       if (col >= 2 && !visited[`${row}-${col - 2}`]) {
         neighbors.push([row, col - 2]);
       }
-      if (row < mazeSize - 2 && !visited[`${row + 2}-${col}`]) {
+      if (row < window.mazeSize - 2 && !visited[`${row + 2}-${col}`]) {
         neighbors.push([row + 2, col]);
       }
-      if (col < mazeSize - 2 && !visited[`${row}-${col + 2}`]) {
+      if (col < window.mazeSize - 2 && !visited[`${row}-${col + 2}`]) {
         neighbors.push([row, col + 2]);
       }
 
@@ -139,12 +139,12 @@ var myLibrary = {
   },
 
   createMaze: function() {
-    for (let i = 0; i < mazeSize; i++) {
-      for (let j = 0; j < mazeSize; j++) {
+    for (let i = 0; i < window.mazeSize; i++) {
+      for (let j = 0; j < window.mazeSize; j++) {
         const cell = document.createElement("div");
         cell.className = "cell";
 
-        if (i === 0 || i === mazeSize - 1 || j === 0 || j === mazeSize - 1) {
+        if (i === 0 || i === window.mazeSize - 1 || j === 0 || j === window.mazeSize - 1) {
           cell.classList.add("wall");
         } else if (mazeStructure[i][j] === 1) {
           cell.classList.add("wall");
@@ -155,22 +155,22 @@ var myLibrary = {
             cell.classList.add("path");
         }
 
-        cell.style.top = i * cellSize + "px";
-        cell.style.left = j * cellSize + "px";
+        cell.style.top = i * window.cellSize + "px";
+        cell.style.left = j * window.cellSize + "px";
         maze.appendChild(cell);
       }
     }
 
     const startCell = document.createElement("div");
     startCell.className = "cell start";
-    startCell.style.top = startRow * cellSize + "px";
-    startCell.style.left = startCol * cellSize + "px";
+    startCell.style.top = startRow * window.cellSize + "px";
+    startCell.style.left = startCol * window.cellSize + "px";
     maze.appendChild(startCell);
 
     const endCell = document.createElement("div");
     endCell.className = "cell end";
-    endCell.style.top = endRow * cellSize + "px";
-    endCell.style.left = endCol * cellSize + "px";
+    endCell.style.top = endRow * window.cellSize + "px";
+    endCell.style.left = endCol * window.cellSize + "px";
     maze.appendChild(endCell);
   },
 
@@ -181,7 +181,7 @@ var myLibrary = {
     }
 
     // Calculate player size and offset
-    const playerSize = Math.max(window.cellSize * 0.8, 8);
+    const playerSize = Math.floor(Math.max(window.cellSize * 0.8, 8));
     const offset = (window.cellSize - playerSize) / 2;
 
     // Get current position accounting for offset
@@ -200,9 +200,9 @@ var myLibrary = {
 
     if (
       topPos >= 0 &&
-      topPos < mazeSize &&
+      topPos < window.mazeSize &&
       leftPos >= 0 &&
-      leftPos < mazeSize &&
+      leftPos < window.mazeSize &&
       mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== 1
     ) {
       // Set position with offset to center the square in the cell
@@ -220,8 +220,8 @@ var myLibrary = {
           // Generate new random position for the end square
           let newEndRow, newEndCol;
           do {
-            newEndRow = Math.floor(Math.random() * (mazeSize - 2)) + 1;
-            newEndCol = Math.floor(Math.random() * (mazeSize - 2)) + 1;
+            newEndRow = Math.floor(Math.random() * (window.mazeSize - 2)) + 1;
+            newEndCol = Math.floor(Math.random() * (window.mazeSize - 2)) + 1;
           } while (
             mazeStructure[newEndRow][newEndCol] === 1 ||
             (newEndRow === endRow && newEndCol === endCol)
@@ -238,7 +238,7 @@ var myLibrary = {
           mazecount++;
 
           // Calculate player size and offset for proper positioning
-          const playerSize = Math.max(window.cellSize * 0.8, 8);
+          const playerSize = Math.floor(Math.max(window.cellSize * 0.8, 8));
           const offset = (window.cellSize - playerSize) / 2;
           window.player.style.top = (startRow * window.cellSize + offset) + "px";
           window.player.style.left = (startCol * window.cellSize + offset) + "px";
@@ -376,20 +376,20 @@ var myLibrary = {
   // Calculate and store the personal best time
   calculatePersonalBestTime: function(currentTime, type) {
     let mazeIdentifier;
-    if (easy === false) {
-      if (mazeSize === 15) {
+    if (window.easy === false) {
+      if (window.mazeSize === 15) {
         if (type === "black") {
           mazeIdentifier = 'bsm';
         } else {
           mazeIdentifier = 'sm';
         }
-      } else if (mazeSize === 35) {
+      } else if (window.mazeSize === 35) {
         if (type === "black") {
           mazeIdentifier = 'bmm';
         } else {
           mazeIdentifier = 'mm';
         }
-      } else if (mazeSize === 61) {
+      } else if (window.mazeSize === 61) {
         if (type === "black") {
           mazeIdentifier = 'bbm';
         } else {
@@ -397,19 +397,19 @@ var myLibrary = {
         }
       }
     } else if (easy === true) {
-      if (mazeSize === 15) {
+      if (window.mazeSize === 15) {
         if (type === "black") {
           mazeIdentifier = 'besm';
         } else {
           mazeIdentifier = 'esm';
         }
-      } else if (mazeSize === 35) {
+      } else if (window.mazeSize === 35) {
         if (type === "black") {
           mazeIdentifier = 'bemm';
         } else {
           mazeIdentifier = 'emm';
         }
-      } else if (mazeSize === 61) {
+      } else if (window.mazeSize === 61) {
         if (type === "black") {
           mazeIdentifier = 'bebm';
         } else {
@@ -437,19 +437,19 @@ var myLibrary = {
   displayPersonalBestTime: function(currentTime, type, personalbest, newpersonalbest) {
     let mazeIdentifier;
     if (easy === false) {
-      if (mazeSize === 15) {
+      if (window.mazeSize === 15) {
         if (type === "black") {
           mazeIdentifier = "bsm";
         } else {
           mazeIdentifier = "sm";
         }
-      } else if (mazeSize === 35) {
+      } else if (window.mazeSize === 35) {
         if (type === "black") {
           mazeIdentifier = 'bmm';
         } else {
           mazeIdentifier = 'mm';
         }
-      } else if (mazeSize === 61) {
+      } else if (window.mazeSize === 61) {
         if (type === "black") {
           mazeIdentifier = 'bbm';
         } else {
@@ -457,19 +457,19 @@ var myLibrary = {
         }
       }
     } else if (easy === true) {
-      if (mazeSize === 15) {
+      if (window.mazeSize === 15) {
         if (type === "black") {
           mazeIdentifier = 'besm';
         } else {
           mazeIdentifier = 'esm';
         }
-      } else if (mazeSize === 35) {
+      } else if (window.mazeSize === 35) {
         if (type === "black") {
           mazeIdentifier = 'bemm';
         } else {
           mazeIdentifier = 'emm';
         }
-      } else if (mazeSize === 61) {
+      } else if (window.mazeSize === 61) {
         if (type === "black") {
           mazeIdentifier = 'bebm';
         } else {
