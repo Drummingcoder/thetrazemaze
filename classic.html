@@ -244,6 +244,7 @@
       object-fit: cover;
       border-radius: 4px;
       margin-bottom: 0px;
+      cursor: pointer; /* Add hand cursor on hover */
     }
     .stickman-character {
       position: fixed;
@@ -318,7 +319,7 @@
     <!-- Add the first pair of images and buttons -->
     <div class="button-pair">
       <div class="image-container">
-        <img class="button-img" src="small-maze-image.png" alt="Small Maze" />
+        <img class="button-img" onclick="startSmallMaze()" src="small-maze-image.png" alt="Small Maze" />
       </div>
       <button class="button" onclick="startSmallMaze()">Small Maze</button>
     </div>
@@ -326,7 +327,7 @@
     <!-- Add the second pair of images and buttons -->
     <div class="button-pair">
       <div class="image-container">
-        <img class="button-img" src="big-maze-image.png" alt="Medium Maze">
+        <img class="button-img" onclick="startMediumMaze()" src="big-maze-image.png" alt="Medium Maze">
       </div>
       <button class="button" onclick="startMediumMaze()">Medium Maze</button>
     </div>
@@ -334,7 +335,7 @@
     <!-- Add the third pair of images and buttons -->
     <div class="button-pair">
       <div class="image-container">
-        <img class="button-img" src="image3.png" alt="Image 3">
+        <img class="button-img" onclick="startBigMaze()" src="image3.png" alt="Image 3">
       </div>
       <button class="button" onclick="startBigMaze()">Big Maze</button>
     </div>

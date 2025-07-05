@@ -8,8 +8,8 @@
     body {
       text-align: center;
       background: linear-gradient(45deg, #1E3A8A 0%, #3B82F6 25%, #8B5CF6 50%, #F59E0B 75%, #FF8C00 100%);
-      background-size: 400% 400%;
-      animation: gradientShift 8s ease-in-out infinite;
+      background-size: 100% 100%;
+      /*animation: gradientShift 8s ease-in-out infinite; */
       position: relative;
       overflow-x: hidden;
     }
@@ -439,7 +439,7 @@
     // Canvas rendering system moved to CanvasRenderer module
     let renderPending = false;
     let lastRenderTime = 0;
-    const RENDER_THROTTLE = 8; // 120 FPS max for smoother movement
+    const RENDER_THROTTLE = 16; // 60 FPS max for smoother movement
     let renderQueued = false;
     
     // drawMaze and drawPlayer functions moved to CanvasRenderer module
@@ -697,7 +697,7 @@
                 window.audioCheckInterval = null;
               }
             }
-          }, 100);
+          }, 250); // Check every 250ms instead of 100ms to reduce overhead
           
           // Safety timeout to prevent infinite checking (stop trying after 10 seconds)
           setTimeout(() => {

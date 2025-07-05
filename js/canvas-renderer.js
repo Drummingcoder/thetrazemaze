@@ -17,10 +17,9 @@ const CanvasRenderer = {
   lastPerformanceCheck: performance.now(),
 
   /**
-   * Draw the complete maze on the canvas
+   * Draw the maze with viewport culling for performance
    */
   drawMaze: function() {
-    // Always redraw the entire maze - this is actually faster and simpler
     // Clear canvas
     window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height);
     
@@ -30,15 +29,33 @@ const CanvasRenderer = {
     const startColor = '#00FF00';     // Green start
     const endColor = '#FF0000';       // Red end
     
-    // Collect cells by color for batched drawing
+    // Calculate viewport boundaries with camera transform
+    const zoom = window.CameraSystem ? window.CameraSystem.currentZoom : 1.0;
+    const cameraX = window.CameraSystem ? window.CameraSystem.cameraX : 0;
+    const cameraY = window.CameraSystem ? window.CameraSystem.cameraY : 0;
+    
+    // Calculate visible area in world coordinates (corrected formula)
+    const viewportLeft = -cameraX;
+    const viewportTop = -cameraY;
+    const viewportRight = viewportLeft + (window.innerWidth / zoom);
+    const viewportBottom = viewportTop + (window.innerHeight / zoom);
+    
+    // Add buffer around viewport to prevent edge artifacts
+    const buffer = window.cellSize * 2;
+    const startCol = Math.max(0, Math.floor((viewportLeft - buffer) / window.cellSize));
+    const endCol = Math.min(window.mazeSize, Math.ceil((viewportRight + buffer) / window.cellSize));
+    const startRow = Math.max(0, Math.floor((viewportTop - buffer) / window.cellSize));
+    const endRow = Math.min(window.mazeSize, Math.ceil((viewportBottom + buffer) / window.cellSize));
+    
+    // Collect visible cells by color for batched drawing
     const walls = [];
     const paths = [];
     let startCell = null;
     let endCell = null;
     
-    // First pass: categorize all cells
-    for (let row = 0; row < window.mazeSize; row++) {
-      for (let col = 0; col < window.mazeSize; col++) {
+    // Only process visible cells
+    for (let row = startRow; row < endRow; row++) {
+      for (let col = startCol; col < endCol; col++) {
         const x = col * window.cellSize;
         const y = row * window.cellSize;
         
