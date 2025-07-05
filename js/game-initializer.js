@@ -199,16 +199,6 @@ const GameInitializer = {
       backButton.addEventListener("click", myLibrary.hideEndScreen);
       backButton.setAttribute('data-initialized', 'true');
     }
-    
-    // Set the appropriate copy function based on mode (prevent duplicates)
-    if (copyButton && !copyButton.hasAttribute('data-initialized')) {
-      if (typeof easy !== 'undefined' && easy) {
-        copyButton.addEventListener("click", myLibrary.copyEasyMazeAndTime);
-      } else {
-        copyButton.addEventListener("click", myLibrary.copyMazeAndTime);
-      }
-      copyButton.setAttribute('data-initialized', 'true');
-    }
 
     // Add resize event listener with debouncing (prevent duplicates)
     let resizeTimeout;

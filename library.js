@@ -1,30 +1,12 @@
-console.log('library.js loaded successfully');
-
 var myLibrary = {
   timeElapsed: 0,
   interval: 0,
-  preloadedAudio: null,
-
-  // Preload audio to reduce lag on first play
-  preloadAudio: function() {
-    this.preloadedAudio = new Audio('Enaudi Experience.mp3');
-    this.preloadedAudio.preload = 'auto';
-    this.preloadedAudio.volume = 1.0;
-    // Trigger loading without playing
-    this.preloadedAudio.load();
-  },
 
   generateStartAndEndPositions: function() {
     startRow = 1;
     startCol = 1;
     endRow = mazeSize - 2;
     endCol = mazeSize - 2;
-    
-    // Ensure start and end positions are marked as open paths
-    if (mazeStructure && mazeStructure[startRow] && mazeStructure[endRow]) {
-      mazeStructure[startRow][startCol] = 0;
-      mazeStructure[endRow][endCol] = 0;
-    }
   },
 
   generateRandomMaze: function() {
@@ -36,34 +18,20 @@ var myLibrary = {
       }
       mazeStructure.push(row);
     }
-
-    // Ensure start and end positions are open before generating paths
-    mazeStructure[startRow][startCol] = 0;
-    mazeStructure[endRow][endCol] = 0;
-
-    this.generateClearPath();
   },
 
   playMusic: function() {
-    if (this.preloadedAudio) {
-      this.preloadedAudio.currentTime = 0; // Reset to beginning
-      this.preloadedAudio.play().catch(e => {
-        console.log('Audio play failed:', e);
-        // Fallback to creating new audio if preloaded fails
-        var audio = new Audio('Enaudi Experience.mp3');
-        audio.play();
-      });
-    } else {
-      // Fallback if preloading didn't work
-      var audio = new Audio('Enaudi Experience.mp3');
-      audio.play();
-    }
+    var audio = new Audio('Enaudi Experience.mp3');
+    audio.play();
   },
 
   generateClearPath: function() {
     mazeStructure[startRow][startCol] = 0;
     mazeStructure[endRow][endCol] = 0;
 
+    const stack = [];
+    const visited = {};
+
     function getNeighbor(row, col) {
       const neighbors = [];
       if (row >= 2 && !visited[`${row - 2}-${col}`]) {
@@ -78,58 +46,37 @@ var myLibrary = {
       if (col < mazeSize - 2 && !visited[`${row}-${col + 2}`]) {
         neighbors.push([row, col + 2]);
       }
-
       return neighbors;
     }
 
-    const stack = [];
-    const visited = {};
-    
-    let currentRow = startRow;
-    let currentCol = startCol;
-    
-    visited[`${currentRow}-${currentCol}`] = true;
+    function visit(row, col) {
+      visited[`${row}-${col}`] = true;
+      mazeStructure[row][col] = 0;
 
-    while (true) {
-      const neighbors = getNeighbor(currentRow, currentCol);
-      
+      const neighbors = getNeighbor(row, col);
       if (neighbors.length > 0) {
+        stack.push([row, col]);
         const [nextRow, nextCol] = neighbors[Math.floor(Math.random() * neighbors.length)];
-        
-        visited[`${nextRow}-${nextCol}`] = true;
-        mazeStructure[nextRow][nextCol] = 0;
-        
-        if (nextRow === currentRow) {
-          const startCol = Math.min(currentCol, nextCol);
-          const endCol = Math.max(currentCol, nextCol);
-          for (let c = startCol; c <= endCol; c++) {
-            mazeStructure[currentRow][c] = 0;
-          }
-        } else {
-          const startRow = Math.min(currentRow, nextRow);
-          const endRow = Math.max(currentRow, nextRow);
-          for (let r = startRow; r <= endRow; r++) {
-            mazeStructure[r][currentCol] = 0;
-          }
-        }
-        
-        stack.push([currentRow, currentCol]);
-        currentRow = nextRow;
-        currentCol = nextCol;
-      } else {
-        if (stack.length > 0) {
-          [currentRow, currentCol] = stack.pop();
-        } else {
-          break;
-        }
+        const midRow = (row + nextRow) / 2;
+        const midCol = (col + nextCol) / 2;
+        mazeStructure[midRow][midCol] = 0;
+        visit(nextRow, nextCol);
+      } else if (stack.length > 0) {
+        const [prevRow, prevCol] = stack.pop();
+        visit(prevRow, prevCol);
       }
     }
+
+    visit(startRow, startCol);
   },
 
   generateEasyPath: function() {
     mazeStructure[startRow][startCol] = 0;
     mazeStructure[endRow][endCol] = 0;
 
+    const stack = [];
+    const visited = {};
+
     function getNeighbor(row, col) {
       const neighbors = [];
       if (row >= 2 && !visited[`${row - 2}-${col}`]) {
@@ -145,77 +92,53 @@ var myLibrary = {
         neighbors.push([row, col + 2]);
       }
 
+      const randomRemoveChance = 0.2;
+      const randomReplaceChance = 0.9;
+      for (const [nRow, nCol] of neighbors) {
+        if (nRow === row) {
+          const midCol = (col + nCol) / 2;
+          if (mazeStructure[row][midCol] === 1 && Math.random() < randomRemoveChance) {
+            mazeStructure[row][midCol] = 0;
+          }
+        } else if (nCol === col) {
+          const midRow = (row + nRow) / 2;
+          if (mazeStructure[midRow][col] === 1 && Math.random() < randomRemoveChance) {
+            mazeStructure[midRow][col] = 0;
+          }
+        } else {
+          const midRow = (row + nRow) / 2;
+          const midCol = (col + nCol) / 2;
+          if (mazeStructure[midRow][midCol] === 0 && Math.random() < randomReplaceChance) {
+            mazeStructure[midRow][midCol] = 1;
+          }
+        }
+      }
+
       return neighbors;
     }
 
-    const stack = [];
-    const visited = {};
-    
-    let currentRow = startRow;
-    let currentCol = startCol;
-    
-    visited[`${currentRow}-${currentCol}`] = true;
+    function visit(row, col) {
+      visited[`${row}-${col}`] = true;
+      mazeStructure[row][col] = 0;
 
-    while (true) {
-      const neighbors = getNeighbor(currentRow, currentCol);
-      
+      const neighbors = getNeighbor(row, col);
       if (neighbors.length > 0) {
+        stack.push([row, col]);
         const [nextRow, nextCol] = neighbors[Math.floor(Math.random() * neighbors.length)];
-        
-        visited[`${nextRow}-${nextCol}`] = true;
-        mazeStructure[nextRow][nextCol] = 0;
-        
-        if (nextRow === currentRow) {
-          const startCol = Math.min(currentCol, nextCol);
-          const endCol = Math.max(currentCol, nextCol);
-          for (let c = startCol; c <= endCol; c++) {
-            mazeStructure[currentRow][c] = 0;
-          }
-        } else {
-          const startRow = Math.min(currentRow, nextRow);
-          const endRow = Math.max(currentRow, nextRow);
-          for (let r = startRow; r <= endRow; r++) {
-            mazeStructure[r][currentCol] = 0;
-          }
-        }
-        
-        stack.push([currentRow, currentCol]);
-        currentRow = nextRow;
-        currentCol = nextCol;
-      } else {
-        if (stack.length > 0) {
-          [currentRow, currentCol] = stack.pop();
-        } else {
-          break;
-        }
+        const midRow = (row + nextRow) / 2;
+        const midCol = (col + nextCol) / 2;
+        mazeStructure[midRow][midCol] = 0;
+        visit(nextRow, nextCol);
+      } else if (stack.length > 0) {
+        const [prevRow, prevCol] = stack.pop();
+        visit(prevRow, prevCol);
       }
     }
 
-    // Add random wall removal for easier navigation
-    for (let i = 1; i < mazeSize - 1; i++) {
-      for (let j = 1; j < mazeSize - 1; j++) {
-        if (mazeStructure[i][j] === 1 && Math.random() < 0.3) {
-          // Check if removing this wall creates a useful opening
-          const openNeighbors = [
-            i > 0 && mazeStructure[i-1][j] === 0,
-            i < mazeSize-1 && mazeStructure[i+1][j] === 0,
-            j > 0 && mazeStructure[i][j-1] === 0,
-            j < mazeSize-1 && mazeStructure[i][j+1] === 0
-          ].filter(Boolean).length;
-          
-          if (openNeighbors >= 2) {
-            mazeStructure[i][j] = 0;
-          }
-        }
-      }
-    }
+    visit(startRow, startCol);
   },
 
   createMaze: function() {
-    while (maze.firstChild) {
-      maze.removeChild(maze.firstChild);
-    }
-    
     for (let i = 0; i < mazeSize; i++) {
       for (let j = 0; j < mazeSize; j++) {
         const cell = document.createElement("div");
@@ -234,16 +157,21 @@ var myLibrary = {
 
         cell.style.top = i * cellSize + "px";
         cell.style.left = j * cellSize + "px";
-        
-        if (i === startRow && j === startCol) {
-          cell.classList.add("start");
-        } else if (i === endRow && j === endCol) {
-          cell.classList.add("end");
-        }
-        
         maze.appendChild(cell);
       }
     }
+
+    const startCell = document.createElement("div");
+    startCell.className = "cell start";
+    startCell.style.top = startRow * cellSize + "px";
+    startCell.style.left = startCol * cellSize + "px";
+    maze.appendChild(startCell);
+
+    const endCell = document.createElement("div");
+    endCell.className = "cell end";
+    endCell.style.top = endRow * cellSize + "px";
+    endCell.style.left = endCol * cellSize + "px";
+    maze.appendChild(endCell);
   },
 
   movePlayer: function(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval ) {
@@ -252,14 +180,13 @@ var myLibrary = {
       return;
     }
 
-    // Account for sprite offset - the player sprite is 48px centered in the cell
-    const spriteSize = 48;
-    const offsetX = (spriteSize - cellSize) / 2;
-    const offsetY = (spriteSize - cellSize) / 2;
+    // Calculate player size and offset
+    const playerSize = Math.max(window.cellSize * 0.8, 8);
+    const offset = (window.cellSize - playerSize) / 2;
 
-    // Get current position accounting for the offset
-    let topPos = (parseInt(player.style.top) + offsetY) / cellSize;
-    let leftPos = (parseInt(player.style.left) + offsetX) / cellSize;
+    // Get current position accounting for offset
+    let topPos = (parseInt(window.player.style.top) - offset) / window.cellSize;
+    let leftPos = (parseInt(window.player.style.left) - offset) / window.cellSize;
 
     if (event.key === "ArrowUp" || event.key === "w") {
       topPos--;
@@ -271,21 +198,16 @@ var myLibrary = {
       leftPos++;
     }
 
-    // Ensure positions are integers and within bounds
-    topPos = Math.floor(topPos);
-    leftPos = Math.floor(leftPos);
-
     if (
       topPos >= 0 &&
       topPos < mazeSize &&
       leftPos >= 0 &&
       leftPos < mazeSize &&
-      mazeStructure[topPos] &&
-      mazeStructure[topPos][leftPos] !== 1
+      mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== 1
     ) {
-      // Apply the offset back when setting position
-      player.style.top = (topPos * cellSize - offsetY) + "px";
-      player.style.left = (leftPos * cellSize - offsetX) + "px";
+      // Set position with offset to center the square in the cell
+      window.player.style.top = (topPos * window.cellSize + offset) + "px";
+      window.player.style.left = (leftPos * window.cellSize + offset) + "px";
     }
     if (multiple === "true") {
       if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
@@ -315,10 +237,12 @@ var myLibrary = {
 
           mazecount++;
 
-          // Reset player position with offset
-          player.style.top = (startRow * cellSize - offsetY) + "px";
-          player.style.left = (startCol * cellSize - offsetX) + "px";
-          maze.appendChild(player);
+          // Calculate player size and offset for proper positioning
+          const playerSize = Math.max(window.cellSize * 0.8, 8);
+          const offset = (window.cellSize - playerSize) / 2;
+          window.player.style.top = (startRow * window.cellSize + offset) + "px";
+          window.player.style.left = (startCol * window.cellSize + offset) + "px";
+          maze.appendChild(window.player);
         }, 200);
       }
       if (this.timeElapsed >= 30000) {
@@ -346,9 +270,6 @@ var myLibrary = {
           const bestTime = this.calculatePersonalBestTime(timeTaken, type);
           this.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
           endScreen.classList.remove("hidden");
-          if (myLibrary.preloadedAudio) {
-            myLibrary.preloadedAudio.pause();
-          }
         }, 200);
       }
     }
@@ -361,7 +282,7 @@ var myLibrary = {
   },
 
   goBack: function() {
-    window.location.href = "index.html";
+    window.location.href = "classic.html";
   },
 
   startTimer: function(timer) {
@@ -610,5 +531,11 @@ var myLibrary = {
   // Pad the value with leading zeros and optional length
   padTime: function(value, length = 2) {
     return value.toString().padStart(length, "0");
+  },
+
+  // Preload audio function (stub for compatibility)
+  preloadAudio: function() {
+    // Simple audio preload - creates audio element but doesn't load immediately
+    // This prevents errors when called from mainmaze.html
   },
 };

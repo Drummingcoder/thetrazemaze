@@ -20,44 +20,30 @@ const PlayerController = {
    * @returns {boolean} - True if collision detected
    */
   checkCollision: function(newX, newY) {
-    // Calculate sprite boundaries with proper margins to prevent clipping
+    // Calculate sprite boundaries - the actual visual sprite area
     const spriteSize = window.cellSize * 0.8;
     const centerOffset = (window.cellSize - spriteSize) / 2;
-    const margin = Math.max(2, window.cellSize * 0.15); // Dynamic margin based on cell size
     
-    // Calculate the actual corners with proper margins
-    const left = newX + centerOffset + margin;
-    const right = newX + centerOffset + spriteSize - margin;
-    const top = newY + centerOffset + margin;
-    const bottom = newY + centerOffset + spriteSize - margin;
+    // Calculate the exact sprite boundaries (no additional margin - we want tight collision)
+    const spriteLeft = newX + centerOffset;
+    const spriteRight = newX + centerOffset + spriteSize;
+    const spriteTop = newY + centerOffset;
+    const spriteBottom = newY + centerOffset + spriteSize;
     
-    // Calculate grid positions - this is the key fix
-    const leftCol = Math.floor(left / window.cellSize);
-    const rightCol = Math.floor(right / window.cellSize);
-    const topRow = Math.floor(top / window.cellSize);
-    const bottomRow = Math.floor(bottom / window.cellSize);
+    // Calculate which grid cells the sprite overlaps
+    const leftCol = Math.floor(spriteLeft / window.cellSize);
+    const rightCol = Math.floor((spriteRight - 1) / window.cellSize); // -1 to handle exact edge cases
+    const topRow = Math.floor(spriteTop / window.cellSize);
+    const bottomRow = Math.floor((spriteBottom - 1) / window.cellSize); // -1 to handle exact edge cases
     
     // Check bounds first
     if (leftCol < 0 || rightCol >= window.mazeSize || topRow < 0 || bottomRow >= window.mazeSize) {
       return true; // Collision with maze boundary
     }
     
-    // Check all corners and edges to prevent any overlap
-    const positionsToCheck = [
-      [topRow, leftCol],     // Top-left corner
-      [topRow, rightCol],    // Top-right corner
-      [bottomRow, leftCol],  // Bottom-left corner
-      [bottomRow, rightCol], // Bottom-right corner
-      // Add edge checks for more precise collision
-      [topRow, Math.floor((left + right) / 2 / window.cellSize)],    // Top center
-      [bottomRow, Math.floor((left + right) / 2 / window.cellSize)], // Bottom center
-      [Math.floor((top + bottom) / 2 / window.cellSize), leftCol],   // Left center
-      [Math.floor((top + bottom) / 2 / window.cellSize), rightCol]   // Right center
-    ];
-    
-    for (const [row, col] of positionsToCheck) {
-      // Ensure we're within bounds
-      if (row >= 0 && row < window.mazeSize && col >= 0 && col < window.mazeSize) {
+    // Check every cell that the sprite overlaps - if ANY cell is a wall, it's a collision
+    for (let row = topRow; row <= bottomRow; row++) {
+      for (let col = leftCol; col <= rightCol; col++) {
         if (window.mazeStructure[row] && window.mazeStructure[row][col] === 1) {
           return true; // Collision with wall
         }

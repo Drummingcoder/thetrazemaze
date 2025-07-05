@@ -17,19 +17,22 @@ const CameraSystem = {
   
   // 60 FPS camera update loop
   cameraAnimationId: null,
+  
+  // Window resize handling
+  resizeHandler: null,
+  
+  // Track player position before resize to prevent teleporting
+  playerPositionBeforeResize: { x: 0, y: 0 },
+  
+  // Track window dimensions before resize to calculate offsets
+  windowSizeBeforeResize: { width: 0, height: 0 },
 
   /**
    * Initialize the camera system with optimal zoom and position (optimized)
    */
   initializeNewCamera: function() {
     // Calculate optimal zoom level
-    const viewportW = window.innerWidth;
-    const viewportH = window.innerHeight;
-    const smallerDimension = Math.min(viewportW, viewportH);
-    
-    // Show about 12-15 cells in the smaller screen dimension
-    const targetCellsVisible = 12;
-    this.currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * window.cellSize)));
+    this.calculateOptimalZoom();
     
     // Center camera on player immediately
     this.centerOnPlayer();
@@ -37,6 +40,22 @@ const CameraSystem = {
     // Enable camera following and start 60 FPS update loop
     this.cameraEnabled = true;
     this.startCameraLoop();
+    
+    // Set up window resize handler
+    this.setupResizeHandler();
+  },
+
+  /**
+   * Calculate optimal zoom based on current window size
+   */
+  calculateOptimalZoom: function() {
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+    const smallerDimension = Math.min(viewportW, viewportH);
+    
+    // Show about 12-15 cells in the smaller screen dimension
+    const targetCellsVisible = 12;
+    this.currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * window.cellSize)));
   },
 
   /**
@@ -121,6 +140,12 @@ const CameraSystem = {
     this.cameraY = 0;
     this.lastTransform = ''; // Clear cached transform
     
+    // Remove resize handler
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+      this.resizeHandler = null;
+    }
+    
     // Apply reset transform efficiently
     if (window.canvas) {
       const resetTransform = 'scale(1) translate(0px, 0px)';
@@ -136,6 +161,74 @@ const CameraSystem = {
    */
   startCameraAnimation: function() {
     this.startCameraLoop();
+  },
+
+  /**
+   * Set up window resize handler
+   */
+  setupResizeHandler: function() {
+    // Remove existing handler if any
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+    }
+    
+    // Create debounced resize handler to avoid excessive recalculations
+    this.resizeHandler = this.debounce(() => {
+      if (this.cameraEnabled) {
+        // Store current state before any calculations
+        this.playerPositionBeforeResize.x = window.playerX;
+        this.playerPositionBeforeResize.y = window.playerY;
+        this.windowSizeBeforeResize.width = window.innerWidth;
+        this.windowSizeBeforeResize.height = window.innerHeight;
+        
+        // Calculate screen center offset due to window resize
+        const oldCenterX = this.windowSizeBeforeResize.width / 2;
+        const oldCenterY = this.windowSizeBeforeResize.height / 2;
+        const newCenterX = window.innerWidth / 2;
+        const newCenterY = window.innerHeight / 2;
+        
+        const centerOffsetX = newCenterX - oldCenterX;
+        const centerOffsetY = newCenterY - oldCenterY;
+        
+        // Store old zoom for offset calculations
+        const oldZoom = this.currentZoom;
+        
+        // Recalculate zoom for new window size
+        this.calculateOptimalZoom();
+        
+        // Calculate zoom scale factor
+        const zoomScaleFactor = this.currentZoom / oldZoom;
+        
+        // Adjust camera position to account for both center shift and zoom change
+        this.cameraX = this.cameraX + (centerOffsetX / this.currentZoom);
+        this.cameraY = this.cameraY + (centerOffsetY / this.currentZoom);
+        
+        // Apply the updated camera transform
+        this.applyCamera();
+        
+        // Force a re-render
+        if (window.CanvasRenderer) {
+          window.CanvasRenderer.renderFrame();
+        }
+      }
+    }, 100); // Debounce by 100ms
+    
+    window.addEventListener('resize', this.resizeHandler);
+  },
+
+  /**
+   * Debounce function to prevent excessive resize calculations
+   */
+  debounce: function(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
   },
 
   // Legacy function aliases for backward compatibility
