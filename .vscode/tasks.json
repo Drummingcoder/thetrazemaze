@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start maze game server",
+			"type": "shell",
+			"command": "cd /workspaces/thetrazemaze && python3 -m http.server 8000",
+			"isBackground": true,
+			"group": "build"
+		}
+	]
+}
