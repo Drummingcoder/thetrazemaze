@@ -75,6 +75,82 @@
       box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
     }
 
+    #dash-indicator {
+      position: fixed;
+      top: 80px; /* Below the timer with more space */
+      right: 20px;
+      background-color: rgba(30, 58, 95, 0.95);
+      color: #FFFFFF;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 1000;
+      border: 2px solid #10B981; /* Green border when ready */
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    #dash-indicator.cooldown {
+      border-color: #EF4444; /* Red border when on cooldown */
+      box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+      color: #FCA5A5; /* Light red text */
+    }
+
+    #jump-indicator {
+      position: fixed;
+      top: 130px; /* Below the dash indicator */
+      right: 20px;
+      background-color: rgba(30, 58, 95, 0.95);
+      color: #FFFFFF;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 1000;
+      border: 2px solid #8B5CF6; /* Purple border */
+      box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    #jump-indicator.charging {
+      border-color: #F59E0B; /* Orange border when charging */
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+      color: #FCD34D; /* Light orange text */
+    }
+
+    #jump-indicator.grounded {
+      border-color: #10B981; /* Green border when grounded */
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+    }
+
+    #controls-hint {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(30, 58, 95, 0.95);
+      color: #FFFFFF;
+      padding: 15px 20px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 2000;
+      border: 2px solid #3B82F6;
+      box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+      text-align: center;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+
+    #controls-hint.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     #maze-container {
       position: relative;
       overflow: hidden;
@@ -102,6 +178,9 @@
   <!-- <div class="waving-stickman stickman-right"></div> -->
   
   <div id="timer">00:00.000</div>
+  <div id="dash-indicator">Dash Ready</div>
+  <div id="jump-indicator">Jump Ready</div>
+  <div id="controls-hint">Arrow Keys/WASD: Move | Shift/Space: Dash | Hold Up/W: Charge Jump</div>
   <div id="maze-container">
     <canvas id="maze-canvas"></canvas>
   </div>
@@ -116,7 +195,6 @@
   </div>
   <div id="new-personal-best" style = "display:block;">Personal New Best!</div>
 
-    <button id="copy-button">Copy Maze and Time</button>
     <button id="restart-button">Restart Maze</button>
   </div>
   
@@ -610,6 +688,14 @@
       }
     }, 100);
 
+    // Auto-hide controls hint after 5 seconds
+    setTimeout(() => {
+      const controlsHint = document.getElementById('controls-hint');
+      if (controlsHint && !controlsHint.classList.contains('hidden')) {
+        controlsHint.classList.add('hidden');
+      }
+    }, 5000);
+
     // Add missing player position update function
     function updatePlayerPosition() {
       if (window.player && window.player.style) {
@@ -636,6 +722,15 @@
       const distanceFromCenter = Math.sqrt(Math.pow(playerGridRow - mazeCenter, 2) + Math.pow(playerGridCol - mazeCenter, 2));
       
       console.log(`Player Position: Row ${playerGridRow}, Col ${playerGridCol} (Pixel: ${playerX}, ${playerY}) (distance from center: ${distanceFromCenter.toFixed(2)})`);
+      return;
+    }
+    
+    // Handle dash key separately
+    if (event.key === "Shift" || event.key === " ") {
+      event.preventDefault();
+      if (window.PlayerController) {
+        window.PlayerController.handleDashKey();
+      }
       return;
     }
     
@@ -713,6 +808,12 @@
       
       // Mark player as moving and handle smooth movement
       if (window.PlayerController) {
+        // Hide controls hint when user starts moving
+        const controlsHint = document.getElementById('controls-hint');
+        if (controlsHint && !controlsHint.classList.contains('hidden')) {
+          controlsHint.classList.add('hidden');
+        }
+        
         // Start smooth movement system if not already running
         if (window.PlayerController.startSmoothMovement && !window.PlayerController.isMovementActive) {
           window.PlayerController.startSmoothMovement();

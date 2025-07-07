@@ -8,10 +8,42 @@ console.log('Player Controller module loaded');
 const PlayerController = {
   // Smooth movement system variables
   playerIsMoving: false,
-  movementSpeed: 4, // Pixels per frame for faster movement
+  movementSpeed: 3, // Pixels per frame for faster movement
   smoothMovementKeys: {},
   animationFrameId: null,
   keysPressed: {},
+  isMovementActive: false, // Track if movement system is active
+  
+  // Gravity system variables
+  gravityEnabled: true,
+  gravitySpeed: 0.5, // Pixels per frame gravity pulls downward (reduced by 2x)
+  verticalVelocity: 0, // Current downward velocity
+  maxFallSpeed: 4, // Maximum fall speed (reduced by 2x)
+  isGrounded: false, // Whether player is on solid ground
+  
+  // Variable jump system variables
+  isJumping: false, // Whether player is currently jumping
+  jumpStartTime: 0, // When the jump started
+  maxJumpHoldTime: 1000, // Maximum time (ms) to hold jump for extra height (increased from 500ms)
+  baseJumpVelocity: -6, // Base jump velocity (reduced by 3x)
+  maxJumpVelocity: -30, // Maximum jump velocity when held
+  chargedJumpVelocity: null, // Stores the charged jump velocity
+  
+  // Coyote time variables (jump grace period after leaving platform)
+  coyoteTime: 6, // Number of frames player can jump after leaving platform
+  coyoteTimeCounter: 0, // Current coyote time remaining
+  wasGroundedLastFrame: false, // Whether player was grounded in the previous frame
+  
+  // Dash system variables
+  isDashing: false, // Whether player is currently dashing
+  dashSpeed: 8, // Speed during dash (pixels per frame)
+  dashDuration: 16, // Number of frames the dash lasts
+  dashCooldown: 15, // Frames to wait before next dash (0.25 seconds at 60fps)
+  dashTimer: 0, // Current dash timer
+  dashCooldownTimer: 0, // Current cooldown timer
+  dashDirectionX: 0, // X direction of current dash
+  dashDirectionY: 0, // Y direction of current dash
+
 
   /**
    * Collision detection for smooth movement
@@ -20,44 +52,30 @@ const PlayerController = {
    * @returns {boolean} - True if collision detected
    */
   checkCollision: function(newX, newY) {
-    // Calculate sprite boundaries with proper margins to prevent clipping
+    // Calculate sprite boundaries - the actual visual sprite area
     const spriteSize = window.cellSize * 0.8;
     const centerOffset = (window.cellSize - spriteSize) / 2;
-    const margin = Math.max(2, window.cellSize * 0.15); // Dynamic margin based on cell size
     
-    // Calculate the actual corners with proper margins
-    const left = newX + centerOffset + margin;
-    const right = newX + centerOffset + spriteSize - margin;
-    const top = newY + centerOffset + margin;
-    const bottom = newY + centerOffset + spriteSize - margin;
+    // Calculate the exact sprite boundaries (no additional margin - we want tight collision)
+    const spriteLeft = newX + centerOffset;
+    const spriteRight = newX + centerOffset + spriteSize;
+    const spriteTop = newY + centerOffset;
+    const spriteBottom = newY + centerOffset + spriteSize;
     
-    // Calculate grid positions - this is the key fix
-    const leftCol = Math.floor(left / window.cellSize);
-    const rightCol = Math.floor(right / window.cellSize);
-    const topRow = Math.floor(top / window.cellSize);
-    const bottomRow = Math.floor(bottom / window.cellSize);
+    // Calculate which grid cells the sprite overlaps
+    const leftCol = Math.floor(spriteLeft / window.cellSize);
+    const rightCol = Math.floor((spriteRight - 1) / window.cellSize); // -1 to handle exact edge cases
+    const topRow = Math.floor(spriteTop / window.cellSize);
+    const bottomRow = Math.floor((spriteBottom - 1) / window.cellSize); // -1 to handle exact edge cases
     
     // Check bounds first
     if (leftCol < 0 || rightCol >= window.mazeSize || topRow < 0 || bottomRow >= window.mazeSize) {
       return true; // Collision with maze boundary
     }
     
-    // Check all corners and edges to prevent any overlap
-    const positionsToCheck = [
-      [topRow, leftCol],     // Top-left corner
-      [topRow, rightCol],    // Top-right corner
-      [bottomRow, leftCol],  // Bottom-left corner
-      [bottomRow, rightCol], // Bottom-right corner
-      // Add edge checks for more precise collision
-      [topRow, Math.floor((left + right) / 2 / window.cellSize)],    // Top center
-      [bottomRow, Math.floor((left + right) / 2 / window.cellSize)], // Bottom center
-      [Math.floor((top + bottom) / 2 / window.cellSize), leftCol],   // Left center
-      [Math.floor((top + bottom) / 2 / window.cellSize), rightCol]   // Right center
-    ];
-    
-    for (const [row, col] of positionsToCheck) {
-      // Ensure we're within bounds
-      if (row >= 0 && row < window.mazeSize && col >= 0 && col < window.mazeSize) {
+    // Check every cell that the sprite overlaps - if ANY cell is a wall, it's a collision
+    for (let row = topRow; row <= bottomRow; row++) {
+      for (let col = leftCol; col <= rightCol; col++) {
         if (window.mazeStructure[row] && window.mazeStructure[row][col] === 1) {
           return true; // Collision with wall
         }
@@ -84,6 +102,200 @@ const PlayerController = {
   },
 
   /**
+   * Check if player is standing on solid ground
+   * @returns {boolean} - True if player is supported by solid ground
+   */
+  checkGrounded: function() {
+    if (!this.gravityEnabled) return true;
+    
+    const spriteSize = window.cellSize * 0.8;
+    const centerOffset = (window.cellSize - spriteSize) / 2;
+    
+    // Check one pixel below the player's bottom edge
+    const spriteLeft = window.playerX + centerOffset;
+    const spriteRight = window.playerX + centerOffset + spriteSize;
+    const spriteBottom = window.playerY + centerOffset + spriteSize;
+    
+    // Check the row just below the player
+    const checkY = spriteBottom + 1;
+    const bottomRow = Math.floor(checkY / window.cellSize);
+    const leftCol = Math.floor(spriteLeft / window.cellSize);
+    const rightCol = Math.floor((spriteRight - 1) / window.cellSize);
+    
+    // Check bounds
+    if (bottomRow >= window.mazeSize) return true; // Bottom of maze acts as solid ground
+    
+    // Check if there's solid ground under any part of the player
+    for (let col = leftCol; col <= rightCol; col++) {
+      if (col >= 0 && col < window.mazeSize) {
+        if (window.mazeStructure[bottomRow] && window.mazeStructure[bottomRow][col] === 1) {
+          return true; // Standing on a wall (solid ground)
+        }
+      }
+    }
+    
+    return false; // No solid ground beneath
+  },
+
+  /**
+   * Calculate variable jump velocity based on how long jump key is held
+   * @returns {number} - The jump velocity to apply
+   */
+  calculateJumpVelocity: function() {
+    if (!this.isJumping) return this.baseJumpVelocity;
+    
+    const currentTime = Date.now();
+    const holdTime = currentTime - this.jumpStartTime;
+    const holdRatio = Math.min(holdTime / this.maxJumpHoldTime, 1.0);
+    
+    // Interpolate between base and max jump velocity
+    const jumpVelocity = this.baseJumpVelocity + (this.maxJumpVelocity - this.baseJumpVelocity) * holdRatio;
+    return jumpVelocity;
+  },
+
+  /**
+   * Handle dash movement
+   * @returns {boolean} - True if dash movement was applied
+   */
+  handleDash: function() {
+    if (!this.isDashing) return false;
+    
+    // Decrease dash timer
+    this.dashTimer--;
+    
+    // Calculate dash movement
+    const dashX = this.dashDirectionX * this.dashSpeed;
+    const dashY = this.dashDirectionY * this.dashSpeed;
+    
+    // Apply dash movement with collision detection
+    const newX = window.playerX + dashX;
+    const newY = window.playerY + dashY;
+    
+    // Check X movement
+    if (!this.checkCollision(newX, window.playerY)) {
+      window.playerX = newX;
+      if (window.player) {
+        window.player.style.left = window.playerX + "px";
+      }
+    }
+    
+    // Check Y movement
+    if (!this.checkCollision(window.playerX, newY)) {
+      window.playerY = newY;
+      if (window.player) {
+        window.player.style.top = window.playerY + "px";
+      }
+    }
+    
+    // End dash if timer reaches 0
+    if (this.dashTimer <= 0) {
+      this.isDashing = false;
+      this.dashCooldownTimer = this.dashCooldown;
+      console.log('Dash ended, cooldown started');
+    }
+    
+    // Update dash UI
+    this.updateDashIndicator();
+    
+    return true;
+  },
+
+  /**
+   * Start a dash in the given direction
+   * @param {number} dirX - X direction (-1, 0, 1)
+   * @param {number} dirY - Y direction (-1, 0, 1)
+   */
+  startDash: function(dirX, dirY) {
+    if (this.isDashing || this.dashCooldownTimer > 0) return;
+    
+    // Normalize direction if diagonal
+    const magnitude = Math.sqrt(dirX * dirX + dirY * dirY);
+    if (magnitude > 0) {
+      this.dashDirectionX = dirX / magnitude;
+      this.dashDirectionY = dirY / magnitude;
+      
+      this.isDashing = true;
+      this.dashTimer = this.dashDuration;
+      
+      // Update dash UI
+      this.updateDashIndicator();
+      
+      console.log(`Dash started: direction (${this.dashDirectionX.toFixed(2)}, ${this.dashDirectionY.toFixed(2)})`);
+    }
+  },
+  applyGravity: function() {
+    if (!this.gravityEnabled) return;
+    
+    // Only check grounded state if we're not in the middle of a jump
+    // This prevents immediately canceling a jump before the player moves
+    if (this.verticalVelocity >= 0) {
+      this.isGrounded = this.checkGrounded();
+    }
+    
+    // Handle coyote time - update counter based on grounded state
+    if (this.isGrounded) {
+      this.coyoteTimeCounter = this.coyoteTime; // Reset coyote time when grounded
+      this.wasGroundedLastFrame = true;
+    } else if (this.wasGroundedLastFrame) {
+      // Just left the ground, start coyote time countdown
+      this.coyoteTimeCounter = this.coyoteTime;
+      this.wasGroundedLastFrame = false;
+    } else if (this.coyoteTimeCounter > 0) {
+      // Decrease coyote time counter
+      this.coyoteTimeCounter--;
+    }
+    
+    if (!this.isGrounded) {
+      // Apply gravity acceleration ALWAYS (creates smooth parabolic curve)
+      this.verticalVelocity += this.gravitySpeed;
+      
+      // Cap at maximum fall speed (only when falling)
+      if (this.verticalVelocity > this.maxFallSpeed) {
+        this.verticalVelocity = this.maxFallSpeed;
+      }
+      
+      // Apply vertical movement (both upward and downward)
+      const newY = window.playerY + this.verticalVelocity;
+      
+      // Check for collision with new position
+      if (!this.checkCollision(window.playerX, newY)) {
+        window.playerY = newY;
+        
+        // Update virtual player object AND trigger rendering
+        if (window.player) {
+          window.player.style.top = window.playerY + "px";
+        }
+        
+        // Force render update
+        this.updateCameraAndRender();
+      } else {
+        // Hit obstacle
+        if (this.verticalVelocity < 0) {
+          // Hit ceiling - stop upward movement
+          this.verticalVelocity = 0;
+        } else {
+          // Hit ground - stop falling
+          this.verticalVelocity = 0;
+          this.isGrounded = true;
+          this.updateJumpIndicator();
+        }
+        
+        // Force render update when hitting obstacle
+        this.updateCameraAndRender();
+      }
+    } else {
+      // Reset velocity when grounded
+      this.verticalVelocity = 0;
+      this.coyoteTimeCounter = this.coyoteTime; // Reset coyote time when landing
+      // Only reset jump state when landing if we're not actively charging a jump
+      if (this.isJumping && !this.smoothMovementKeys["ArrowUp"] && !this.smoothMovementKeys["w"]) {
+        this.isJumping = false;
+        this.chargedJumpVelocity = null;
+      }
+    }
+  },
+
+  /**
    * Smooth movement animation loop
    */
   smoothMovementLoop: function() {
@@ -91,70 +303,166 @@ const PlayerController = {
     let newX = window.playerX;
     let newY = window.playerY;
     
+    // Update dash cooldown timer (should always run)
+    if (this.dashCooldownTimer > 0) {
+      this.dashCooldownTimer--;
+      // Update dash UI when cooldown changes
+      this.updateDashIndicator();
+    }
+    
+    // Handle dash movement first (overrides normal movement)
+    if (this.handleDash()) {
+      // Dash is active, skip normal movement but still apply gravity
+      if (this.gravityEnabled) {
+        this.applyGravity();
+      }
+      
+      // Update camera and render
+      this.updateCameraAndRender();
+      
+      // Continue animation loop
+      this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
+      return;
+    }
+    
+    // Track movement direction for dash system
+    let currentMovementX = 0;
+    let currentMovementY = 0;
+    
     // Calculate movement based on pressed keys
     if (this.smoothMovementKeys["ArrowUp"] || this.smoothMovementKeys["w"]) {
-      newY -= this.movementSpeed;
-      moved = true;
+      // Handle variable jump when gravity is enabled
+      if (this.gravityEnabled) {
+        // Allow jumping if grounded OR within coyote time
+        if (this.isGrounded || this.coyoteTimeCounter > 0) {
+          // Start jump charging if not already jumping
+          if (!this.isJumping) {
+            this.isJumping = true;
+            this.jumpStartTime = Date.now();
+            console.log('Started charging jump');
+            // Don't apply velocity yet - just start charging
+            this.updateJumpIndicator();
+          }
+          // Continue charging jump while grounded/in coyote time and within time limit
+          const currentTime = Date.now();
+          if (currentTime - this.jumpStartTime <= this.maxJumpHoldTime) {
+            // Calculate current jump velocity but don't apply it yet
+            const calculatedVelocity = this.calculateJumpVelocity();
+            // Store the charged velocity to apply when we actually jump
+            this.chargedJumpVelocity = calculatedVelocity;
+            console.log('Charging jump, velocity:', calculatedVelocity);
+            this.updateJumpIndicator();
+          }
+        }
+      } else {
+        // Non-gravity mode - normal upward movement
+        newY -= this.movementSpeed;
+        moved = true;
+        currentMovementY = -1;
+      }
+    } else {
+      // Jump key released - execute the jump if we were charging
+      if (this.isJumping && (this.isGrounded || this.coyoteTimeCounter > 0)) {
+        // Apply the charged jump velocity
+        const jumpVel = this.chargedJumpVelocity || this.baseJumpVelocity;
+        this.verticalVelocity = jumpVel;
+        this.isGrounded = false;
+        this.isJumping = false;
+        this.chargedJumpVelocity = null;
+        this.coyoteTimeCounter = 0; // Use up coyote time when jumping
+        
+        console.log('Jump executed with velocity:', jumpVel);
+        this.updateJumpIndicator();
+      } else if (this.isJumping) {
+        // Stop charging if we release the key while in air (and no coyote time)
+        this.isJumping = false;
+        this.chargedJumpVelocity = null;
+        this.updateJumpIndicator();
+      }
     }
     if (this.smoothMovementKeys["ArrowDown"] || this.smoothMovementKeys["s"]) {
-      newY += this.movementSpeed;
-      moved = true;
+      // Downward movement (or faster falling)
+      if (!this.gravityEnabled) {
+        newY += this.movementSpeed;
+        moved = true;
+        currentMovementY = 1;
+      } else {
+        // With gravity, down key increases fall speed
+        this.verticalVelocity += this.movementSpeed;
+        currentMovementY = 1;
+      }
     }
     if (this.smoothMovementKeys["ArrowLeft"] || this.smoothMovementKeys["a"]) {
       newX -= this.movementSpeed;
       moved = true;
+      currentMovementX = -1;
     }
     if (this.smoothMovementKeys["ArrowRight"] || this.smoothMovementKeys["d"]) {
       newX += this.movementSpeed;
       moved = true;
+      currentMovementX = 1;
     }
     
-    // Apply movement if no collision - check each axis separately for wall sliding
-    if (moved) {
-      let finalX = window.playerX;
-      let finalY = window.playerY;
-      
-      // Try horizontal movement first
-      if (newX !== window.playerX && !this.checkCollision(newX, window.playerY)) {
-        finalX = newX;
-      }
-      
-      // Try vertical movement
-      if (newY !== window.playerY && !this.checkCollision(finalX, newY)) {
-        finalY = newY;
-      }
-      
-      // Update player position if it changed
-      if (finalX !== window.playerX || finalY !== window.playerY) {
-        window.playerX = finalX;
-        window.playerY = finalY;
+    // Apply horizontal movement if no collision
+    if (moved && newX !== window.playerX) {
+      if (!this.checkCollision(newX, window.playerY)) {
+        window.playerX = newX;
         
-        // Update virtual player object for library compatibility
-        window.player.style.left = window.playerX + "px";
-        window.player.style.top = window.playerY + "px";
-        
-        // Check if player reached the end
-        if (this.checkEndReached()) {
-          // Clean up all movement and animation systems
-          this.cleanupMovementSystems();
-          
-          // Trigger end game
-          setTimeout(() => {
-            if (typeof window.myLibrary !== 'undefined' && typeof window.endScreen !== 'undefined') {
-              window.myLibrary.endGame(window.endScreen, window.startTime, window.endContent, window.type, window.personalbest, window.newpersonalbest, window.interval);
-            }
-          }, 100);
-          return; // Exit early to prevent further processing
+        // Update virtual player object
+        if (window.player) {
+          window.player.style.left = window.playerX + "px";
         }
-        
-        // Update camera and render (back to original - throttling was causing lag)
-        this.updateCameraAndRender();
       }
     }
     
-    // Continue animation loop if any keys are pressed
+    // Apply vertical movement (only if gravity is disabled or moving up)
+    if (moved && newY !== window.playerY) {
+      if (!this.gravityEnabled || newY < window.playerY) {
+        if (!this.checkCollision(window.playerX, newY)) {
+          window.playerY = newY;
+          
+          // Update virtual player object
+          if (window.player) {
+            window.player.style.top = window.playerY + "px";
+          }
+        }
+      }
+    }
+    
+    // Apply gravity ALWAYS when enabled (independent of key movement)
+    if (this.gravityEnabled) {
+      this.applyGravity();
+    }
+    
+    // Check if player reached the end after any movement
+    if (this.checkEndReached()) {
+      // Clean up all movement and animation systems
+      this.cleanupMovementSystems();
+      
+      // Trigger end game
+      setTimeout(() => {
+        if (typeof window.myLibrary !== 'undefined' && typeof window.endScreen !== 'undefined') {
+          window.myLibrary.endGame(window.endScreen, window.startTime, window.endContent, window.type, window.personalbest, window.newpersonalbest, window.interval);
+        }
+      }, 100);
+      return; // Exit early to prevent further processing
+    }
+    
+    // Update camera and render if anything changed
+    if (moved || (this.gravityEnabled && (!this.isGrounded || this.verticalVelocity !== 0))) {
+      this.updateCameraAndRender();
+    }
+    
+    // Update jump indicator during gameplay
+    this.updateJumpIndicator();
+    
+    // Continue animation loop if any keys are pressed OR if gravity is active and player is falling OR if dashing OR if dash cooldown is active
     const anyKeyPressed = Object.values(this.smoothMovementKeys).some(pressed => pressed);
-    if (anyKeyPressed) {
+    const needsContinuousUpdate = this.gravityEnabled && (!this.isGrounded || this.verticalVelocity !== 0);
+    const dashActive = this.isDashing;
+    const dashCooldownActive = this.dashCooldownTimer > 0;
+    
+    if (anyKeyPressed || needsContinuousUpdate || dashActive || dashCooldownActive) {
       this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
     } else {
       this.animationFrameId = null;
@@ -170,6 +478,21 @@ const PlayerController = {
     this.smoothMovementKeys = {};
     this.keysPressed = {};
     this.playerIsMoving = false;
+    
+    // Reset jump state
+    this.isJumping = false;
+    this.jumpStartTime = 0;
+    this.chargedJumpVelocity = null;
+    
+    // Reset coyote time
+    this.coyoteTimeCounter = 0;
+    this.wasGroundedLastFrame = false;
+    
+    // Reset dash state
+    this.isDashing = false;
+    this.dashTimer = 0;
+    this.dashCooldownTimer = 0;
+    this.lastKeyPressTime = {};
     
     // Cancel any pending animation frames
     if (this.animationFrameId) {
@@ -419,6 +742,36 @@ const PlayerController = {
   },
 
   /**
+   * Toggle gravity on/off
+   * @param {boolean} enabled - Whether to enable gravity
+   */
+  setGravity: function(enabled) {
+    this.gravityEnabled = enabled;
+    if (!enabled) {
+      this.verticalVelocity = 0;
+      this.isGrounded = true;
+      this.isJumping = false;
+      this.chargedJumpVelocity = null;
+    }
+  },
+
+  /**
+   * Start the smooth movement system
+   */
+  startSmoothMovement: function() {
+    // Initialize dash indicator UI
+    this.updateDashIndicator();
+    
+    // Initialize jump indicator UI
+    this.updateJumpIndicator();
+    
+    // Mark movement as active
+    this.isMovementActive = true;
+    
+    console.log('Smooth movement system started');
+  },
+
+  /**
    * Handle key down events for smooth movement
    * @param {string} key - The key that was pressed
    */
@@ -451,6 +804,84 @@ const PlayerController = {
       this.playerIsMoving = false;
       // Animation loop will stop itself when no keys are pressed
     }
+  },
+  
+  /**
+   * Update dash indicator UI
+   */
+  updateDashIndicator: function() {
+    const dashIndicator = document.getElementById('dash-indicator');
+    if (!dashIndicator) return;
+    
+    if (this.isDashing) {
+      dashIndicator.textContent = 'Dashing!';
+      dashIndicator.className = '';
+    } else if (this.dashCooldownTimer > 0) {
+      const cooldownSeconds = (this.dashCooldownTimer / 60).toFixed(1);
+      dashIndicator.textContent = `Dash ${cooldownSeconds}s`;
+      dashIndicator.className = 'cooldown';
+    } else {
+      dashIndicator.textContent = 'Dash Ready';
+      dashIndicator.className = '';
+    }
+  },
+
+  /**
+   * Update jump indicator UI
+   */
+  updateJumpIndicator: function() {
+    const jumpIndicator = document.getElementById('jump-indicator');
+    if (!jumpIndicator) return;
+    
+    if (this.isJumping && this.chargedJumpVelocity) {
+      // Show jump charge progress
+      const currentTime = Date.now();
+      const holdTime = currentTime - this.jumpStartTime;
+      const chargePercent = Math.min((holdTime / this.maxJumpHoldTime) * 100, 100);
+      jumpIndicator.textContent = `Charging ${chargePercent.toFixed(0)}%`;
+      jumpIndicator.className = 'charging';
+    } else if (this.isGrounded || this.coyoteTimeCounter > 0) {
+      jumpIndicator.textContent = 'Jump Ready';
+      jumpIndicator.className = 'grounded';
+    } else {
+      jumpIndicator.textContent = 'In Air';
+      jumpIndicator.className = '';
+    }
+  },
+
+  /**
+   * Handle dedicated dash key press (Shift)
+   */
+  handleDashKey: function() {
+    // Don't trigger dash if already dashing or on cooldown
+    if (this.isDashing || this.dashCooldownTimer > 0) return;
+    
+    // Determine dash direction based ONLY on current movement keys
+    let dashX = 0;
+    let dashY = 0;
+    
+    // Check current movement keys
+    if (this.smoothMovementKeys["ArrowLeft"] || this.smoothMovementKeys["a"]) {
+      dashX = -1;
+    } else if (this.smoothMovementKeys["ArrowRight"] || this.smoothMovementKeys["d"]) {
+      dashX = 1;
+    }
+    
+    if (this.smoothMovementKeys["ArrowUp"] || this.smoothMovementKeys["w"]) {
+      dashY = -1;
+    } else if (this.smoothMovementKeys["ArrowDown"] || this.smoothMovementKeys["s"]) {
+      dashY = 1;
+    }
+    
+    // Only dash if player is currently moving (no fallback to last movement)
+    if (dashX === 0 && dashY === 0) {
+      console.log('Dash blocked - player must be actively moving to dash');
+      return;
+    }
+    
+    // Start the dash (collision checking happens during movement)
+    this.startDash(dashX, dashY);
+    console.log(`Dash triggered while moving: direction (${dashX}, ${dashY})`);
   },
 };
 

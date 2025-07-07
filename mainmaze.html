@@ -8,8 +8,7 @@
     body {
       text-align: center;
       background: linear-gradient(45deg, #1E3A8A 0%, #3B82F6 25%, #8B5CF6 50%, #F59E0B 75%, #FF8C00 100%);
-      background-size: 400% 400%;
-      animation: gradientShift 8s ease-in-out infinite;
+      background-size: 100% 100%;
       position: relative;
       overflow-x: hidden;
     }
@@ -91,15 +90,13 @@
 
     .player {
       position: absolute;
-      background-image: url('stickman-running-spritesheet-topdown.png');
-      background-size: 128px 128px; /* 4 frames x 4 directions, each 32px */
-      background-repeat: no-repeat;
-      background-position: 0px 0px; /* Start with down-facing frame 0 */
-      transition: none; /* Remove transition for better performance */
-      image-rendering: pixelated; /* Keep crisp edges */
+      background-color: #FF6B35; /* Bright orange-red for high visibility */
+      border: 2px solid #1E3A5F; /* Dark blue border to match wall color */
+      border-radius: 3px; /* Slightly rounded corners for modern look */
+      box-sizing: border-box;
       z-index: 10; /* Ensure player is always on top */
-      will-change: background-position, transform; /* Optimize for sprite animation and movement */
       transform: translateZ(0); /* Force hardware acceleration */
+      /* Size will be set dynamically based on cellSize */
     }
     
     /* Preload critical images */
@@ -107,7 +104,6 @@
       content: '';
       position: absolute;
       left: -9999px;
-      background-image: url('stickman-running-spritesheet-topdown.png'), url('waving-stickman-spritesheet.png');
     }
   </style>
 </head>
@@ -140,15 +136,6 @@
     window.addEventListener('DOMContentLoaded', function() {
       // Preload audio
       myLibrary.preloadAudio();
-      
-      // Preload sprite images by creating hidden elements
-      const preloadImages = ['stickman-running-spritesheet-topdown.png', 'waving-stickman-spritesheet.png'];
-      preloadImages.forEach(src => {
-        const img = new Image();
-        img.src = src;
-        img.style.display = 'none';
-        document.body.appendChild(img);
-      });
     });
  
   var searchParams = new URLSearchParams(window.location.search);
@@ -158,24 +145,24 @@
   var mode = searchParams.get('mode') || 'hard'; // Default to hard mode if not specified
   
   // Set maze properties based on difficulty
-  let mazeSize, cellSize, mazeContainerSize;
+  let mazeContainerSize;
   
   if (difficulty === 'small') {
-    mazeSize = 15;
-    cellSize = 40;
+    window.mazeSize = 15;
+    window.cellSize = 40;
     mazeContainerSize = 600;
   } else if (difficulty === 'biggest') {
-    mazeSize = 61;
-    cellSize = 10;
+    window.mazeSize = 61;
+    window.cellSize = 10;
     mazeContainerSize = 610;
   } else { // medium (default)
-    mazeSize = 35;
-    cellSize = 18;
+    window.mazeSize = 35;
+    window.cellSize = 18;
     mazeContainerSize = 630;
   }
   
   // Set easy flag based on mode
-  let easy = (mode === 'easy');
+  window.easy = (mode === 'easy');
   
   // Apply dynamic styling
   const mazeElement = document.getElementById("maze");
@@ -186,12 +173,12 @@
       height: ${mazeContainerSize}px;
     }
     .cell {
-      width: ${cellSize}px;
-      height: ${cellSize}px;
+      width: ${window.cellSize}px;
+      height: ${window.cellSize}px;
     }
     .player {
-      width: 32px;
-      height: 32px;
+      width: ${Math.floor(Math.max(window.cellSize * 0.8, 8))}px;
+      height: ${Math.floor(Math.max(window.cellSize * 0.8, 8))}px;
     }
   `;
   document.head.appendChild(style);
@@ -216,22 +203,6 @@
     let movementInterval;
     let currentDirection = null;
     
-    // Animation tracking
-    let currentAnimationFrame = 0;
-    let animationInterval;
-    let playerDirection = 'down'; // Default facing down
-    let animationReady = false; // Track if animation system is warmed up
-    
-    // Pre-warm animation system to reduce first-run lag
-    function prepareAnimationSystem() {
-      // Create a test animation cycle to warm up the browser's animation engine
-      if (!animationReady) {
-        // Simulate one frame update to initialize the animation system
-        updatePlayerAnimation();
-        animationReady = true;
-      }
-    }
-    
     // Camera/Zoom system
     let isZoomedIn = false;
     let zoomScale = 1;
@@ -255,49 +226,6 @@
         updateCameraPosition();
       }
       cameraAnimationId = requestAnimationFrame(animateCamera);
-    }
-    
-    // Animation functions
-    function updatePlayerAnimation() {
-      const directions = {
-        'down': 0,   // Row 0
-        'left': 1,   // Row 1  
-        'right': 2,  // Row 2
-        'up': 3      // Row 3
-      };
-      
-      const row = directions[playerDirection];
-      const col = currentAnimationFrame;
-      
-      // Calculate background position for 32px sprites
-      // Each sprite is 32px in the new top-down spritesheet
-      const x = -(col * 32);
-      const y = -(row * 32);
-      
-      player.style.backgroundPosition = `${x}px ${y}px`;
-    }
-    
-    function startAnimation() {
-      if (!animationInterval) {
-        // Ensure animation system is ready
-        if (!animationReady) {
-          prepareAnimationSystem();
-        }
-        
-        animationInterval = setInterval(() => {
-          currentAnimationFrame = (currentAnimationFrame + 1) % 4;
-          updatePlayerAnimation();
-        }, 120); // Slightly faster animation for more natural running
-      }
-    }
-    
-    function stopAnimation() {
-      if (animationInterval) {
-        clearInterval(animationInterval);
-        animationInterval = null;
-        currentAnimationFrame = 0;
-        updatePlayerAnimation();
-      }
     }
     
     // Camera/Zoom functions
@@ -334,12 +262,13 @@
     
     function centerCameraOnPlayer() {
       // Get the actual player position from style
-      const playerStyleX = parseInt(player.style.left) || 0;
-      const playerStyleY = parseInt(player.style.top) || 0;
+      const playerStyleX = parseInt(window.player.style.left) || 0;
+      const playerStyleY = parseInt(window.player.style.top) || 0;
       
-      // Calculate player center (add half sprite size for true center)
-      const playerCenterX = playerStyleX + 16;
-      const playerCenterY = playerStyleY + 16;
+      // Calculate player size and center
+      const playerSize = Math.max(window.cellSize * 0.8, 8);
+      const playerCenterX = playerStyleX + playerSize / 2;
+      const playerCenterY = playerStyleY + playerSize / 2;
       
 
       
@@ -368,12 +297,13 @@
       if (!cameraFollowEnabled) return;
       
       // Get current player position
-      const playerStyleX = parseInt(player.style.left) || 0;
-      const playerStyleY = parseInt(player.style.top) || 0;
+      const playerStyleX = parseInt(window.player.style.left) || 0;
+      const playerStyleY = parseInt(window.player.style.top) || 0;
       
-      // Calculate player center
-      const playerCenterX = playerStyleX + 16;
-      const playerCenterY = playerStyleY + 16;
+      // Calculate player size and center
+      const playerSize = Math.max(window.cellSize * 0.8, 8);
+      const playerCenterX = playerStyleX + playerSize / 2;
+      const playerCenterY = playerStyleY + playerSize / 2;
       
       // Dynamically set transform-origin to the player's center position
       maze.style.transformOrigin = `${playerCenterX}px ${playerCenterY}px`;
@@ -425,18 +355,15 @@
     }
     myLibrary.createMaze();
 
-    const player = document.createElement("div");
-    player.className = "player";
-    // Center the 32px sprite within the cell
-    const offsetX = (32 - cellSize) / 2; // Center horizontally
-    const offsetY = (32 - cellSize) / 2; // Center vertically
-    player.style.top = (startRow * cellSize - offsetY) + "px";
-    player.style.left = (startCol * cellSize - offsetX) + "px";
-    maze.appendChild(player);
-    
-    // Initialize the player sprite and prepare animation system
-    updatePlayerAnimation();
-    prepareAnimationSystem();
+    window.player = document.createElement("div");
+    window.player.className = "player";
+    // Calculate player size and center it within the cell
+    const playerSize = Math.floor(Math.max(window.cellSize * 0.8, 8));
+    const offsetX = (window.cellSize - playerSize) / 2; // Center horizontally
+    const offsetY = (window.cellSize - playerSize) / 2; // Center vertically
+    window.player.style.top = (startRow * window.cellSize + offsetY) + "px";
+    window.player.style.left = (startCol * window.cellSize + offsetX) + "px";
+    maze.appendChild(window.player);
     
     // Pre-warm the camera system
     updateCameraPosition();
@@ -456,20 +383,6 @@
         setTimeout(() => myLibrary.playMusic(), 0);
         first++;
       }
-      
-      // Update player direction for animation
-      if (event.key === "ArrowUp" || event.key === "w") {
-        playerDirection = 'up';
-      } else if (event.key === "ArrowDown" || event.key === "s") {
-        playerDirection = 'down';
-      } else if (event.key === "ArrowLeft" || event.key === "a") {
-        playerDirection = 'left';
-      } else if (event.key === "ArrowRight" || event.key === "d") {
-        playerDirection = 'right';
-      }
-      
-      // Start animation immediately for responsive feel
-      startAnimation();
       
       // Zoom in on first movement (non-blocking)
       if (!isZoomedIn) {
@@ -505,14 +418,13 @@
       const movementKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d"];
       const anyKeyPressed = movementKeys.some(key => keysPressed[key]);
       
-      // Stop continuous movement and animation if no keys are pressed
+      // Stop continuous movement if no keys are pressed
       if (!anyKeyPressed) {
         if (movementInterval) {
           clearInterval(movementInterval);
           movementInterval = null;
           currentDirection = null;
         }
-        stopAnimation();
       }
     }
   });
@@ -524,16 +436,12 @@
       
       if (keysPressed["ArrowUp"] || keysPressed["w"]) {
         direction = "up";
-        playerDirection = 'up';
       } else if (keysPressed["ArrowDown"] || keysPressed["s"]) {
         direction = "down";
-        playerDirection = 'down';
       } else if (keysPressed["ArrowLeft"] || keysPressed["a"]) {
         direction = "left";
-        playerDirection = 'left';
       } else if (keysPressed["ArrowRight"] || keysPressed["d"]) {
         direction = "right";
-        playerDirection = 'right';
       }
       
       if (direction) {
@@ -547,11 +455,10 @@
         
         myLibrary.movePlayer(syntheticEvent, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
       } else {
-        // No keys pressed, stop movement and animation
+        // No keys pressed, stop movement
         clearInterval(movementInterval);
         movementInterval = null;
         currentDirection = null;
-        stopAnimation();
       }
     }, 50); // Continuous movement speed
   }
