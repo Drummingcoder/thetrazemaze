@@ -126,6 +126,82 @@
       box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
     }
 
+    #ground-pound-indicator {
+      position: fixed;
+      top: 180px; /* Below the jump indicator with more space */
+      right: 20px;
+      background-color: rgba(30, 58, 95, 0.95);
+      color: #FFFFFF;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 1000;
+      border: 2px solid #DC2626; /* Red border for ground pound */
+      box-shadow: 0 2px 10px rgba(220, 38, 38, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    #ground-pound-indicator.cooldown {
+      border-color: #F59E0B; /* Orange border when on cooldown */
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+      color: #FCD34D; /* Light orange text */
+    }
+
+    #ground-pound-indicator.active {
+      border-color: #B91C1C; /* Dark red border when ground pounding */
+      box-shadow: 0 2px 10px rgba(185, 28, 28, 0.5);
+      color: #FECACA; /* Light red text */
+      animation: pulse-red 0.3s infinite alternate;
+    }
+
+    #ground-pound-indicator.disabled {
+      border-color: #6B7280; /* Gray border when disabled */
+      box-shadow: 0 2px 10px rgba(107, 114, 128, 0.3);
+      color: #9CA3AF; /* Gray text */
+    }
+
+    @keyframes pulse-red {
+      from { transform: scale(1); opacity: 0.8; }
+      to { transform: scale(1.05); opacity: 1; }
+    }
+
+    /* #debug-console {
+      position: fixed;
+      top: 230px; 
+      right: 20px;
+      width: 300px;
+      height: 200px;
+      background-color: rgba(0, 0, 0, 0.9);
+      color: #00FF00; 
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      padding: 10px;
+      border: 1px solid #333;
+      border-radius: 5px;
+      overflow-y: auto;
+      z-index: 1500;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    #debug-console .log-entry {
+      margin: 1px 0;
+      word-wrap: break-word;
+    }
+
+    #debug-console .log-error {
+      color: #FF4444;
+    }
+
+    #debug-console .log-warn {
+      color: #FFAA00;
+    }
+
+    #debug-console .log-info {
+      color: #00AAFF;
+    } */
+
     #controls-hint {
       position: fixed;
       top: 50%;
@@ -150,6 +226,48 @@
       opacity: 0;
       pointer-events: none;
     }
+
+    /* #debug-console {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 400px;
+      max-height: 300px;
+      background-color: rgba(0, 0, 0, 0.9);
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      border: 2px solid #333;
+      border-radius: 5px;
+      padding: 10px;
+      overflow-y: auto;
+      z-index: 3000;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    #debug-console .debug-entry {
+      margin-bottom: 2px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 2px;
+    }
+
+    #debug-console .debug-timestamp {
+      color: #888;
+      font-size: 10px;
+    }
+
+    #debug-console .debug-error {
+      color: #ff4444;
+    }
+
+    #debug-console .debug-warn {
+      color: #ffaa00;
+    }
+
+    #debug-console .debug-info {
+      color: #4488ff;
+    } */
 
     #maze-container {
       position: relative;
@@ -180,7 +298,9 @@
   <div id="timer">00:00.000</div>
   <div id="dash-indicator">Dash Ready</div>
   <div id="jump-indicator">Jump Ready</div>
-  <div id="controls-hint">Arrow Keys/WASD: Move | Shift/Space: Dash | Hold Up/W: Charge Jump</div>
+  <div id="ground-pound-indicator">Ground Pound Ready</div>
+  <div id="controls-hint">Arrow Keys/WASD: Move | Shift/Space: Dash | Hold Up/W: Charge Jump | Down/S (in air): Ground Pound</div>
+  <!-- <div id="debug-console"></div> -->
   <div id="maze-container">
     <canvas id="maze-canvas"></canvas>
   </div>
@@ -212,6 +332,36 @@
   <script src="./js/main-library.js"></script>
 
   <script>
+    // =================================================================
+    // DEBUG CONSOLE SYSTEM
+    // =================================================================
+    window.debugLog = function(message, type = 'info') {
+      const debugConsole = document.getElementById('debug-console');
+      if (!debugConsole) return;
+      
+      const timestamp = new Date().toLocaleTimeString() + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
+      const entry = document.createElement('div');
+      entry.className = `debug-entry debug-${type}`;
+      entry.innerHTML = `<span class="debug-timestamp">[${timestamp}]</span> ${message}`;
+      
+      debugConsole.appendChild(entry);
+      
+      // Auto-scroll to bottom
+      debugConsole.scrollTop = debugConsole.scrollHeight;
+      
+      // Keep only last 100 entries to prevent memory issues
+      const entries = debugConsole.querySelectorAll('.debug-entry');
+      if (entries.length > 100) {
+        entries[0].remove();
+      }
+    };
+
+    // Clear debug console function
+    window.clearDebug = function() {
+      const debugConsole = document.getElementById('debug-console');
+      if (debugConsole) debugConsole.innerHTML = '';
+    };
+
     // =================================================================
     // MAIN GAME INITIALIZATION AND COORDINATION
     // =================================================================
