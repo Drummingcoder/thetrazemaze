@@ -477,6 +477,11 @@ const PlayerController = {
             window.player.style.top = window.playerY + "px";
           }
           
+          // Update DOM sprite position immediately
+          if (window.CanvasRenderer && window.CanvasRenderer.updatePlayerPosition) {
+            window.CanvasRenderer.updatePlayerPosition();
+          }
+          
           // Update indicators immediately after landing (force update, bypass throttling)
           this.forceUpdateJumpIndicator();
           this.updateGroundPoundIndicator();
@@ -688,6 +693,11 @@ const PlayerController = {
         if (window.player) {
           window.player.style.left = window.playerX + "px";
         }
+        
+        // Update DOM sprite position immediately
+        if (window.CanvasRenderer && window.CanvasRenderer.updatePlayerPosition) {
+          window.CanvasRenderer.updatePlayerPosition();
+        }
       }
     }
     
@@ -700,6 +710,11 @@ const PlayerController = {
           // Update virtual player object
           if (window.player) {
             window.player.style.top = window.playerY + "px";
+          }
+          
+          // Update DOM sprite position immediately
+          if (window.CanvasRenderer && window.CanvasRenderer.updatePlayerPosition) {
+            window.CanvasRenderer.updatePlayerPosition();
           }
         }
       }

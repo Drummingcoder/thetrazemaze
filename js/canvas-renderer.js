@@ -1,198 +1,376 @@
 /**
- * Canvas Renderer Module
- * Handles all canvas drawing operations including maze and player rendering
+ * Canvas Renderer Module - Clean and Simple
+ * Renders maze clearly and player sprite without modifications, then scales down
  */
 
 console.log('Canvas Renderer module loaded');
 
 const CanvasRenderer = {
-  // Rendering state
+  // Rendering state (for compatibility)
   renderPending: false,
-  lastRenderTime: 0,
-  RENDER_THROTTLE: 8, // 120 FPS max for smoother movement
   renderQueued: false,
+  mazeDrawn: false, // Track if maze has been drawn to avoid unnecessary redraws
 
-  // Performance monitoring
-  frameCount: 0,
-  lastPerformanceCheck: performance.now(),
+  // Sprite system - DOM-based instead of canvas
+  playerSprite: null,
+  spriteLoaded: false,
+  playerElement: null, // DOM element for the player sprite
+  animationFrame: 0,
+  lastAnimationTime: 0,
+  ANIMATION_SPEED: 150, // milliseconds per frame
+  lastDirection: 'right',
+  currentRow: 0, // 0 = right, 1 = left
 
-  /**
-   * Draw the maze with viewport culling for performance
-   */
-  drawMaze: function() {
-    // Clear canvas
-    window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height);
-    
-    // Set maze colors
-    const wallColor = '#000000';      // Black walls
-    const pathColor = '#87CEEB';      // Light blue paths
-    const startColor = '#00FF00';     // Green start
-    const endColor = '#FF0000';       // Red end
-    
-    // Calculate viewport boundaries with camera transform
-    const zoom = window.CameraSystem ? window.CameraSystem.currentZoom : 1.0;
-    const cameraX = window.CameraSystem ? window.CameraSystem.cameraX : 0;
-    const cameraY = window.CameraSystem ? window.CameraSystem.cameraY : 0;
-    
-    // Calculate visible area in world coordinates (corrected formula)
-    const viewportLeft = -cameraX;
-    const viewportTop = -cameraY;
-    const viewportRight = viewportLeft + (window.innerWidth / zoom);
-    const viewportBottom = viewportTop + (window.innerHeight / zoom);
-    
-    // Add buffer around viewport to prevent edge artifacts
-    const buffer = window.cellSize * 2;
-    const startCol = Math.max(0, Math.floor((viewportLeft - buffer) / window.cellSize));
-    const endCol = Math.min(window.mazeSize, Math.ceil((viewportRight + buffer) / window.cellSize));
-    const startRow = Math.max(0, Math.floor((viewportTop - buffer) / window.cellSize));
-    const endRow = Math.min(window.mazeSize, Math.ceil((viewportBottom + buffer) / window.cellSize));
-    
-    // Collect visible cells by color for batched drawing
-    const walls = [];
-    const paths = [];
-    let startCell = null;
-    let endCell = null;
-    
-    // Only process visible cells
-    for (let row = startRow; row < endRow; row++) {
-      for (let col = startCol; col < endCol; col++) {
-        const x = col * window.cellSize;
-        const y = row * window.cellSize;
-        
-        if (window.mazeStructure && window.mazeStructure[row] && window.mazeStructure[row][col] === 0) {
-          if (row === window.startRow && col === window.startCol) {
-            startCell = [x, y];
-          } else if (row === window.endRow && col === window.endCol) {
-            endCell = [x, y];
-          } else {
-            paths.push([x, y]);
-          }
-        } else {
-          walls.push([x, y]);
-        }
-      }
-    }
-    
-    // Second pass: draw all cells of same color together
-    // Draw walls
-    if (walls.length > 0) {
-      window.ctx.fillStyle = wallColor;
-      window.ctx.beginPath();
-      for (const [x, y] of walls) {
-        window.ctx.rect(x, y, window.cellSize, window.cellSize);
-      }
-      window.ctx.fill();
-    }
-    
-    // Draw paths
-    if (paths.length > 0) {
-      window.ctx.fillStyle = pathColor;
-      window.ctx.beginPath();
-      for (const [x, y] of paths) {
-        window.ctx.rect(x, y, window.cellSize, window.cellSize);
-      }
-      window.ctx.fill();
-    }
-    
-    // Draw start cell
-    if (startCell) {
-      window.ctx.fillStyle = startColor;
-      window.ctx.fillRect(startCell[0], startCell[1], window.cellSize, window.cellSize);
-    }
-    
-    // Draw end cell
-    if (endCell) {
-      window.ctx.fillStyle = endColor;
-      window.ctx.fillRect(endCell[0], endCell[1], window.cellSize, window.cellSize);
-    }
-  },
+  // Performance optimization - cache last known positions
+  lastPlayerX: -1,
+  lastPlayerY: -1,
+  lastAnimationFrame: -1,
+  lastCurrentRow: -1,
+  lastRenderTime: 0,
+  renderThrottle: 16, // Limit renders to ~60 FPS
 
   /**
-   * Draw the player on the canvas
+   * Initialize sprite loading - DOM-based approach with FIXED positioning
    */
-  drawPlayer: function() {
-    // Simple player drawing - let the render throttling handle performance
-    const spriteSize = window.cellSize * 0.8; // 80% of cell size to avoid wall clipping
-    const centerOffset = (window.cellSize - spriteSize) / 2;
-    const destX = window.playerX + centerOffset;
-    const destY = window.playerY + centerOffset;
+  initSprites: function() {
+    console.log('Creating DOM-based player sprite...');
     
-    // Ensure player is visible by using high contrast colors
-    window.ctx.fillStyle = '#0066FF'; // Blue player square
-    window.ctx.fillRect(destX, destY, spriteSize, spriteSize);
-    
-    // Add a white border around the player for better visibility
-    window.ctx.strokeStyle = '#FFFFFF';
-    window.ctx.lineWidth = Math.max(1, window.cellSize * 0.05); // Scale border with cell size
-    window.ctx.strokeRect(destX, destY, spriteSize, spriteSize);
-  },
-
-  /**
-   * Monitor rendering performance
-   */
-  monitorPerformance: function() {
-    this.frameCount++;
-    const now = performance.now();
-    
-    // Check performance every 5 seconds
-    if (now - this.lastPerformanceCheck > 5000) {
-      const fps = this.frameCount / ((now - this.lastPerformanceCheck) / 1000);
-      if (fps < 30) {
-        console.warn(`Low FPS detected: ${fps.toFixed(1)} FPS`);
-      }
-      this.frameCount = 0;
-      this.lastPerformanceCheck = now;
+    // Remove any existing player sprite first
+    const existingSprite = document.getElementById('player-sprite');
+    if (existingSprite) {
+      existingSprite.remove();
     }
-  },
-
-  /**
-   * Main rendering function with throttling
-   */
-  renderFrame: function() {
-    // Prevent multiple pending renders
-    if (this.renderPending) return;
     
-    const now = performance.now();
-    if (now - this.lastRenderTime < this.RENDER_THROTTLE) {
-      // Use requestAnimationFrame instead of setTimeout to avoid accumulation
-      if (!this.renderQueued) {
-        this.renderQueued = true;
-        requestAnimationFrame(() => {
-          this.renderQueued = false;
-          if (performance.now() - this.lastRenderTime >= this.RENDER_THROTTLE) {
-            this.renderFrame();
-          }
-        });
-      }
+    // Create the player DOM element
+    this.playerElement = document.createElement('div');
+    this.playerElement.id = 'player-sprite';
+    this.playerElement.style.position = 'fixed'; // Use 'fixed' to position relative to viewport
+    this.playerElement.style.zIndex = '5'; // Above both canvases
+    this.playerElement.style.pointerEvents = 'none';
+    this.playerElement.style.imageRendering = 'pixelated'; // Crisp scaling
+    this.playerElement.style.backgroundImage = 'url(circular-character-spritesheet.png)';
+    this.playerElement.style.backgroundRepeat = 'no-repeat';
+    
+    // Set size based on a fixed size for better visibility (not dependent on cell size)
+    const spriteSize = 48; // Fixed size for better visibility when centered
+    this.playerElement.style.width = spriteSize + 'px';
+    this.playerElement.style.height = spriteSize + 'px';
+    
+    // Set background size to scale the spritesheet properly
+    const sheetWidth = 32 * 8; // 8 frames of 32px each
+    const sheetHeight = 32 * 2; // 2 rows of 32px each
+    const scaleX = (spriteSize * 8) / sheetWidth;
+    const scaleY = (spriteSize * 2) / sheetHeight;
+    this.playerElement.style.backgroundSize = `${sheetWidth * scaleX}px ${sheetHeight * scaleY}px`;
+    
+    // Add to the maze container FIRST before positioning
+    const mazeContainer = document.getElementById('maze-container');
+    if (mazeContainer) {
+      mazeContainer.appendChild(this.playerElement);
+    } else {
+      console.error('❌ Maze container not found!');
       return;
     }
     
-    this.renderPending = true;
+    // FIXED POSITIONING: Use the actual current player coordinates
+    this.updateSpritePosition();
+    
+    this.spriteLoaded = true;
+    
+    // Force initial render
+    this.renderFrame();
+  },
+
+  /**
+   * Update animation frame (optimized for performance)
+   */
+  updateAnimation: function() {
+    if (!this.spriteLoaded) return;
+    
+    const now = performance.now();
+    const isMoving = window.PlayerController && window.PlayerController.playerIsMoving;
+    
+    // Only update animation when actually moving to reduce CPU usage
+    if (!isMoving) return;
+    
+    // Determine movement direction (cached check)
+    let currentDirection = this.lastDirection;
+    if (window.PlayerController && window.PlayerController.smoothMovementKeys) {
+      const keys = window.PlayerController.smoothMovementKeys;
+      if (keys['ArrowLeft'] || keys['a']) {
+        currentDirection = 'left';
+      } else if (keys['ArrowRight'] || keys['d']) {
+        currentDirection = 'right';
+      }
+    }
+    
+    // Update sprite row based on direction
+    this.currentRow = currentDirection === 'left' ? 1 : 0;
+    this.lastDirection = currentDirection;
+    
+    // Only advance animation frame when enough time has passed
+    if (now - this.lastAnimationTime > this.ANIMATION_SPEED) {
+      this.animationFrame = (this.animationFrame + 1) % 8; // 8 frames per direction
+      this.lastAnimationTime = now;
+    }
+  },
+
+  /**
+   * Draw the maze - SIMPLIFIED high-performance approach
+   */
+  drawMaze: function() {
+    if (!window.ctx || !window.mazeStructure) return;
+    
+    // SIMPLE AND FAST: Draw entire maze once and cache it
+    // This is actually faster than complex viewport culling for our 48x48 maze
+    
+    const cellSize = window.cellSize;
+    const mazeSize = window.mazeSize;
+    const startRow = window.startRow;
+    const startCol = window.startCol;
+    const endRow = window.endRow;
+    const endCol = window.endCol;
+    
+    // Clear entire canvas efficiently
+    window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height);
+    
+    // Pre-set context properties for maximum performance
+    window.ctx.imageSmoothingEnabled = false;
+    
+    // Batch render with minimal state changes
+    let currentFillStyle = '';
+    
+    for (let row = 0; row < mazeSize; row++) {
+      const rowData = window.mazeStructure[row];
+      if (!rowData) continue;
+      
+      const y = row * cellSize;
+      
+      for (let col = 0; col < mazeSize; col++) {
+        const x = col * cellSize;
+        
+        // Determine color with minimal branching
+        let fillStyle;
+        if (rowData[col] === 0) {
+          // Path cell
+          if (row === startRow && col === startCol) {
+            fillStyle = '#00FF00'; // Green start
+          } else if (row === endRow && col === endCol) {
+            fillStyle = '#FF0000'; // Red end
+          } else {
+            fillStyle = '#87CEEB'; // Light blue paths
+          }
+        } else {
+          fillStyle = '#000000'; // Black walls
+        }
+        
+        // Only change fillStyle when necessary (major performance optimization)
+        if (currentFillStyle !== fillStyle) {
+          window.ctx.fillStyle = fillStyle;
+          currentFillStyle = fillStyle;
+        }
+        
+        window.ctx.fillRect(x, y, cellSize, cellSize);
+      }
+    }
+    
+    
+    // Removed debug logging for performance
+  },
+
+  /**
+   * Draw the player - DOM-based positioning (optimized - no position updates during gameplay)
+   */
+  drawPlayer: function() {
+    if (!this.playerElement) return;
+    
+    // DON'T update sprite position every frame - it's fixed to center and only needs to be set once
+    // (updateSpritePosition is only called on init and when explicitly needed)
+    
+    // Handle animation only when moving
+    const isMoving = window.PlayerController && window.PlayerController.playerIsMoving;
+    if (isMoving) {
+      this.updateAnimation();
+      
+      // Only update background position if animation frame or direction changed
+      if (this.animationFrame !== this.lastAnimationFrame || this.currentRow !== this.lastCurrentRow) {
+        const spriteSize = 48; // Fixed size to match initialization
+        const frameWidth = 32;
+        const frameHeight = 32;
+        const sourceX = this.animationFrame * frameWidth;
+        const sourceY = this.currentRow * frameHeight;
+        
+        // Scale the background position to match the scaled sprite sheet
+        const scaleX = spriteSize / frameWidth;
+        const scaleY = spriteSize / frameHeight;
+        const bgPosX = -(sourceX * scaleX);
+        const bgPosY = -(sourceY * scaleY);
+        
+        this.playerElement.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
+        
+        // Cache the animation state
+        this.lastAnimationFrame = this.animationFrame;
+        this.lastCurrentRow = this.currentRow;
+      }
+    }
+  },
+
+  /**
+   * Force update player position (called directly by movement system)
+   */
+  updatePlayerPosition: function() {
+    if (!this.playerElement) return;
+    
+    // Use the dedicated positioning function for consistency
+    this.updateSpritePosition();
+    
+    // Also force animation update if moving
+    const isMoving = window.PlayerController && window.PlayerController.playerIsMoving;
+    if (isMoving) {
+      this.updateAnimation();
+      
+      // Force animation frame update immediately
+      if (this.animationFrame !== this.lastAnimationFrame || this.currentRow !== this.lastCurrentRow) {
+        const spriteSize = 48; // Fixed size to match initialization
+        const frameWidth = 32;
+        const frameHeight = 32;
+        const sourceX = this.animationFrame * frameWidth;
+        const sourceY = this.currentRow * frameHeight;
+        
+        const scaleX = spriteSize / frameWidth;
+        const scaleY = spriteSize / frameHeight;
+        const bgPosX = -(sourceX * scaleX);
+        const bgPosY = -(sourceY * scaleY);
+        
+        this.playerElement.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
+        
+        this.lastAnimationFrame = this.animationFrame;
+        this.lastCurrentRow = this.currentRow;
+      }
+    }
+  },
+
+  /**
+   * Update sprite position - SIMPLE: Always center on screen (window viewport)
+   */
+  updateSpritePosition: function() {
+    if (!this.playerElement) return;
+    
+    // Get the WINDOW dimensions (viewport), not just the maze container
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Calculate sprite size (fixed size for centered sprite)
+    const spriteSize = 48; // Fixed size to match initialization
+    
+    // Position sprite at the CENTER of the entire window/viewport
+    const centerX = (windowWidth / 2) - (spriteSize / 2);
+    const centerY = (windowHeight / 2) - (spriteSize / 2);
+    
+    // Apply position immediately
+    this.playerElement.style.left = centerX + 'px';
+    this.playerElement.style.top = centerY + 'px';
+    
+    // Debug output removed for performance
+  },
+
+  /**
+   * Main rendering function - ULTRA SIMPLIFIED for maximum performance
+   */
+  renderFrame: function() {
+    // Frame rate throttling - don't render more than ~60 FPS
+    const now = performance.now();
+    if (now - this.lastRenderTime < this.renderThrottle) {
+      return; // Skip this frame
+    }
     this.lastRenderTime = now;
     
-    requestAnimationFrame(() => {
-      try {
-        // Simple approach: always redraw everything 
-        this.drawMaze();
-        this.drawPlayer();
-        
-        // Monitor performance
-        this.monitorPerformance();
-      } catch (error) {
-        console.error('Error in renderFrame:', error);
-      } finally {
-        this.renderPending = false;
-      }
-    });
+    // CRITICAL PERFORMANCE FIX: Only draw maze ONCE at startup, never again
+    // The maze doesn't change, so redrawing it is pure waste
+    if (!this.mazeDrawn) {
+      this.drawMaze();
+      this.mazeDrawn = true;
+      // Debug logging removed for performance
+    }
+    
+    // Always update player (this is fast since it's DOM-based)
+    this.drawPlayer();
+  },
+
+  /**
+   * Force a complete redraw (only when maze structure actually changes)
+   */
+  forceRedraw: function() {
+    this.mazeDrawn = false;
+    this.renderFrame();
+  },
+
+  /**
+   * Reset cached positions (call when player teleports or resets)
+   */
+  resetCache: function() {
+    this.lastPlayerX = -1;
+    this.lastPlayerY = -1;
+    this.lastAnimationFrame = -1;
+    this.lastCurrentRow = -1;
+    this.lastRenderTime = 0;
+    this.mazeDrawn = false;
+  },
+
+  /**
+   * Initialize the renderer
+   */
+  init: function() {
+    this.configureCanvasForSprites();
+    this.initSprites();
+    this.renderFrame();
   },
 
   /**
    * Pre-warm animation system to reduce first-run lag
    */
   prepareAnimationSystem: function() {
-    // Create a test animation cycle to warm up the browser's animation engine
+    this.configureCanvasForSprites();
+    this.initSprites();
     this.renderFrame();
-  }
+  },
+
+  /**
+   * Monitor performance (compatibility function)
+   */
+  monitorPerformance: function() {
+    // Simple performance monitoring - no complex tracking
+  },
+  
+  /**
+   * Configure canvases for optimal rendering
+   */
+  configureCanvasForSprites: function() {
+    // Configure maze canvas for crisp geometric shapes
+    if (window.ctx) {
+      window.ctx.imageSmoothingEnabled = false; // Pixelated for crisp maze edges
+    }
+    
+    // Configure player canvas for crisp sprite rendering (try pixelated approach)
+    if (window.playerCtx) {
+      // Try disabling smoothing for maximum crispness
+      window.playerCtx.imageSmoothingEnabled = false;
+      
+      // Disable browser-specific smoothing properties for player canvas
+      if (window.playerCtx.webkitImageSmoothingEnabled !== undefined) {
+        window.playerCtx.webkitImageSmoothingEnabled = false;
+      }
+      if (window.playerCtx.mozImageSmoothingEnabled !== undefined) {
+        window.playerCtx.mozImageSmoothingEnabled = false;
+      }
+      if (window.playerCtx.msImageSmoothingEnabled !== undefined) {
+        window.playerCtx.msImageSmoothingEnabled = false;
+      }
+      if (window.playerCtx.oImageSmoothingEnabled !== undefined) {
+        window.playerCtx.oImageSmoothingEnabled = false;
+      }
+    }
+  },
 };
 
 // Make CanvasRenderer available globally
