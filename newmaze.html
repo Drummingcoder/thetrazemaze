@@ -228,7 +228,7 @@
       color: #00AAFF;
     } */
 
-    #debug-console {
+    /* #debug-console {
       position: fixed;
       bottom: 20px;
       left: 20px;
@@ -268,7 +268,7 @@
 
     #debug-console .debug-info {
       color: #4488ff;
-    }
+    } */
 
     #maze-container {
       position: relative;
@@ -301,7 +301,7 @@
   <div id="jump-indicator">Jump Ready</div>
   <div id="ground-pound-indicator">Ground Pound Ready</div>
   <div id="controls-hint">Arrow Keys/WASD: Move | Shift/Space: Dash | Hold Up/W: Charge Jump | Down/S (in air): Ground Pound</div>
-  <div id="debug-console"></div>
+  <!-- <div id="debug-console"></div> -->
   <div id="maze-container">
     <canvas id="maze-canvas"></canvas>
     <canvas id="player-canvas"></canvas>
@@ -905,6 +905,11 @@
 
   // Smooth pixel-based movement system - replaces cell-based movement
   window.addEventListener("keydown", (event) => {
+    // Prevent movement if end screen is visible
+    if (endScreen && !endScreen.classList.contains("hidden")) {
+      return;
+    }
+    
     if (event.key === "y" || event.key === "Y") {
       // Calculate player's grid position for debugging
       const playerGridRow = Math.round(playerY / cellSize);

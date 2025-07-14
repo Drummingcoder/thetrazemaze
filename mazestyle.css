@@ -69,7 +69,7 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 999;
+      z-index: 5000; /* High z-index to cover all game elements including player sprite */
     }
 
     #end-screen.hidden {

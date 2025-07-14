@@ -673,15 +673,19 @@ const PlayerController = {
       }
     }
     // NOTE: Ground pound is now uncancelable once started - no reset on key release
-    if (this.smoothMovementKeys["ArrowLeft"] || this.smoothMovementKeys["a"]) {
-      newX -= this.movementSpeed;
-      moved = true;
-      currentMovementX = -1;
-    }
-    if (this.smoothMovementKeys["ArrowRight"] || this.smoothMovementKeys["d"]) {
-      newX += this.movementSpeed;
-      moved = true;
-      currentMovementX = 1;
+    
+    // Handle horizontal movement (but not during ground pounding)
+    if (!this.isGroundPounding) {
+      if (this.smoothMovementKeys["ArrowLeft"] || this.smoothMovementKeys["a"]) {
+        newX -= this.movementSpeed;
+        moved = true;
+        currentMovementX = -1;
+      }
+      if (this.smoothMovementKeys["ArrowRight"] || this.smoothMovementKeys["d"]) {
+        newX += this.movementSpeed;
+        moved = true;
+        currentMovementX = 1;
+      }
     }
     
     // Apply horizontal movement if no collision
@@ -1089,6 +1093,11 @@ const PlayerController = {
    * @param {string} key - The key that was pressed
    */
   handleKeyDown: function(key) {
+    // Prevent movement if end screen is visible
+    if (window.endScreen && !window.endScreen.classList.contains("hidden")) {
+      return;
+    }
+    
     // Mark player as moving
     this.playerIsMoving = true;
     
@@ -1185,6 +1194,11 @@ const PlayerController = {
    * Handle dedicated dash key press (Shift)
    */
   handleDashKey: function() {
+    // Prevent dashing if end screen is visible
+    if (window.endScreen && !window.endScreen.classList.contains("hidden")) {
+      return;
+    }
+    
     // Don't trigger dash if already dashing or on cooldown
     if (this.isDashing || this.dashCooldownTimer > 0) return;
     

@@ -17,9 +17,17 @@ const CanvasRenderer = {
   playerElement: null, // DOM element for the player sprite
   animationFrame: 0,
   lastAnimationTime: 0,
-  ANIMATION_SPEED: 150, // milliseconds per frame
+  ANIMATION_SPEED: 50, // milliseconds per frame - 50ms = 20 FPS (fast animation)
   lastDirection: 'right',
-  currentRow: 0, // 0 = right, 1 = left
+  currentRow: 1, // 0 = left, 1 = right (matching your spritesheet layout)
+  lastMovementTime: 0, // Track when we last detected movement
+  MOVEMENT_TIMEOUT: 100, // Keep animating for 100ms after movement stops
+  animationUpdateInterval: null, // Store interval ID
+  
+  // Sprite scaling properties
+  spriteScale: 0.1875, // Default scale (48/256)
+  originalFrameWidth: 256,
+  originalFrameHeight: 256,
 
   // Performance optimization - cache last known positions
   lastPlayerX: -1,
@@ -33,11 +41,18 @@ const CanvasRenderer = {
    * Initialize sprite loading - DOM-based approach with FIXED positioning
    */
   initSprites: function() {
-    console.log('Creating DOM-based player sprite...');
+    console.log('🔧 Creating DOM-based player sprite...');
+    
+    // Check if spritesheet image exists
+    const testImg = new Image();
+    testImg.onload = () => console.log('✅ Spritesheet loaded successfully');
+    testImg.onerror = () => console.error('❌ Failed to load spritesheet.png');
+    testImg.src = 'spritesheet.png';
     
     // Remove any existing player sprite first
     const existingSprite = document.getElementById('player-sprite');
     if (existingSprite) {
+      console.log('🗑️ Removing existing sprite');
       existingSprite.remove();
     }
     
@@ -45,74 +60,155 @@ const CanvasRenderer = {
     this.playerElement = document.createElement('div');
     this.playerElement.id = 'player-sprite';
     this.playerElement.style.position = 'fixed'; // Use 'fixed' to position relative to viewport
-    this.playerElement.style.zIndex = '5'; // Above both canvases
+    this.playerElement.style.zIndex = '1000'; // Much higher z-index to ensure visibility
     this.playerElement.style.pointerEvents = 'none';
     this.playerElement.style.imageRendering = 'pixelated'; // Crisp scaling
-    this.playerElement.style.backgroundImage = 'url(circular-character-spritesheet.png)';
+    this.playerElement.style.backgroundImage = 'url(spritesheet.png)'; // Updated to new spritesheet
     this.playerElement.style.backgroundRepeat = 'no-repeat';
+    // this.playerElement.style.border = '2px solid red'; // DEBUG: Removed red border
     
     // Set size based on a fixed size for better visibility (not dependent on cell size)
     const spriteSize = 48; // Fixed size for better visibility when centered
     this.playerElement.style.width = spriteSize + 'px';
     this.playerElement.style.height = spriteSize + 'px';
     
+    console.log(`🎯 Sprite size set to: ${spriteSize}px x ${spriteSize}px`);
+    
     // Set background size to scale the spritesheet properly
-    const sheetWidth = 32 * 8; // 8 frames of 32px each
-    const sheetHeight = 32 * 2; // 2 rows of 32px each
-    const scaleX = (spriteSize * 8) / sheetWidth;
-    const scaleY = (spriteSize * 2) / sheetHeight;
-    this.playerElement.style.backgroundSize = `${sheetWidth * scaleX}px ${sheetHeight * scaleY}px`;
+    const frameWidth = 256; // Each frame is 256x256 pixels
+    const frameHeight = 256;
+    const sheetWidth = 2048; // Your spritesheet width (8 frames of 256px each)
+    const sheetHeight = 2560; // Your spritesheet height (10 rows of 256px each)
+    
+    // Scale the spritesheet so each frame fits exactly in our sprite element (48x48px)
+    // We want each 256px frame to be scaled to 48px, so scale factor is 48/256 = 0.1875
+    const scaleFactor = spriteSize / frameWidth; // 48/256 = 0.1875
+    const scaledSheetWidth = sheetWidth * scaleFactor; // 2048 * 0.1875 = 384px
+    const scaledSheetHeight = sheetHeight * scaleFactor; // 2560 * 0.1875 = 480px
+    
+    this.playerElement.style.backgroundSize = `${scaledSheetWidth}px ${scaledSheetHeight}px`;
+    console.log(`📐 Background size set to: ${scaledSheetWidth}px x ${scaledSheetHeight}px (scale factor: ${scaleFactor})`);
+    
+    // Store original dimensions for position calculations
+    this.originalFrameWidth = frameWidth;
+    this.originalFrameHeight = frameHeight;
+    this.scaleFactor = scaleFactor; // Store scale factor for background position calculations
     
     // Add to the maze container FIRST before positioning
     const mazeContainer = document.getElementById('maze-container');
     if (mazeContainer) {
+      console.log('✅ Maze container found, appending sprite');
       mazeContainer.appendChild(this.playerElement);
     } else {
-      console.error('❌ Maze container not found!');
-      return;
+      console.error('❌ Maze container not found! Appending to body as fallback');
+      document.body.appendChild(this.playerElement);
     }
     
     // FIXED POSITIONING: Use the actual current player coordinates
     this.updateSpritePosition();
     
     this.spriteLoaded = true;
+    console.log('✅ Sprite initialization complete');
     
     // Force initial render
     this.renderFrame();
   },
 
   /**
-   * Update animation frame (optimized for performance)
+   * Update animation - simple system that checks if player is moving
    */
   updateAnimation: function() {
-    if (!this.spriteLoaded) return;
-    
-    const now = performance.now();
     const isMoving = window.PlayerController && window.PlayerController.playerIsMoving;
+    const isGroundPounding = window.PlayerController && window.PlayerController.isGroundPounding;
     
-    // Only update animation when actually moving to reduce CPU usage
-    if (!isMoving) return;
+    // Don't progress animation during ground pounding
+    if (isGroundPounding) {
+      return;
+    }
     
-    // Determine movement direction (cached check)
-    let currentDirection = this.lastDirection;
-    if (window.PlayerController && window.PlayerController.smoothMovementKeys) {
-      const keys = window.PlayerController.smoothMovementKeys;
-      if (keys['ArrowLeft'] || keys['a']) {
-        currentDirection = 'left';
-      } else if (keys['ArrowRight'] || keys['d']) {
-        currentDirection = 'right';
+    if (isMoving) {
+      // Update direction based on current keys
+      this.updateDirection();
+      
+      // Check if enough time has passed to advance the frame
+      const now = performance.now();
+      const timeSinceLastFrame = now - this.lastAnimationTime;
+      
+      if (timeSinceLastFrame >= this.ANIMATION_SPEED || this.lastAnimationTime === 0) {
+        // Advance animation frame
+        this.animationFrame = (this.animationFrame + 1) % 7;
+        this.lastAnimationTime = now;
+        
+        // Update the sprite display
+        this.updateSpriteFrame();
       }
     }
+  },
+
+  /**
+   * Update direction without resetting animation
+   */
+  updateDirection: function() {
+    if (!window.PlayerController || !window.PlayerController.smoothMovementKeys) return;
     
-    // Update sprite row based on direction
-    this.currentRow = currentDirection === 'left' ? 1 : 0;
-    this.lastDirection = currentDirection;
+    const keys = window.PlayerController.smoothMovementKeys;
+    let currentDirection = this.lastDirection;
     
-    // Only advance animation frame when enough time has passed
-    if (now - this.lastAnimationTime > this.ANIMATION_SPEED) {
-      this.animationFrame = (this.animationFrame + 1) % 8; // 8 frames per direction
-      this.lastAnimationTime = now;
+    // Check for primary movement directions
+    if (keys['ArrowLeft'] || keys['a']) {
+      currentDirection = 'left';
+    } else if (keys['ArrowRight'] || keys['d']) {
+      currentDirection = 'right';
+    } else if (keys['ArrowUp'] || keys['w']) {
+      currentDirection = 'up';
+    } else if (keys['ArrowDown'] || keys['s']) {
+      currentDirection = 'down';
     }
+    
+    // For diagonal movement, prioritize horizontal direction for sprite facing
+    if ((keys['ArrowLeft'] || keys['a']) && (keys['ArrowUp'] || keys['w'] || keys['ArrowDown'] || keys['s'])) {
+      currentDirection = 'left';
+    } else if ((keys['ArrowRight'] || keys['d']) && (keys['ArrowUp'] || keys['w'] || keys['ArrowDown'] || keys['s'])) {
+      currentDirection = 'right';
+    }
+    
+    // Only reset animation frame if we ACTUALLY change from left to right or vice versa
+    const previousRow = this.currentRow;
+    
+    // Map directions to sprite rows (your spritesheet layout: row 0=left, row 1=right)
+    // For up/down movement, use the last horizontal direction the player was facing
+    if (currentDirection === 'up' || currentDirection === 'down') {
+      // Keep using the last horizontal direction for up/down movement
+    } else {
+      // Update the facing direction for left/right movement
+      this.lastDirection = currentDirection;
+    }
+    
+    // Update sprite row based on facing direction (row 0=left, row 1=right)
+    this.currentRow = this.lastDirection === 'left' ? 0 : 1; // left=0, right=1
+    
+    // DON'T reset animation frame when changing directions - let it continue smoothly
+    // if (this.currentRow !== previousRow) {
+    //   this.animationFrame = 0;
+    //   if (window.debugLog) {
+    //     window.debugLog(`Direction changed: Row ${previousRow} → ${this.currentRow}, reset to frame 0`, 'warn');
+    //   }
+    // }
+  },
+
+  /**
+   * Update just the sprite frame display
+   */
+  updateSpriteFrame: function() {
+    if (!this.playerElement) return;
+    
+    // Extract frames using scaled dimensions
+    const scaledFrameWidth = this.originalFrameWidth * this.scaleFactor;
+    const scaledFrameHeight = this.originalFrameHeight * this.scaleFactor;
+    const bgPosX = -(this.animationFrame * scaledFrameWidth); // Move by scaled frame width
+    const bgPosY = -(this.currentRow * scaledFrameHeight);     // Move by scaled frame height
+    
+    this.playerElement.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
   },
 
   /**
@@ -179,40 +275,13 @@ const CanvasRenderer = {
   },
 
   /**
-   * Draw the player - DOM-based positioning (optimized - no position updates during gameplay)
+   * Draw the player - DOM-based positioning with animation
    */
   drawPlayer: function() {
     if (!this.playerElement) return;
     
-    // DON'T update sprite position every frame - it's fixed to center and only needs to be set once
-    // (updateSpritePosition is only called on init and when explicitly needed)
-    
-    // Handle animation only when moving
-    const isMoving = window.PlayerController && window.PlayerController.playerIsMoving;
-    if (isMoving) {
-      this.updateAnimation();
-      
-      // Only update background position if animation frame or direction changed
-      if (this.animationFrame !== this.lastAnimationFrame || this.currentRow !== this.lastCurrentRow) {
-        const spriteSize = 48; // Fixed size to match initialization
-        const frameWidth = 32;
-        const frameHeight = 32;
-        const sourceX = this.animationFrame * frameWidth;
-        const sourceY = this.currentRow * frameHeight;
-        
-        // Scale the background position to match the scaled sprite sheet
-        const scaleX = spriteSize / frameWidth;
-        const scaleY = spriteSize / frameHeight;
-        const bgPosX = -(sourceX * scaleX);
-        const bgPosY = -(sourceY * scaleY);
-        
-        this.playerElement.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
-        
-        // Cache the animation state
-        this.lastAnimationFrame = this.animationFrame;
-        this.lastCurrentRow = this.currentRow;
-      }
-    }
+    // Handle animation when moving
+    this.updateAnimation();
   },
 
   /**
@@ -224,37 +293,18 @@ const CanvasRenderer = {
     // Use the dedicated positioning function for consistency
     this.updateSpritePosition();
     
-    // Also force animation update if moving
-    const isMoving = window.PlayerController && window.PlayerController.playerIsMoving;
-    if (isMoving) {
-      this.updateAnimation();
-      
-      // Force animation frame update immediately
-      if (this.animationFrame !== this.lastAnimationFrame || this.currentRow !== this.lastCurrentRow) {
-        const spriteSize = 48; // Fixed size to match initialization
-        const frameWidth = 32;
-        const frameHeight = 32;
-        const sourceX = this.animationFrame * frameWidth;
-        const sourceY = this.currentRow * frameHeight;
-        
-        const scaleX = spriteSize / frameWidth;
-        const scaleY = spriteSize / frameHeight;
-        const bgPosX = -(sourceX * scaleX);
-        const bgPosY = -(sourceY * scaleY);
-        
-        this.playerElement.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
-        
-        this.lastAnimationFrame = this.animationFrame;
-        this.lastCurrentRow = this.currentRow;
-      }
-    }
+    // The drawPlayer function will handle animation during the regular render cycle
+    // No need to duplicate animation logic here
   },
 
   /**
    * Update sprite position - SIMPLE: Always center on screen (window viewport)
    */
   updateSpritePosition: function() {
-    if (!this.playerElement) return;
+    if (!this.playerElement) {
+      console.error('❌ Cannot update sprite position - playerElement not found');
+      return;
+    }
     
     // Get the WINDOW dimensions (viewport), not just the maze container
     const windowWidth = window.innerWidth;
@@ -267,11 +317,14 @@ const CanvasRenderer = {
     const centerX = (windowWidth / 2) - (spriteSize / 2);
     const centerY = (windowHeight / 2) - (spriteSize / 2);
     
+    console.log(`🎯 Positioning sprite at: (${centerX}, ${centerY}) in window ${windowWidth}x${windowHeight}`);
+    
     // Apply position immediately
     this.playerElement.style.left = centerX + 'px';
     this.playerElement.style.top = centerY + 'px';
     
-    // Debug output removed for performance
+    // DON'T force background position here - let the animation system handle it!
+    // The animation system will set the correct frame via updateSpriteFrame()
   },
 
   /**
