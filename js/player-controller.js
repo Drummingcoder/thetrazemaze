@@ -36,8 +36,8 @@ const PlayerController = {
   
   // Dash system variables
   isDashing: false, // Whether player is currently dashing
-  dashSpeed: 8, // Speed during dash (pixels per frame)
-  dashDuration: 16, // Number of frames the dash lasts
+  dashSpeed: 14, // Speed during dash (pixels per frame) - increased from 4 to 12 for much faster dash
+  dashDuration: 15, // Number of frames the dash lasts - reduced from 20 to 15 for quicker, snappier dash
   dashCooldown: 15, // Frames to wait before next dash (0.25 seconds at 60fps)
   dashTimer: 0, // Current dash timer
   dashCooldownTimer: 0, // Current cooldown timer
@@ -266,6 +266,9 @@ const PlayerController = {
     if (this.dashTimer <= 0) {
       this.isDashing = false;
       this.dashCooldownTimer = this.dashCooldown;
+      if (window.debugLog) {
+        window.debugLog(`💨 PLAYER DASH ENDED: Timer reached 0, setting isDashing=false`, 'warn');
+      }
       console.log('Dash ended, cooldown started');
     }
     
@@ -292,10 +295,29 @@ const PlayerController = {
       this.isDashing = true;
       this.dashTimer = this.dashDuration;
       
+      if (window.debugLog) {
+        window.debugLog(`💨 PLAYER DASH STARTED: Timer set to ${this.dashDuration} frames`, 'info');
+      }
+      
       // Update dash UI
       this.updateDashIndicator();
       
       console.log(`Dash started: direction (${this.dashDirectionX.toFixed(2)}, ${this.dashDirectionY.toFixed(2)})`);
+    }
+  },
+
+  /**
+   * End dash called from animation system
+   * This is called when the dash recovery animation completes
+   */
+  endDashFromAnimation: function() {
+    if (this.isDashing) {
+      this.isDashing = false;
+      this.dashCooldownTimer = this.dashCooldown;
+      console.log('Dash ended from animation system, cooldown started');
+      
+      // Update dash UI
+      this.updateDashIndicator();
     }
   },
 
