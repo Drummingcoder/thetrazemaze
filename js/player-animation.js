@@ -24,11 +24,13 @@ const PlayerAnimation = {
   animationUpdateInterval: null,
   
   // Dash animation properties
-  isDashAnimating: false,
-  dashAnimationType: 'none', // 'dash-left', 'dash-right', 'recovery-left', 'recovery-right'
+  isDashAnimating: false,          // DEPRECATED - will be removed
+  dashAnimation: false,            // True when dash animation is playing
+  recoveryDash: false,             // True when recovery animation is playing
+  dashAnimationType: 'none',       // 'dash-left', 'dash-right', 'recovery-left', 'recovery-right'
   dashAnimationFrame: 0,
   dashRecoveryTimer: 0,
-  DASH_RECOVERY_DURATION: 8, // 8 frames for full recovery animation
+  DASH_RECOVERY_DURATION: 5,       // 5 frames for faster recovery animation
   
   // Ground pound animation properties
   groundPoundActive: false,        // Master flag: ground pound is happening
@@ -42,6 +44,11 @@ const PlayerAnimation = {
   lastAnimationUpdateTime: 0,
   animationUpdateThrottle: 16, // Minimum time between animation updates (60 FPS)
   
+  // Debug tracking
+  lastLoggedDashState: false,
+  dashRecoveryCompleteTime: 0, // Track when dash recovery completed
+  DASH_RECOVERY_SETTLE_TIME: 100, // Time to wait before idle reset after dash recovery (ms)
+  
   // Independent animation loop
   animationLoopId: null,
   isAnimationLoopRunning: false,
@@ -54,11 +61,23 @@ const PlayerAnimation = {
 
   /**
    * Initialize the animation system
+   * @param {HTMLElement} playerElement - The player DOM element
+   * @param {number} scaleFactor - Scale factor for sprite rendering
+   * @param {string} initialDirection - Initial facing direction ('left' or 'right')
    */
-  init: function(playerElement, scaleFactor) {
+  init: function(playerElement, scaleFactor, initialDirection = 'right') {
     this.playerElement = playerElement;
     this.scaleFactor = scaleFactor;
-    console.log('🎬 PlayerAnimation initialized with scale factor:', scaleFactor);
+    
+    // Set initial direction based on level
+    this.lastDirection = initialDirection;
+    this.currentRow = initialDirection === 'left' ? 0 : 1; // 0 = left, 1 = right
+    this.animationFrame = 0; // Start at frame 0
+    
+    console.log('🎬 PlayerAnimation initialized with scale factor:', scaleFactor, 'initial direction:', initialDirection);
+    
+    // IMMEDIATELY update the sprite frame to show the correct direction
+    this.updateSpriteFrame();
     
     // Start the independent animation loop
     this.startAnimationLoop();
@@ -103,7 +122,8 @@ const PlayerAnimation = {
    */
   shouldAnimationContinue: function() {
     // Continue if any special animations are active
-    if (this.isDashAnimating || 
+    if (this.dashAnimation || 
+        this.recoveryDash ||
         this.groundPoundActive || 
         this.groundPoundHovering || 
         this.groundPoundRecovering) {
@@ -145,6 +165,23 @@ const PlayerAnimation = {
     const isGroundPounding = window.PlayerController && window.PlayerController.isGroundPounding;
     const isDashing = window.PlayerController && window.PlayerController.isDashing;
     
+    // DEBUG: Log animation state every second when dashing or in recovery
+    if ((this.dashAnimation || this.recoveryDash) && (now % 1000 < 50)) {
+      console.log('🔍 ANIMATION STATE:', {
+        isDashing,
+        dashAnimation: this.dashAnimation,
+        recoveryDash: this.recoveryDash,
+        animationFrame: this.animationFrame,
+        currentRow: this.currentRow
+      });
+    }
+    
+    // DEBUG: Log dash state changes
+    if (this.lastLoggedDashState !== isDashing && (this.dashAnimation || this.recoveryDash)) {
+      if (window.debugLog) window.debugLog(`🔍 DASH STATE CHANGE: isDashing=${isDashing}, dashAnimation=${this.dashAnimation}, recoveryDash=${this.recoveryDash}, isMoving=${isMoving}`, 'warn');
+      this.lastLoggedDashState = isDashing;
+    }
+    
     // Handle ground pound animations (highest priority)
     if (this.groundPoundActive || isGroundPounding) {
       this.updateGroundPoundAnimationState(isGroundPounding);
@@ -152,25 +189,32 @@ const PlayerAnimation = {
       return;
     }
     
-    // Handle dash animations
-    if (isDashing) {
-      this.handleDashAnimation();
-      return;
-    }
-    
-    // Handle dash recovery animation (after dash ends)
-    if (this.isDashAnimating && !isDashing) {
+    // Check if dash just ended by PlayerController - transition from dash to recovery
+    if (!isDashing && this.dashAnimation) {
+      console.log('� DASH ENDED: Transitioning from dash to recovery - isDashing=', isDashing, 'dashAnimation=', this.dashAnimation);
+      if (window.debugLog) window.debugLog('🔄 DASH ENDED BY CONTROLLER: Transitioning to recovery', 'info');
+      this.dashAnimation = false;
+      this.startDashRecovery();
       this.handleDashRecovery();
       return;
     }
     
-    // Regular movement animation
-    if (isMoving) {
-      // Reset to normal movement animation if we were in dash mode
-      if (this.isDashAnimating) {
-        this.resetToMovementAnimation();
-      }
-      
+    // Handle dash animations (when isDashing=true and dashAnimation=true)
+    if (isDashing && this.dashAnimation) {
+      console.log('� DASH: Calling handleDashAnimation - isDashing=', isDashing, 'dashAnimation=', this.dashAnimation);
+      this.handleDashAnimation();
+      return;
+    }
+    
+    // Handle dash recovery animation (when recoveryDash=true)
+    if (this.recoveryDash) {
+      console.log('🏃 RECOVERY: Calling handleDashRecovery - recoveryDash=', this.recoveryDash);
+      this.handleDashRecovery();
+      return;
+    }
+    
+    // Regular movement animation (when not dashing or when dashing but in recovery and moving)
+    if (isMoving && !this.dashAnimation) {
       // Update direction based on current keys
       this.updateDirection();
       
@@ -179,16 +223,16 @@ const PlayerAnimation = {
       
       if (timeSinceLastFrame >= this.ANIMATION_SPEED || this.lastAnimationTime === 0) {
         // Advance animation frame (7 frames for movement)
-        const oldFrame = this.animationFrame;
         this.animationFrame = (this.animationFrame + 1) % 7;
         this.lastAnimationTime = now;
         
         // Update the sprite display
         this.updateSpriteFrame();
       }
-    } else {
-      // When not moving, ensure we're on frame 0 for idle state
+    } else if (!isMoving && !this.dashAnimation && !this.recoveryDash) {
+      // When not moving and no special animations, ensure we're on frame 0 for idle state
       if (this.animationFrame !== 0) {
+        if (window.debugLog) window.debugLog(`🔄 IDLE RESET: animationFrame=${this.animationFrame} → 0`, 'info');
         this.animationFrame = 0;
         this.updateSpriteFrame();
       }
@@ -235,7 +279,9 @@ const PlayerAnimation = {
    * Handle dash animation - 8 frames, rows 2 and 4
    */
   handleDashAnimation: function() {
+    console.log('🚀 handleDashAnimation called');
     const dashDirectionX = window.PlayerController.dashDirectionX;
+    console.log('🚀 dashDirectionX:', dashDirectionX);
     
     // Determine dash animation type based on direction
     let newDashType;
@@ -256,11 +302,13 @@ const PlayerAnimation = {
       }
     }
     
-    // Reset animation if dash type changed or just starting
+    // Initialize dash animation if just starting
     if (this.dashAnimationType !== newDashType) {
       this.dashAnimationType = newDashType;
       this.dashAnimationFrame = 0;
-      this.isDashAnimating = true;
+      this.dashAnimation = true;
+      this.recoveryDash = false;
+      if (window.debugLog) window.debugLog('🚀 DASH ANIMATION START: type=' + newDashType + ', row=' + this.currentRow, 'info');
     }
     
     // Update animation frame
@@ -268,36 +316,50 @@ const PlayerAnimation = {
     const timeSinceLastFrame = now - this.lastAnimationTime;
     
     if (timeSinceLastFrame >= this.DASH_ANIMATION_SPEED) {
-      // Advance dash animation frame (clamp to 0-7 range, don't wrap during dash)
+      // Advance dash animation frame but don't end until PlayerController ends the dash
       if (this.dashAnimationFrame < 7) {
         this.dashAnimationFrame++;
         this.animationFrame = this.dashAnimationFrame;
         this.lastAnimationTime = now;
         
+        if (window.debugLog) window.debugLog('🚀 DASH FRAME: frame=' + this.dashAnimationFrame, 'info');
+        
         // Update the sprite display
         this.updateSpriteFrame();
+      } else {
+        // Hold on the last frame (frame 7) until PlayerController ends the dash
+        this.animationFrame = 7;
+        this.updateSpriteFrame();
+        // DON'T set dashAnimation = false here - wait for PlayerController
       }
     }
+  },
+
+  /**
+   * Start dash recovery animation
+   */
+  startDashRecovery: function() {
+    // Transition from dash to recovery animation
+    if (this.dashAnimationType === 'dash-left') {
+      this.dashAnimationType = 'recovery-left';
+      this.currentRow = 3; // Row 3 for left recovery
+    } else {
+      this.dashAnimationType = 'recovery-right';
+      this.currentRow = 5; // Row 5 for right recovery
+    }
+    
+    this.dashAnimation = false;
+    this.recoveryDash = true;
+    this.dashAnimationFrame = 0;
+    this.dashRecoveryTimer = this.DASH_RECOVERY_DURATION;
+    
+    if (window.debugLog) window.debugLog('🏃 DASH RECOVERY START: type=' + this.dashAnimationType + ', timer=' + this.DASH_RECOVERY_DURATION + ', row=' + this.currentRow, 'info');
   },
 
   /**
    * Handle dash recovery animation - 8 frames, rows 3 and 5
    */
   handleDashRecovery: function() {
-    // Start recovery animation if not already started
-    if (this.dashAnimationType.startsWith('dash-')) {
-      if (this.dashAnimationType === 'dash-left') {
-        this.dashAnimationType = 'recovery-left';
-        this.currentRow = 3; // Row 3 for left recovery
-      } else {
-        this.dashAnimationType = 'recovery-right';
-        this.currentRow = 5; // Row 5 for right recovery
-      }
-      // Reset to frame 0 for recovery animation to play full sequence
-      this.dashAnimationFrame = 0;
-      this.dashRecoveryTimer = this.DASH_RECOVERY_DURATION;
-    }
-    
     // Continue recovery animation
     if (this.dashAnimationType.startsWith('recovery-') && this.dashRecoveryTimer > 0) {
       const now = performance.now();
@@ -307,19 +369,37 @@ const PlayerAnimation = {
         this.animationFrame = this.dashAnimationFrame;
         this.updateSpriteFrame();
         
+        if (window.debugLog) window.debugLog('🏃 DASH RECOVERY FRAME: frame=' + this.dashAnimationFrame + ', timer=' + this.dashRecoveryTimer + ', row=' + this.currentRow, 'info');
+        
         this.dashAnimationFrame = (this.dashAnimationFrame + 1) % 8;
         this.lastAnimationTime = now;
         this.dashRecoveryTimer--;
         
         // End recovery when timer reaches 0
         if (this.dashRecoveryTimer <= 0) {
-          this.isDashAnimating = false;
-          this.dashAnimationType = 'none';
-          // Signal to PlayerController that dash should end
-          this.endDash();
+          this.completeDashRecovery();
         }
       }
     }
+  },
+
+  /**
+   * Complete dash recovery and return to normal state
+   */
+  completeDashRecovery: function() {
+    if (window.debugLog) window.debugLog('✅ DASH RECOVERY COMPLETE: Returning to normal state', 'info');
+    
+    this.recoveryDash = false;
+    this.dashAnimationType = 'none';
+    this.dashAnimationFrame = 0;
+    
+    // Signal to PlayerController that dash should end completely
+    if (window.PlayerController && window.PlayerController.endDashFromAnimation) {
+      window.PlayerController.endDashFromAnimation();
+    }
+    
+    // Reset to normal movement rows (0=left, 1=right)
+    this.currentRow = this.lastDirection === 'left' ? 0 : 1;
   },
 
   /**
@@ -328,6 +408,22 @@ const PlayerAnimation = {
   startDash: function(directionX) {
     // This will be called by PlayerController when dash starts
     console.log('🚀 Starting dash animation, direction:', directionX);
+    console.log('🚀 Before: dashAnimation=', this.dashAnimation, 'recoveryDash=', this.recoveryDash);
+    
+    // Initialize dash animation state
+    this.dashAnimation = true;
+    this.recoveryDash = false;
+    this.dashAnimationFrame = 0;
+    this.dashAnimationType = 'none'; // Will be set in handleDashAnimation
+    
+    console.log('🚀 After: dashAnimation=', this.dashAnimation, 'recoveryDash=', this.recoveryDash);
+    
+    if (window.debugLog) {
+      window.debugLog('🚀 DASH ANIMATION INITIALIZED: dashAnimation=true, recoveryDash=false', 'info');
+    }
+    
+    // Also log to regular console for immediate visibility
+    console.log('🚀 DASH ANIMATION INITIALIZED: dashAnimation=true, recoveryDash=false');
   },
 
   /**
@@ -463,11 +559,17 @@ const PlayerAnimation = {
    * Reset to normal movement animation
    */
   resetToMovementAnimation: function() {
-    this.isDashAnimating = false;
+    if (window.debugLog) window.debugLog(`🔄 RESET TO MOVEMENT: Before - dashAnimation=${this.dashAnimation}, recoveryDash=${this.recoveryDash}, animationFrame=${this.animationFrame}, currentRow=${this.currentRow}`, 'warn');
+    
+    // Reset dash animation state
+    this.isDashAnimating = false; // Keep for compatibility
+    this.dashAnimation = false;
+    this.recoveryDash = false;
     this.dashAnimationType = 'none';
     this.dashAnimationFrame = 0;
     this.animationFrame = 0;
     this.dashRecoveryTimer = 0;
+    this.dashRecoveryCompleteTime = 0; // Reset recovery complete timer
     
     // Reset ground pound animation state
     this.groundPoundActive = false;
@@ -477,6 +579,8 @@ const PlayerAnimation = {
     
     // Reset to normal movement rows (0=left, 1=right)
     this.currentRow = this.lastDirection === 'left' ? 0 : 1;
+    
+    if (window.debugLog) window.debugLog(`🔄 RESET TO MOVEMENT: After - dashAnimation=${this.dashAnimation}, recoveryDash=${this.recoveryDash}, animationFrame=${this.animationFrame}, currentRow=${this.currentRow}`, 'warn');
   },
 
   /**
@@ -511,7 +615,9 @@ const PlayerAnimation = {
       animationFrame: this.animationFrame,
       currentRow: this.currentRow,
       lastDirection: this.lastDirection,
-      isDashAnimating: this.isDashAnimating,
+      isDashAnimating: this.isDashAnimating, // Legacy
+      dashAnimation: this.dashAnimation,
+      recoveryDash: this.recoveryDash,
       dashAnimationType: this.dashAnimationType,
       groundPoundActive: this.groundPoundActive,
       groundPoundHovering: this.groundPoundHovering,

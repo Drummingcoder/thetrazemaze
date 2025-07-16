@@ -93,8 +93,10 @@ const CanvasRenderer = {
     this.updateSpritePosition();
     
     // Initialize the PlayerAnimation system with sprite element
+    // TODO: Make initial direction configurable based on level system
+    const initialDirection = this.getInitialDirectionForLevel();
     if (window.PlayerAnimation) {
-      window.PlayerAnimation.init(this.playerElement, scaleFactor);
+      window.PlayerAnimation.init(this.playerElement, scaleFactor, initialDirection);
     } else {
       console.error('❌ PlayerAnimation module not loaded!');
     }
@@ -104,6 +106,16 @@ const CanvasRenderer = {
     
     // Force initial render
     this.renderFrame();
+  },
+
+  /**
+   * Get initial facing direction for the current level
+   * TODO: Update this when level system is implemented
+   */
+  getInitialDirectionForLevel: function() {
+    // For now, always face right
+    // In the future, this could check window.currentLevel or similar
+    return 'right';
   },
 
   /**

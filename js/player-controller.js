@@ -36,7 +36,7 @@ const PlayerController = {
   
   // Dash system variables
   isDashing: false, // Whether player is currently dashing
-  dashSpeed: 14, // Speed during dash (pixels per frame) - increased from 4 to 12 for much faster dash
+  dashSpeed: 16, // Speed during dash (pixels per frame) - increased for faster dash movement
   dashDuration: 15, // Number of frames the dash lasts - reduced from 20 to 15 for quicker, snappier dash
   dashCooldown: 15, // Frames to wait before next dash (0.25 seconds at 60fps)
   dashTimer: 0, // Current dash timer
