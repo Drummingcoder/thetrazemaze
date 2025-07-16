@@ -15,39 +15,12 @@ const CanvasRenderer = {
   playerSprite: null,
   spriteLoaded: false,
   playerElement: null, // DOM element for the player sprite
-  animationFrame: 0,
-  lastAnimationTime: 0,
-  ANIMATION_SPEED: 50, // milliseconds per frame - 50ms = 20 FPS (fast animation)
-  DASH_ANIMATION_SPEED: 15, // milliseconds per frame for dash - 15ms = 67 FPS (8 frames = 120ms, much faster animation)
-  lastDirection: 'right',
-  currentRow: 1, // 0 = left, 1 = right (matching your spritesheet layout)
-  lastMovementTime: 0, // Track when we last detected movement
-  MOVEMENT_TIMEOUT: 100, // Keep animating for 100ms after movement stops
-  animationUpdateInterval: null, // Store interval ID
   
-  // Dash animation properties
-  isDashAnimating: false,
-  dashAnimationType: 'none', // 'dash-left', 'dash-right', 'recovery-left', 'recovery-right'
-  dashAnimationFrame: 0,
-  dashRecoveryTimer: 0,
-  DASH_RECOVERY_DURATION: 8, // 8 frames for full recovery animation (matches 8-frame spritesheet)
-  
-  // Sprite scaling properties
-  spriteScale: 0.1875, // Default scale (48/256)
-  originalFrameWidth: 256,
-  originalFrameHeight: 256,
-
   // Performance optimization - cache last known positions
   lastPlayerX: -1,
   lastPlayerY: -1,
-  lastAnimationFrame: -1,
-  lastCurrentRow: -1,
   lastRenderTime: 0,
   renderThrottle: 16, // Limit renders to ~60 FPS
-  
-  // Animation throttling to prevent multiple executions per frame
-  lastAnimationUpdateTime: 0,
-  animationUpdateThrottle: 16, // Minimum time between animation updates (60 FPS)
 
   /**
    * Initialize sprite loading - DOM-based approach with FIXED positioning
@@ -119,6 +92,13 @@ const CanvasRenderer = {
     // FIXED POSITIONING: Use the actual current player coordinates
     this.updateSpritePosition();
     
+    // Initialize the PlayerAnimation system with sprite element
+    if (window.PlayerAnimation) {
+      window.PlayerAnimation.init(this.playerElement, scaleFactor);
+    } else {
+      console.error('❌ PlayerAnimation module not loaded!');
+    }
+    
     this.spriteLoaded = true;
     console.log('✅ Sprite initialization complete');
     
@@ -127,65 +107,12 @@ const CanvasRenderer = {
   },
 
   /**
-   * Update animation - handles movement, dash, and recovery animations
+   * Update animation - DEPRECATED: PlayerAnimation now runs its own loop
+   * This method is kept for backward compatibility but does nothing
    */
   updateAnimation: function() {
-    // Throttle animation updates to prevent multiple executions per frame
-    const now = performance.now();
-    if (now - this.lastAnimationUpdateTime < this.animationUpdateThrottle) {
-      return; // Skip this update cycle
-    }
-    this.lastAnimationUpdateTime = now;
-    
-    const isMoving = window.PlayerController && window.PlayerController.playerIsMoving;
-    const isGroundPounding = window.PlayerController && window.PlayerController.isGroundPounding;
-    const isDashing = window.PlayerController && window.PlayerController.isDashing;
-    
-    // Don't progress animation during ground pounding
-    if (isGroundPounding) {
-      return;
-    }
-    
-    // Handle dash animations
-    if (isDashing) {
-      this.handleDashAnimation();
-      return;
-    }
-    
-    // Handle dash recovery animation (after dash ends) - SINGLE CHECK PER FRAME
-    if (this.isDashAnimating && !isDashing) {
-      if (window.debugLog && this.dashAnimationType.startsWith('dash-')) {
-        window.debugLog(`⚡ DASH ENDED: PlayerController.isDashing=false, starting recovery`, 'warn');
-      }
-      this.handleDashRecovery();
-      return;
-    }
-    
-    // Regular movement animation
-    if (isMoving) {
-      // Reset to normal movement animation if we were in dash mode
-      if (this.isDashAnimating) {
-        if (window.debugLog) {
-          window.debugLog(`🔄 RESET TO MOVEMENT: Was in dash mode, resetting to normal animation`, 'info');
-        }
-        this.resetToMovementAnimation();
-      }
-      
-      // Update direction based on current keys
-      this.updateDirection();
-      
-      // Check if enough time has passed to advance the frame
-      const timeSinceLastFrame = now - this.lastAnimationTime;
-      
-      if (timeSinceLastFrame >= this.ANIMATION_SPEED || this.lastAnimationTime === 0) {
-        // Advance animation frame (7 frames for movement)
-        this.animationFrame = (this.animationFrame + 1) % 7;
-        this.lastAnimationTime = now;
-        
-        // Update the sprite display
-        this.updateSpriteFrame();
-      }
-    }
+    // PlayerAnimation now runs its own independent loop
+    // No need to call updateAnimation manually anymore
   },
 
   /**
@@ -237,156 +164,6 @@ const CanvasRenderer = {
     //     window.debugLog(`Direction changed: Row ${previousRow} → ${this.currentRow}, reset to frame 0`, 'warn');
     //   }
     // }
-  },
-
-  /**
-   * Handle dash animation - 8 frames, rows 2 and 4
-   */
-  handleDashAnimation: function() {
-    const dashDirectionX = window.PlayerController.dashDirectionX;
-    
-    // Determine dash animation type based on direction
-    let newDashType;
-    if (dashDirectionX < 0) {
-      newDashType = 'dash-left';
-      this.currentRow = 2; // Row 2 for dashing left
-    } else if (dashDirectionX > 0) {
-      newDashType = 'dash-right';
-      this.currentRow = 4; // Row 4 for dashing right
-    } else {
-      // Vertical dash - use last direction
-      if (this.lastDirection === 'left') {
-        newDashType = 'dash-left';
-        this.currentRow = 2;
-      } else {
-        newDashType = 'dash-right';
-        this.currentRow = 4;
-      }
-    }
-    
-    // Reset animation if dash type changed or just starting
-    if (this.dashAnimationType !== newDashType) {
-      this.dashAnimationType = newDashType;
-      this.dashAnimationFrame = 0;
-      this.isDashAnimating = true;
-      if (window.debugLog) {
-        window.debugLog(`🚀 DASH START: ${newDashType}, row ${this.currentRow}, frame reset to 0`, 'info');
-      }
-    }
-    
-    // Update animation frame
-    const now = performance.now();
-    const timeSinceLastFrame = now - this.lastAnimationTime;
-    
-    if (timeSinceLastFrame >= this.DASH_ANIMATION_SPEED) {
-      // Advance dash animation frame (clamp to 0-7 range, don't wrap during dash)
-      if (this.dashAnimationFrame < 7) {
-        this.dashAnimationFrame++;
-        this.animationFrame = this.dashAnimationFrame;
-        this.lastAnimationTime = now;
-        
-        if (window.debugLog) {
-          window.debugLog(`🎯 DASH FRAME: ${this.dashAnimationType} frame ${this.dashAnimationFrame}/8 on row ${this.currentRow}`, 'info');
-        }
-        
-        // Update the sprite display
-        this.updateSpriteFrame();
-      }
-      // If we've reached frame 7, don't advance further during dash phase
-      // The recovery phase will handle continuation
-    }
-  },
-
-  /**
-   * Handle dash recovery animation - 8 frames, rows 3 and 5
-   */
-  handleDashRecovery: function() {
-    // Start recovery animation if not already started
-    if (this.dashAnimationType.startsWith('dash-')) {
-      if (this.dashAnimationType === 'dash-left') {
-        this.dashAnimationType = 'recovery-left';
-        this.currentRow = 3; // Row 3 for left recovery
-      } else {
-        this.dashAnimationType = 'recovery-right';
-        this.currentRow = 5; // Row 5 for right recovery
-      }
-      // Reset to frame 0 for recovery animation to play full sequence
-      this.dashAnimationFrame = 0;
-      this.dashRecoveryTimer = this.DASH_RECOVERY_DURATION;
-      if (window.debugLog) {
-        window.debugLog(`🔄 RECOVERY START: ${this.dashAnimationType}, row ${this.currentRow}, starting from frame 0`, 'warn');
-      }
-    }
-    
-    // Continue recovery animation ONLY if we're still in recovery and timer is active
-    if (this.dashAnimationType.startsWith('recovery-') && this.dashRecoveryTimer > 0) {
-      const now = performance.now();
-      const timeSinceLastFrame = now - this.lastAnimationTime;
-      
-      if (timeSinceLastFrame >= this.DASH_ANIMATION_SPEED) {
-        // Update the sprite display with current frame first
-        this.animationFrame = this.dashAnimationFrame;
-        this.updateSpriteFrame();
-        
-        if (window.debugLog) {
-          window.debugLog(`🔧 RECOVERY FRAME: ${this.dashAnimationType} frame ${this.dashAnimationFrame}/8 on row ${this.currentRow}, timer ${this.dashRecoveryTimer}`, 'warn');
-        }
-        
-        // Advance to next frame for next update
-        this.dashAnimationFrame = (this.dashAnimationFrame + 1) % 8;
-        this.lastAnimationTime = now;
-        this.dashRecoveryTimer--;
-        
-        // End recovery only when timer reaches 0
-        if (this.dashRecoveryTimer <= 0) {
-          this.isDashAnimating = false;
-          this.dashAnimationType = 'none';
-          if (window.debugLog) {
-            window.debugLog(`✅ DASH COMPLETE: Recovery finished, ending dash system`, 'info');
-          }
-          // Signal to PlayerController that dash should end
-          this.endDash();
-        }
-      }
-    }
-  },
-
-  /**
-   * Reset to normal movement animation
-   */
-  resetToMovementAnimation: function() {
-    this.isDashAnimating = false;
-    this.dashAnimationType = 'none';
-    this.dashAnimationFrame = 0;
-    this.animationFrame = 0;
-    this.dashRecoveryTimer = 0;
-    
-    // Reset to normal movement rows (0=left, 1=right)
-    this.currentRow = this.lastDirection === 'left' ? 0 : 1;
-  },
-
-  /**
-   * Signal to PlayerController that dash should end
-   */
-  endDash: function() {
-    if (window.PlayerController && window.PlayerController.endDashFromAnimation) {
-      window.PlayerController.endDashFromAnimation();
-    }
-  },
-
-  /**
-   * Update just the sprite frame display
-   */
-  updateSpriteFrame: function() {
-    if (!this.playerElement) return;
-    
-    // Extract frames using scaled dimensions
-    const scaledFrameWidth = this.originalFrameWidth * this.scaleFactor;
-    const scaledFrameHeight = this.originalFrameHeight * this.scaleFactor;
-    const bgPosX = -(this.animationFrame * scaledFrameWidth); // Move by scaled frame width
-    const bgPosY = -(this.currentRow * scaledFrameHeight);     // Move by scaled frame height
-    
-    this.playerElement.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
   },
 
   /**
@@ -542,10 +319,13 @@ const CanvasRenderer = {
   resetCache: function() {
     this.lastPlayerX = -1;
     this.lastPlayerY = -1;
-    this.lastAnimationFrame = -1;
-    this.lastCurrentRow = -1;
     this.lastRenderTime = 0;
     this.mazeDrawn = false;
+    
+    // Reset animation system
+    if (window.PlayerAnimation) {
+      window.PlayerAnimation.resetToMovementAnimation();
+    }
   },
 
   /**

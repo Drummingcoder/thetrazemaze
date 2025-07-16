@@ -205,9 +205,7 @@ const PlayerController = {
     }
     
     // Debug: Log when ground check fails during ground pound
-    if (isGroundPounding) {
-      window.debugLog(`Ground check FAILED: Y=${window.playerY.toFixed(2)}, spriteBottom=${bounds.bottom.toFixed(2)}, bottomRow=${bottomRow}, cols=${leftCol}-${rightCol}`, 'warn');
-    }
+    // Removed excessive logging for better performance
     
     return false; // No solid ground beneath
   },
@@ -294,6 +292,11 @@ const PlayerController = {
       
       this.isDashing = true;
       this.dashTimer = this.dashDuration;
+      
+      // Start dash animation
+      if (window.PlayerAnimation) {
+        window.PlayerAnimation.startDash(dirX);
+      }
       
       if (window.debugLog) {
         window.debugLog(`💨 PLAYER DASH STARTED: Timer set to ${this.dashDuration} frames`, 'info');
@@ -489,8 +492,19 @@ const PlayerController = {
           this.verticalVelocity = 0;
           this.isGrounded = true;
           this.isGroundPounding = false;
-          this.groundPoundPhase = 'none';
+          this.groundPoundPhase = 'recovery';  // Start recovery phase instead of 'none'
           this.groundPoundCooldownTimer = this.groundPoundCooldown;
+          
+          // Start recovery animation instead of immediately resetting to movement
+          if (window.PlayerAnimation) {
+            // Don't reset immediately - let PlayerAnimation handle the recovery phase
+            // The recovery animation will call resetToMovementAnimation() when it's complete
+            window.PlayerAnimation.groundPoundRecovering = true;
+            window.PlayerAnimation.groundPoundActive = true; // Keep active during recovery
+            window.PlayerAnimation.groundPoundHovering = false;
+            window.PlayerAnimation.groundPoundAnimationFrame = 0;
+            window.PlayerAnimation.lastGroundPoundAnimationTime = performance.now();
+          }
           
           window.debugLog(`Ground pound SMASH! Landed at Y: ${landingResult.landingY.toFixed(2)}, ground row: ${landingResult.groundRow}`, 'info');
           
@@ -592,12 +606,17 @@ const PlayerController = {
     // Handle ground pound hover timer and phase transitions
     if (this.isGroundPounding && this.groundPoundPhase === 'hovering') {
       this.groundPoundHoverTimer--;
-      window.debugLog(`Hovering... ${this.groundPoundHoverTimer} frames remaining`, 'info');
       if (this.groundPoundHoverTimer <= 0) {
         // Transition from hovering to slamming
         this.groundPoundPhase = 'slamming';
         this.verticalVelocity = this.groundPoundVelocity;
-        window.debugLog(`Ground pound SLAM! Transitioning to slamming phase with velocity: ${this.verticalVelocity}`, 'error');
+        
+        // Update ground pound animation phase
+        if (window.PlayerAnimation) {
+          window.PlayerAnimation.updateGroundPoundPhase(this.isGroundPounding, this.groundPoundPhase);
+        }
+        
+        window.debugLog(`Ground pound SLAM! Transitioning to slamming phase`, 'warn');
       }
       // Update UI during hover
       this.updateGroundPoundIndicator();
@@ -686,6 +705,12 @@ const PlayerController = {
           this.groundPoundPhase = 'hovering';
           this.groundPoundHoverTimer = this.groundPoundHoverTime;
           this.verticalVelocity = 0; // Stop all vertical movement during hover
+          
+          // Start ground pound animation
+          if (window.PlayerAnimation) {
+            window.PlayerAnimation.startGroundPound();
+          }
+          
           window.debugLog(`Ground pound initiated! Hovering for ${this.groundPoundHoverTime} frames`, 'warn');
         } else if (!this.isGrounded && this.groundPoundCooldownTimer > 0) {
           // Can't ground pound yet - still in cooldown
@@ -777,14 +802,15 @@ const PlayerController = {
       this.updateGroundPoundIndicator();
     }
     
-    // Continue animation loop if any keys are pressed OR if gravity is active and player is falling OR if dashing OR if dash cooldown is active OR if ground pound cooldown is active
+    // Continue animation loop if any keys are pressed OR if gravity is active and player is falling OR if dashing OR if dash cooldown is active OR if ground pound cooldown is active OR if ground pound recovery is active
     const anyKeyPressed = Object.values(this.smoothMovementKeys).some(pressed => pressed);
     const needsContinuousUpdate = this.gravityEnabled && (!this.isGrounded || this.verticalVelocity !== 0);
     const dashActive = this.isDashing;
     const dashCooldownActive = this.dashCooldownTimer > 0;
     const groundPoundCooldownActive = this.groundPoundCooldownTimer > 0;
+    const groundPoundRecoveryActive = window.PlayerAnimation && window.PlayerAnimation.groundPoundRecovering;
     
-    if (anyKeyPressed || needsContinuousUpdate || dashActive || dashCooldownActive || groundPoundCooldownActive) {
+    if (anyKeyPressed || needsContinuousUpdate || dashActive || dashCooldownActive || groundPoundCooldownActive || groundPoundRecoveryActive) {
       this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
     } else {
       this.animationFrameId = null;
