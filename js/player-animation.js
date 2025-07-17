@@ -165,6 +165,10 @@ const PlayerAnimation = {
     const isGroundPounding = window.PlayerController && window.PlayerController.isGroundPounding;
     const isDashing = window.PlayerController && window.PlayerController.isDashing;
     
+    // Check if ground pound key is being held (even when on ground where ground pound is disabled)
+    const groundPoundKeyHeld = window.PlayerController && window.PlayerController.smoothMovementKeys && 
+                              (window.PlayerController.smoothMovementKeys['ArrowDown'] || window.PlayerController.smoothMovementKeys['s']);
+    
     // DEBUG: Log animation state every second when dashing or in recovery
     if ((this.dashAnimation || this.recoveryDash) && (now % 1000 < 50)) {
       console.log('🔍 ANIMATION STATE:', {
@@ -213,8 +217,8 @@ const PlayerAnimation = {
       return;
     }
     
-    // Regular movement animation (when not dashing or when dashing but in recovery and moving)
-    if (isMoving && !this.dashAnimation) {
+    // Regular movement animation (when not dashing, not ground pounding, and moving)
+    if (isMoving && !this.dashAnimation && !isGroundPounding && !this.groundPoundActive && !groundPoundKeyHeld) {
       // Update direction based on current keys
       this.updateDirection();
       
@@ -229,7 +233,7 @@ const PlayerAnimation = {
         // Update the sprite display
         this.updateSpriteFrame();
       }
-    } else if (!isMoving && !this.dashAnimation && !this.recoveryDash) {
+    } else if (!isMoving && !this.dashAnimation && !this.recoveryDash && !isGroundPounding && !this.groundPoundActive && !groundPoundKeyHeld) {
       // When not moving and no special animations, ensure we're on frame 0 for idle state
       if (this.animationFrame !== 0) {
         if (window.debugLog) window.debugLog(`🔄 IDLE RESET: animationFrame=${this.animationFrame} → 0`, 'info');
