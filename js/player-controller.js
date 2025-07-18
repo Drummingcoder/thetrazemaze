@@ -29,6 +29,10 @@ const PlayerController = {
   maxJumpVelocity: -30, // Maximum jump velocity when held
   chargedJumpVelocity: null, // Stores the charged jump velocity
   
+  // Jump charge indicator properties
+  jumpChargeLingerTimeout: null, // Timeout for linger effect
+  JUMP_CHARGE_LINGER_TIME: 500, // 0.5 seconds in milliseconds
+  
   // Coyote time variables (jump grace period after leaving platform)
   coyoteTime: 6, // Number of frames player can jump after leaving platform
   coyoteTimeCounter: 0, // Current coyote time remaining
@@ -454,6 +458,14 @@ const PlayerController = {
     } else if (this.coyoteTimeCounter > 0) {
       // Decrease coyote time counter
       this.coyoteTimeCounter--;
+      
+      // If coyote time just expired and player was charging jump, stop charging
+      if (this.coyoteTimeCounter === 0 && this.isJumping && !this.isGrounded) {
+        console.log('Coyote time expired - stopping jump charge');
+        this.isJumping = false;
+        this.chargedJumpVelocity = null;
+        this.updateJumpChargeIndicator();
+      }
     }
     
     if (!this.isGrounded) {
@@ -519,7 +531,7 @@ const PlayerController = {
           }
           
           // Update indicators immediately after landing (force update, bypass throttling)
-          this.forceUpdateJumpIndicator();
+          this.updateJumpChargeIndicator();
           this.updateGroundPoundIndicator();
           
           // CRITICAL: Force immediate camera and render update to sync visual position
@@ -653,7 +665,7 @@ const PlayerController = {
             this.jumpStartTime = Date.now();
             console.log('Started charging jump');
             // Don't apply velocity yet - just start charging
-            this.updateJumpIndicator();
+            this.updateJumpChargeIndicator();
           }
           // Continue charging jump while grounded/in coyote time and within time limit
           const currentTime = Date.now();
@@ -663,7 +675,7 @@ const PlayerController = {
             // Store the charged velocity to apply when we actually jump
             this.chargedJumpVelocity = calculatedVelocity;
             console.log('Charging jump, velocity:', calculatedVelocity);
-            this.updateJumpIndicator();
+            this.updateJumpChargeIndicator();
           }
         }
       } else {
@@ -684,12 +696,12 @@ const PlayerController = {
         this.coyoteTimeCounter = 0; // Use up coyote time when jumping
         
         console.log('Jump executed with velocity:', jumpVel);
-        this.updateJumpIndicator();
+        this.updateJumpChargeIndicator();
       } else if (this.isJumping) {
         // Stop charging if we release the key while in air (and no coyote time)
         this.isJumping = false;
         this.chargedJumpVelocity = null;
-        this.updateJumpIndicator();
+        this.updateJumpChargeIndicator();
       }
     }
     if (this.smoothMovementKeys["ArrowDown"] || this.smoothMovementKeys["s"]) {
@@ -721,8 +733,9 @@ const PlayerController = {
     }
     // NOTE: Ground pound is now uncancelable once started - no reset on key release
     
-    // Handle horizontal movement (but not during ground pounding)
-    if (!this.isGroundPounding) {
+    // Handle horizontal movement (but not during ground pounding OR while down key is held)
+    const downKeyHeld = this.smoothMovementKeys["ArrowDown"] || this.smoothMovementKeys["s"];
+    if (!this.isGroundPounding && !downKeyHeld) {
       if (this.smoothMovementKeys["ArrowLeft"] || this.smoothMovementKeys["a"]) {
         newX -= this.movementSpeed;
         moved = true;
@@ -798,8 +811,13 @@ const PlayerController = {
     // Update jump indicator less frequently to reduce flickering
     const now = Date.now();
     if (now - this.lastUIUpdate >= this.uiUpdateInterval) {
-      this.updateJumpIndicator();
+      this.updateJumpChargeIndicator();
       this.updateGroundPoundIndicator();
+    }
+    
+    // Update jump charge indicator more frequently when actively charging (every frame)
+    if (this.isJumping && this.chargedJumpVelocity) {
+      this.updateJumpChargeIndicator();
     }
     
     // Continue animation loop if any keys are pressed OR if gravity is active and player is falling OR if dashing OR if dash cooldown is active OR if ground pound cooldown is active OR if ground pound recovery is active
@@ -832,6 +850,16 @@ const PlayerController = {
     this.jumpStartTime = 0;
     this.chargedJumpVelocity = null;
     this.isGroundPounding = false;
+    
+    // Hide and remove jump charge indicator
+    const chargeIndicator = document.getElementById('jump-charge-indicator');
+    if (chargeIndicator) {
+      chargeIndicator.classList.remove('visible');
+      // Remove from DOM completely
+      if (chargeIndicator.parentNode) {
+        chargeIndicator.parentNode.removeChild(chargeIndicator);
+      }
+    }
     
     // Reset coyote time
     this.coyoteTimeCounter = 0;
@@ -1128,7 +1156,7 @@ const PlayerController = {
     this.updateDashIndicator();
     
     // Initialize jump indicator UI
-    this.updateJumpIndicator();
+    this.updateJumpChargeIndicator();
     
     // Mark movement as active
     this.isMovementActive = true;
@@ -1197,45 +1225,79 @@ const PlayerController = {
   },
 
   /**
-   * Update jump indicator UI (throttled for performance)
+   * Update jump charge indicator positioned behind player sprite
    */
-  updateJumpIndicator: function() {
-    const jumpIndicator = document.getElementById('jump-indicator');
-    if (!jumpIndicator) return;
+  updateJumpChargeIndicator: function() {
+    let chargeIndicator = document.getElementById('jump-charge-indicator');
     
-    // Throttle UI updates to reduce flickering
-    const now = Date.now();
-    if (now - this.lastUIUpdate < this.uiUpdateInterval) {
-      return; // Skip this update
-    }
-    this.lastUIUpdate = now;
-    
-    if (this.isJumping && this.chargedJumpVelocity) {
-      // Show jump charge progress
+    // Only show when actively charging a jump AND player can actually jump (grounded or has coyote time)
+    if (this.isJumping && this.chargedJumpVelocity && (this.isGrounded || this.coyoteTimeCounter > 0)) {
+      // Clear any existing linger timeout since we're actively charging
+      if (this.jumpChargeLingerTimeout) {
+        clearTimeout(this.jumpChargeLingerTimeout);
+        this.jumpChargeLingerTimeout = null;
+      }
+      
+      // Create indicator if it doesn't exist or ensure it's in the right place
+      if (!chargeIndicator) {
+        chargeIndicator = document.createElement('div');
+        chargeIndicator.id = 'jump-charge-indicator';
+        
+        // Add it to the body so it has fixed positioning like the player sprite
+        document.body.appendChild(chargeIndicator);
+      }
+      
+      // Calculate charge percentage
       const currentTime = Date.now();
       const holdTime = currentTime - this.jumpStartTime;
       const chargePercent = Math.min((holdTime / this.maxJumpHoldTime) * 100, 100);
-      jumpIndicator.textContent = `Charging ${chargePercent.toFixed(0)}%`;
-      jumpIndicator.className = 'charging';
-    } else if (this.isGrounded || this.coyoteTimeCounter > 0) {
-      jumpIndicator.textContent = 'Jump Ready';
-      jumpIndicator.className = 'grounded';
+      
+      // Update text content
+      chargeIndicator.textContent = `${chargePercent.toFixed(0)}%`;
+      
+      // Get facing direction from PlayerAnimation
+      const facingRight = window.PlayerAnimation && window.PlayerAnimation.lastDirection === 'right';
+      
+      // Calculate player sprite position (same logic as CanvasRenderer.updateSpritePosition)
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const spriteSize = 48; // Fixed sprite size
+      const playerCenterX = windowWidth / 2;
+      const playerCenterY = windowHeight / 2;
+      
+      // Position indicator behind the player sprite (increased distance by 10 pixels)
+      const offsetDistance = 45; // Increased from 35 to 45 pixels
+      let indicatorX, indicatorY;
+      
+      if (facingRight) {
+        // Player facing right, show indicator on the left
+        indicatorX = playerCenterX - offsetDistance;
+      } else {
+        // Player facing left, show indicator on the right  
+        indicatorX = playerCenterX + offsetDistance;
+      }
+      
+      // Position slightly above center of player
+      indicatorY = playerCenterY - 10;
+      
+      // Position the indicator using fixed positioning
+      chargeIndicator.style.position = 'fixed';
+      chargeIndicator.style.left = indicatorX + 'px';
+      chargeIndicator.style.top = indicatorY + 'px';
+      chargeIndicator.classList.add('visible');
     } else {
-      jumpIndicator.textContent = 'In Air';
-      jumpIndicator.className = '';
+      // Not actively charging - check if we should start the linger effect
+      if (chargeIndicator && chargeIndicator.classList.contains('visible') && !this.jumpChargeLingerTimeout) {
+        // Start linger effect - keep showing for 0.5 seconds
+        this.jumpChargeLingerTimeout = setTimeout(() => {
+          const indicator = document.getElementById('jump-charge-indicator');
+          if (indicator) {
+            indicator.classList.remove('visible');
+          }
+          this.jumpChargeLingerTimeout = null;
+        }, this.JUMP_CHARGE_LINGER_TIME);
+      }
     }
-  },
-
-  /**
-   * Force update jump indicator UI (bypasses throttling for immediate updates)
-   */
-  forceUpdateJumpIndicator: function() {
-    const jumpIndicator = document.getElementById('jump-indicator');
-    if (!jumpIndicator) return;
-    
-    // Force update by resetting the last update time
-    this.lastUIUpdate = 0;
-    this.updateJumpIndicator();
   },
 
   /**

@@ -169,8 +169,8 @@ const PlayerAnimation = {
     const groundPoundKeyHeld = window.PlayerController && window.PlayerController.smoothMovementKeys && 
                               (window.PlayerController.smoothMovementKeys['ArrowDown'] || window.PlayerController.smoothMovementKeys['s']);
     
-    // DEBUG: Log animation state every second when dashing or in recovery
-    if ((this.dashAnimation || this.recoveryDash) && (now % 1000 < 50)) {
+    // DEBUG: Reduced logging frequency - only log every 5 seconds when dashing or in recovery
+    if ((this.dashAnimation || this.recoveryDash) && (now % 5000 < 50)) {
       console.log('🔍 ANIMATION STATE:', {
         isDashing,
         dashAnimation: this.dashAnimation,
@@ -180,7 +180,7 @@ const PlayerAnimation = {
       });
     }
     
-    // DEBUG: Log dash state changes
+    // DEBUG: Log dash state changes (kept as is since it's not frequent)
     if (this.lastLoggedDashState !== isDashing && (this.dashAnimation || this.recoveryDash)) {
       if (window.debugLog) window.debugLog(`🔍 DASH STATE CHANGE: isDashing=${isDashing}, dashAnimation=${this.dashAnimation}, recoveryDash=${this.recoveryDash}, isMoving=${isMoving}`, 'warn');
       this.lastLoggedDashState = isDashing;

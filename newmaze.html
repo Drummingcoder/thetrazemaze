@@ -5,16 +5,112 @@
   <link rel="icon" type="icon/x-image" href="logo.jpg">
   <link rel="stylesheet" type="text/css" href="mazestyle.css">
   <style>
+    /* End screen color scheme to match maze */
+    #end-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, rgba(35, 40, 55, 0.92) 0%, rgba(45, 50, 65, 0.92) 100%);
+      color: #C0C0C0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Courier New', monospace;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 2000;
+      border: none;
+      box-shadow: none;
+      text-align: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #end-screen h2 {
+      color: #FF1744; /* Red to match end square */
+      margin-bottom: 12px;
+      font-size: 26px;
+      font-weight: bold;
+      text-shadow: 0 2px 8px rgba(183, 28, 28, 0.3);
+    }
+
+    #end-time-taken {
+      color: #C0C0C0; /* Silver text */
+      font-size: 20px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    #personal-best {
+      color: #FF1744; /* Red accent for best time */
+      font-size: 16px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    #new-personal-best {
+      color: #FF5252; /* Lighter red accent */
+      font-size: 16px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    #end-screen button {
+      background: linear-gradient(135deg, #7B7F85 0%, #C0C0C0 100%);
+      color: #232837;
+      border: 2px solid #A0A4AA;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 16px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      margin: 8px 0;
+      box-shadow: 0 2px 8px rgba(123, 127, 133, 0.15);
+      cursor: pointer;
+      transition: background 0.3s, border 0.3s;
+    }
+
+    #end-screen button:hover {
+      background: linear-gradient(135deg, #FF1744 0%, #B71C1C 100%);
+      color: #C0C0C0;
+      border-color: #B71C1C;
+    }
     body {
       text-align: center;
-      background: linear-gradient(45deg, #1E3A8A 0%, #3B82F6 25%, #8B5CF6 50%, #F59E0B 75%, #FF8C00 100%);
+      background: linear-gradient(135deg, 
+        rgba(25, 30, 45, 0.98) 0%, 
+        rgba(35, 40, 55, 0.96) 50%, 
+        rgba(45, 50, 65, 0.98) 100%);
       background-size: 100% 100%;
-      /*animation: gradientShift 8s ease-in-out infinite; */
+      background-attachment: fixed;
       position: relative;
       overflow-x: hidden;
+      /* Removed expensive animation for better performance */
     }
     
-    /* Animated gradient background */
+    /* Simplified atmospheric background - much better performance */
+    @keyframes subtleGlow {
+      0% { opacity: 0.95; }
+      50% { opacity: 1.0; }
+      100% { opacity: 0.95; }
+    }
+    
+    /* Optional: Add a very subtle animation only if needed */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 30%, rgba(70, 80, 120, 0.1) 0%, transparent 50%);
+      animation: subtleGlow 8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+
     @keyframes gradientShift {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
@@ -63,103 +159,117 @@
       position: fixed;
       top: 20px;
       right: 20px;
-      background-color: rgba(30, 58, 95, 0.95); /* Dark blue background to match theme */
-      color: #FFFFFF; /* White text for contrast */
-      padding: 10px 15px;
-      border-radius: 8px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #FFFFFF;
+      padding: 12px 18px;
+      border-radius: 12px;
       font-family: 'Courier New', monospace;
       font-size: 18px;
       font-weight: bold;
       z-index: 1000;
-      border: 2px solid #3B82F6; /* Lighter blue border */
-      box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+      border: 2px solid #E1BEE7;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     #dash-indicator {
       position: fixed;
       top: 80px; /* Below the timer with more space */
       right: 20px;
-      background-color: rgba(30, 58, 95, 0.95);
+      background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
       color: #FFFFFF;
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-family: 'Courier New', monospace;
       font-size: 14px;
       font-weight: bold;
       z-index: 1000;
       border: 2px solid #10B981; /* Green border when ready */
-      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
       transition: all 0.3s ease;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     #dash-indicator.cooldown {
+      background: linear-gradient(135deg, #FF6B6B 0%, #EE5A52 100%);
       border-color: #EF4444; /* Red border when on cooldown */
-      box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
-      color: #FCA5A5; /* Light red text */
-    }
-
-    #jump-indicator {
-      position: fixed;
-      top: 130px; /* Below the dash indicator */
-      right: 20px;
-      background-color: rgba(30, 58, 95, 0.95);
+      box-shadow: 0 3px 12px rgba(239, 68, 68, 0.4);
       color: #FFFFFF;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      font-weight: bold;
-      z-index: 1000;
-      border: 2px solid #8B5CF6; /* Purple border */
-      box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
-      transition: all 0.3s ease;
-    }
-
-    #jump-indicator.charging {
-      border-color: #F59E0B; /* Orange border when charging */
-      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
-      color: #FCD34D; /* Light orange text */
-    }
-
-    #jump-indicator.grounded {
-      border-color: #10B981; /* Green border when grounded */
-      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
     }
 
     #ground-pound-indicator {
       position: fixed;
-      top: 180px; /* Below the jump indicator with more space */
+      top: 130px; /* Moved up to replace jump indicator position */
       right: 20px;
-      background-color: rgba(30, 58, 95, 0.95);
+      background: linear-gradient(135deg, #FF8A80 0%, #FF5722 100%);
       color: #FFFFFF;
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-family: 'Courier New', monospace;
       font-size: 14px;
       font-weight: bold;
       z-index: 1000;
       border: 2px solid #DC2626; /* Red border for ground pound */
-      box-shadow: 0 2px 10px rgba(220, 38, 38, 0.3);
+      box-shadow: 0 3px 12px rgba(220, 38, 38, 0.4);
       transition: all 0.3s ease;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     #ground-pound-indicator.cooldown {
+      background: linear-gradient(135deg, #FFEAA7 0%, #F59E0B 100%);
       border-color: #F59E0B; /* Orange border when on cooldown */
-      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
-      color: #FCD34D; /* Light orange text */
+      box-shadow: 0 3px 12px rgba(245, 158, 11, 0.4);
+      color: #1F2937; /* Dark text for better contrast on yellow */
     }
 
     #ground-pound-indicator.active {
+      background: linear-gradient(135deg, #FF1744 0%, #B91C1C 100%);
       border-color: #B91C1C; /* Dark red border when ground pounding */
-      box-shadow: 0 2px 10px rgba(185, 28, 28, 0.5);
-      color: #FECACA; /* Light red text */
+      box-shadow: 0 3px 15px rgba(185, 28, 28, 0.6);
+      color: #FFFFFF;
       animation: pulse-red 0.3s infinite alternate;
     }
 
     #ground-pound-indicator.disabled {
+      background: linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%);
       border-color: #6B7280; /* Gray border when disabled */
-      box-shadow: 0 2px 10px rgba(107, 114, 128, 0.3);
-      color: #9CA3AF; /* Gray text */
+      box-shadow: 0 3px 12px rgba(107, 114, 128, 0.3);
+      color: #D1D5DB; /* Light gray text */
+    }
+
+    #jump-charge-indicator {
+      position: fixed;
+      background: linear-gradient(135deg, #FFEAA7 0%, #F59E0B 50%, #FF8C00 100%);
+      color: #000000;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: bold;
+      z-index: 999; /* Behind player but above maze */
+      border: 2px solid #F59E0B;
+      box-shadow: 0 3px 10px rgba(245, 158, 11, 0.5);
+      transition: all 0.1s ease;
+      pointer-events: none; /* Don't interfere with game interaction */
+      opacity: 0; /* Hidden by default */
+      transform: translateX(-50%) translateY(-50%); /* Center on position */
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    }
+
+    #jump-charge-indicator.visible {
+      opacity: 1;
+      animation: chargePulse 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes chargePulse {
+      0% { 
+        box-shadow: 0 3px 10px rgba(245, 158, 11, 0.5);
+        transform: translateX(-50%) translateY(-50%) scale(1);
+      }
+      100% { 
+        box-shadow: 0 5px 15px rgba(245, 158, 11, 0.8);
+        transform: translateX(-50%) translateY(-50%) scale(1.05);
+      }
     }
 
     @keyframes pulse-red {
@@ -238,12 +348,24 @@
     #maze-container {
       position: relative;
       overflow: hidden;
+      background: transparent; /* Removed white background */
+      border: none; /* Removed border that created white square effect */
+      border-radius: 0;
+      box-shadow: none; /* Removed shadow */
+      /* Performance optimizations */
+      will-change: transform;
+      transform: translateZ(0); /* Force GPU acceleration */
+      backface-visibility: hidden;
       /* Dynamic sizing will be applied via JavaScript */
     }
 
     #maze-canvas {
       display: block;
       image-rendering: pixelated; /* Keep crisp edges */
+      /* Performance optimizations for canvas */
+      will-change: transform;
+      transform: translateZ(0); /* Force GPU acceleration */
+      backface-visibility: hidden;
       /* Dynamic sizing and positioning will be applied via JavaScript */
     }
     
@@ -263,10 +385,9 @@
   
   <div id="timer">00:00.000</div>
   <div id="dash-indicator">Dash Ready</div>
-  <div id="jump-indicator">Jump Ready</div>
   <div id="ground-pound-indicator">Ground Pound Ready</div>
   <div id="controls-hint">Arrow Keys/WASD: Move | Shift/Space: Dash | Hold Up/W: Charge Jump | Down/S (in air): Ground Pound</div>
-  <div id="debug-console"></div>
+  <!-- <div id="debug-console"></div> -->
   <div id="maze-container">
     <canvas id="maze-canvas"></canvas>
     <canvas id="player-canvas"></canvas>
@@ -433,51 +554,51 @@
   const predefinedMaze = [
      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,1,1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,1,1,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,2,0,1,1,0,0,0,0,0,0,0,0,2,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,3,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,2,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,2,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,3,1,1,0,0,0,0,0,0,0,0,0,3,1,1,3,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,3,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,1,0,0,0,0,1,1,0,0,2,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,3,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
     [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1],
     [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,2,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,2,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,3,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,2,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,2,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
   ];
   

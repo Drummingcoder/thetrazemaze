@@ -1,4 +1,64 @@
 /**
+ * Draw a torch decoration on the maze
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cellSize
+ */
+function drawTorch(ctx, x, y, cellSize) {
+  ctx.save();
+  ctx.translate(x + cellSize/2, y + cellSize*0.65);
+  // Torch stick
+  ctx.beginPath();
+  ctx.rect(-2, 0, 4, cellSize*0.22);
+  ctx.fillStyle = '#8D5524';
+  ctx.fill();
+  // Flame (yellow)
+  ctx.beginPath();
+  ctx.arc(0, -4, 7, 0, Math.PI, true);
+  ctx.fillStyle = '#FFD600';
+  ctx.fill();
+  // Flame (orange)
+  ctx.beginPath();
+  ctx.arc(0, -7, 4, 0, 2*Math.PI);
+  ctx.fillStyle = '#FF6F00';
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * Draw a crystal decoration on the maze
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cellSize
+ */
+function drawCrystal(ctx, x, y, cellSize) {
+  ctx.save();
+  ctx.translate(x + cellSize/2, y + cellSize/2);
+  // Crystal shape (diamond)
+  ctx.beginPath();
+  ctx.moveTo(0, -cellSize*0.28);
+  ctx.lineTo(cellSize*0.18, 0);
+  ctx.lineTo(0, cellSize*0.28);
+  ctx.lineTo(-cellSize*0.18, 0);
+  ctx.closePath();
+  ctx.fillStyle = '#4FC3F7';
+  ctx.shadowColor = '#B3E5FC';
+  ctx.shadowBlur = 6;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Crystal highlight
+  ctx.beginPath();
+  ctx.moveTo(0, -cellSize*0.28);
+  ctx.lineTo(0, cellSize*0.28);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
  * Canvas Renderer Module - Clean and Simple
  * Renders maze clearly and player sprite without modifications, then scales down
  */
@@ -200,42 +260,99 @@ const CanvasRenderer = {
     // Pre-set context properties for maximum performance
     window.ctx.imageSmoothingEnabled = false;
     
-    // Batch render with minimal state changes
-    let currentFillStyle = '';
-    
     for (let row = 0; row < mazeSize; row++) {
       const rowData = window.mazeStructure[row];
       if (!rowData) continue;
-      
       const y = row * cellSize;
-      
       for (let col = 0; col < mazeSize; col++) {
         const x = col * cellSize;
-        
-        // Determine color with minimal branching
-        let fillStyle;
-        if (rowData[col] === 0) {
-          // Path cell
-          if (row === startRow && col === startCol) {
-            fillStyle = '#00FF00'; // Green start
-          } else if (row === endRow && col === endCol) {
-            fillStyle = '#FF0000'; // Red end
-          } else {
-            fillStyle = '#87CEEB'; // Light blue paths
-          }
-        } else {
-          fillStyle = '#000000'; // Black walls
+        const cell = rowData[col];
+        // Start tile
+        if (row === startRow && col === startCol) {
+          ctx.fillStyle = '#C0C0C0';
+          ctx.fillRect(x, y, cellSize, cellSize);
+          ctx.strokeStyle = '#A0A4AA';
+          ctx.lineWidth = Math.max(1, cellSize * 0.07);
+          ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+          continue;
         }
-        
-        // Only change fillStyle when necessary (major performance optimization)
-        if (currentFillStyle !== fillStyle) {
-          window.ctx.fillStyle = fillStyle;
-          currentFillStyle = fillStyle;
+        // End tile
+        if (row === endRow && col === endCol) {
+          const endGradient = ctx.createRadialGradient(
+            x + cellSize/2, y + cellSize/2, cellSize * 0.1,
+            x + cellSize/2, y + cellSize/2, cellSize * 0.5
+          );
+          endGradient.addColorStop(0, '#FF1744');
+          endGradient.addColorStop(0.5, '#FF5252');
+          endGradient.addColorStop(1, '#B71C1C');
+          ctx.fillStyle = endGradient;
+          ctx.fillRect(x, y, cellSize, cellSize);
+          continue;
         }
-        
-        window.ctx.fillRect(x, y, cellSize, cellSize);
+        // Wall tile
+        if (cell === 1) {
+          ctx.fillStyle = '#E5E7EB';
+          ctx.fillRect(x, y, cellSize, cellSize);
+          continue;
+        }
+        // Path tile
+        if (cell === 0) {
+          ctx.fillStyle = '#7B7F85';
+          ctx.fillRect(x, y, cellSize, cellSize);
+          continue;
+        }
+        // Torch tile
+        if (cell === 3) {
+          ctx.fillStyle = '#7B7F85';
+          ctx.fillRect(x, y, cellSize, cellSize);
+          if (typeof drawTorch === 'function') drawTorch(ctx, x, y, cellSize); // Draw torch
+          continue;
+        }
+        // Crystal tile
+        if (cell === 2) {
+          ctx.fillStyle = '#7B7F85';
+          ctx.fillRect(x, y, cellSize, cellSize);
+          if (typeof drawCrystal === 'function') drawCrystal(ctx, x, y, cellSize); // Draw crystal
+          continue;
+        }
+        // Spike tile
+        if (cell === 4) {
+          ctx.fillStyle = '#7B7F85';
+          ctx.fillRect(x, y, cellSize, cellSize);
+          if (typeof drawSpike === 'function') drawSpike(ctx, x, y, cellSize); // Draw spike
+          continue;
+        }
+/**
+ * Draw a spike decoration on the maze
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cellSize
+ */
+function drawSpike(ctx, x, y, cellSize) {
+  ctx.save();
+  // Position at bottom center of cell
+  ctx.translate(x + cellSize/2, y + cellSize);
+  // Draw spike base (triangle fills cell vertically)
+  ctx.beginPath();
+  ctx.moveTo(-cellSize*0.4, 0); // left base
+  ctx.lineTo(0, -cellSize);    // tip at top of cell
+  ctx.lineTo(cellSize*0.4, 0); // right base
+  ctx.closePath();
+  ctx.fillStyle = '#B0BEC5'; // Light gray for spike
+  ctx.fill();
+  // Spike highlight
+  ctx.beginPath();
+  ctx.moveTo(0, -cellSize);
+  ctx.lineTo(0, 0);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
       }
     }
+    // Removed drawHearts(window.ctx); from drawMaze (hearts now use overlay)
     
     
     // Removed debug logging for performance
@@ -398,3 +515,130 @@ const CanvasRenderer = {
 
 // Make CanvasRenderer available globally
 window.CanvasRenderer = CanvasRenderer;
+
+// Heart system: player starts with 3 hearts
+window.playerHearts = 3;
+window.playerInvincible = false;
+window.playerInvincibleTimeout = null;
+
+// Create/fix heart overlay in top-left of viewport
+function updateHeartOverlay() {
+  let heartDiv = document.getElementById('heart-overlay');
+  if (!heartDiv) {
+    heartDiv = document.createElement('div');
+    heartDiv.id = 'heart-overlay';
+    heartDiv.style.position = 'fixed';
+    heartDiv.style.top = '18px';
+    heartDiv.style.left = '18px';
+    heartDiv.style.zIndex = '3000';
+    heartDiv.style.pointerEvents = 'none';
+    heartDiv.style.fontSize = '32px';
+    heartDiv.style.fontFamily = 'Arial, sans-serif';
+    heartDiv.style.color = '#FF1744';
+    heartDiv.style.textShadow = '0 2px 8px #FF5252';
+    document.body.appendChild(heartDiv);
+  }
+  let hearts = '';
+  for (let i = 0; i < window.playerHearts; i++) {
+    hearts += '❤';
+  }
+  heartDiv.innerHTML = hearts;
+}
+
+// Utility to show/hide heart overlay
+function setHeartOverlayVisible(visible) {
+  const heartDiv = document.getElementById('heart-overlay');
+  if (heartDiv) {
+    heartDiv.style.display = visible ? 'block' : 'none';
+  }
+}
+
+// Lose a heart and trigger invincibility/blink
+window.loseHeart = function() {
+  if (window.playerInvincible) return; // Can't lose heart while invincible
+  if (window.playerHearts > 0) {
+    window.playerHearts--;
+    updateHeartOverlay();
+    if (window.CanvasRenderer) window.CanvasRenderer.forceRedraw();
+    // Start invincibility and blinking
+    window.playerInvincible = true;
+    let blinkCount = 0;
+    const blinkTotal = 10;
+    const blinkInterval = 100; // ms
+    if (window.CanvasRenderer && window.CanvasRenderer.setPlayerOpacity) {
+      window.CanvasRenderer.setPlayerOpacity(0);
+    }
+    window.playerInvincibleTimeout = setInterval(() => {
+      blinkCount++;
+      if (window.CanvasRenderer && window.CanvasRenderer.setPlayerOpacity) {
+        window.CanvasRenderer.setPlayerOpacity(blinkCount % 2 === 0 ? 0 : 1);
+      }
+      if (blinkCount >= blinkTotal) {
+        clearInterval(window.playerInvincibleTimeout);
+        window.playerInvincibleTimeout = null;
+        window.playerInvincible = false;
+        if (window.CanvasRenderer && window.CanvasRenderer.setPlayerOpacity) {
+          window.CanvasRenderer.setPlayerOpacity(1);
+        }
+      }
+    }, blinkInterval);
+    if (window.playerHearts === 0) {
+      // Game over: show end screen or reset
+      if (window.endScreen) window.endScreen.classList.remove('hidden');
+      setHeartOverlayVisible(false);
+    }
+  }
+};
+
+// Hide hearts when end screen is shown (player wins)
+// Robustly hide hearts whenever end screen is visible, even if window.endScreen is defined later
+let endScreenObserverInitialized = false;
+function setupEndScreenHeartOverlayObserver() {
+  if (endScreenObserverInitialized) return;
+  endScreenObserverInitialized = true;
+  function observeEndScreen(endScreen) {
+    // Initial check in case end screen is already visible
+    if (!endScreen.classList.contains('hidden')) {
+      setHeartOverlayVisible(false);
+    }
+    // Only one observer per endScreen
+    if (endScreen._heartOverlayObserverAttached) return;
+    endScreen._heartOverlayObserverAttached = true;
+    const observer = new MutationObserver(() => {
+      if (!endScreen.classList.contains('hidden')) {
+        setHeartOverlayVisible(false);
+      }
+    });
+    observer.observe(endScreen, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  if (window.endScreen) {
+    observeEndScreen(window.endScreen);
+  } else {
+    // Wait for endScreen to be added to window, only one interval
+    let checkInterval = null;
+    function checkForEndScreen() {
+      if (window.endScreen) {
+        if (checkInterval) clearInterval(checkInterval);
+        observeEndScreen(window.endScreen);
+      }
+    }
+    checkInterval = setInterval(checkForEndScreen, 100);
+  }
+}
+setupEndScreenHeartOverlayObserver();
+
+// Set player sprite opacity (for blinking)
+CanvasRenderer.setPlayerOpacity = function(opacity) {
+  if (this.playerElement) {
+    this.playerElement.style.opacity = opacity;
+  }
+};
+
+// Update heart overlay on startup and after maze redraw
+if (typeof updateHeartOverlay === 'function') updateHeartOverlay();
+const origForceRedraw = CanvasRenderer.forceRedraw;
+CanvasRenderer.forceRedraw = function() {
+  if (typeof updateHeartOverlay === 'function') updateHeartOverlay();
+  origForceRedraw.call(this);
+};

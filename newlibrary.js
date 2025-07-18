@@ -482,20 +482,64 @@ var myLibrary = {
     for (let i = 0; i < mazeSize; i++) {
       for (let j = 0; j < mazeSize; j++) {
         if (i === 0 || i === mazeSize - 1 || j === 0 || j === mazeSize - 1) {
-          ctx.fillStyle = '#8B4513'; // Brown for border walls
+          // Border walls - vibrant purple gradient
+          const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
+          gradient.addColorStop(0, '#7B1FA2');
+          gradient.addColorStop(1, '#4A148C');
+          ctx.fillStyle = gradient;
         } else if (mazeStructure[i][j] === 1) {
-          ctx.fillStyle = type === "black" ? '#000000' : '#8B4513'; // Wall color
+          // Interior walls: Create vibrant gradient effect
+          if (type === "black") {
+            // Hidden mode - deep blue gradient
+            const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
+            gradient.addColorStop(0, '#1A237E');
+            gradient.addColorStop(0.5, '#3F51B5');
+            gradient.addColorStop(1, '#303F9F');
+            ctx.fillStyle = gradient;
+          } else {
+            // Normal mode - purple/magenta gradient
+            const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
+            gradient.addColorStop(0, '#9C27B0');
+            gradient.addColorStop(0.5, '#8E24AA');
+            gradient.addColorStop(1, '#7B1FA2');
+            ctx.fillStyle = gradient;
+          }
         } else {
-          ctx.fillStyle = type === "black" ? '#000000' : '#F5F5DC'; // Path color
+          // Paths: Create vibrant green gradient
+          if (type === "black") {
+            // Hidden mode - keep it dark but slightly different
+            const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
+            gradient.addColorStop(0, '#1B1B1B');
+            gradient.addColorStop(1, '#0D1117');
+            ctx.fillStyle = gradient;
+          } else {
+            // Normal mode - vibrant green gradient
+            const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
+            gradient.addColorStop(0, '#E8F5E8');
+            gradient.addColorStop(0.3, '#A5D6A7');
+            gradient.addColorStop(0.6, '#81C784');
+            gradient.addColorStop(1, '#66BB6A');
+            ctx.fillStyle = gradient;
+          }
         }
         ctx.fillRect(j, i, 1, 1);
       }
     }
     
-    // Mark start and end positions
-    ctx.fillStyle = '#00FF00'; // Green for start
+    // Mark start position with vibrant rainbow effect
+    const startGradient = ctx.createRadialGradient(startCol + 0.5, startRow + 0.5, 0, startCol + 0.5, startRow + 0.5, 1);
+    startGradient.addColorStop(0, '#00E676');
+    startGradient.addColorStop(0.5, '#4CAF50');
+    startGradient.addColorStop(1, '#FFEB3B');
+    ctx.fillStyle = startGradient;
     ctx.fillRect(startCol, startRow, 1, 1);
-    ctx.fillStyle = '#FF0000'; // Red for end
+    
+    // Mark end position with vibrant fire effect
+    const endGradient = ctx.createRadialGradient(endCol + 0.5, endRow + 0.5, 0, endCol + 0.5, endRow + 0.5, 1);
+    endGradient.addColorStop(0, '#FF1744');
+    endGradient.addColorStop(0.5, '#FF5722');
+    endGradient.addColorStop(1, '#FFC107');
+    ctx.fillStyle = endGradient;
     ctx.fillRect(endCol, endRow, 1, 1);
     
     maze.appendChild(canvas);
