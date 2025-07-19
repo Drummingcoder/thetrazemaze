@@ -6,4 +6,5 @@ Hopefully, this game can turn out to be a combination between a shooter and a pl
 This game is a level by level game that you have to navigate the maze using arrow keys or WASD to reach the end. 
 Simply go to the website: https://drummingcoder.github.io/thetrazemaze/ to play the game or learn more about it!
 
-AI is used to help design the look of the website and augment its functionality.
+AI (Github Copilot) is used to help design the look of the website and augment its functionality. I just did some of
+the maze generation and movement.
