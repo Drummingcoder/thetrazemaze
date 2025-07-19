@@ -59,27 +59,40 @@ const CameraSystem = {
   },
 
   /**
-   * Center the camera on the player's current position
+   * Center the camera on the player's current position (optimized)
    */
   centerOnPlayer: function() {
+    // Cache frequently used values
+    const cellSize = window.cellSize;
+    const playerX = window.playerX;
+    const playerY = window.playerY;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    
     // Get player's center position in world coordinates
-    const playerCenterX = window.playerX + (window.cellSize / 2);
-    const playerCenterY = window.playerY + (window.cellSize / 2);
+    const playerCenterX = playerX + (cellSize / 2);
+    const playerCenterY = playerY + (cellSize / 2);
     
     // Calculate where to position the canvas so player appears at screen center
-    const screenCenterX = window.innerWidth / 2;
-    const screenCenterY = window.innerHeight / 2;
+    const screenCenterX = screenWidth / 2;
+    const screenCenterY = screenHeight / 2;
     
     // Simple formula: translate = (screenCenter / zoom) - playerCenter
-    this.cameraX = (screenCenterX / this.currentZoom) - playerCenterX;
-    this.cameraY = (screenCenterY / this.currentZoom) - playerCenterY;
+    const newCameraX = (screenCenterX / this.currentZoom) - playerCenterX;
+    const newCameraY = (screenCenterY / this.currentZoom) - playerCenterY;
     
-    // Apply the transform immediately
-    this.applyCamera();
+    // Only update if position actually changed (avoid unnecessary transforms)
+    if (Math.abs(newCameraX - this.cameraX) > 0.1 || Math.abs(newCameraY - this.cameraY) > 0.1) {
+      this.cameraX = newCameraX;
+      this.cameraY = newCameraY;
+      
+      // Apply the transform
+      this.applyCamera();
+    }
   },
 
   /**
-   * Apply camera transformations to the canvas (optimized with caching)
+   * Apply camera transformations to canvases and DOM player element (optimized)
    */
   applyCamera: function() {
     // Build transform string
@@ -87,23 +100,56 @@ const CameraSystem = {
     
     // Only apply if transform actually changed (major performance optimization)
     if (transform !== this.lastTransform) {
-      window.canvas.style.transform = transform;
-      window.canvas.style.transformOrigin = '0 0';
+      // Batch DOM updates to prevent multiple reflows
+      const elements = [];
+      
+      // Collect all elements that need transforms (excluding fixed player sprite)
+      if (window.canvas) {
+        elements.push(window.canvas);
+      }
+      if (window.playerCanvas) {
+        elements.push(window.playerCanvas);
+      }
+      // NOTE: Don't transform player-sprite anymore since it's fixed to center
+      // const playerSprite = document.getElementById('player-sprite');
+      // if (playerSprite) {
+      //   elements.push(playerSprite);
+      // }
+      
+      // Apply transforms in a single batch to minimize reflow
+      elements.forEach(element => {
+        element.style.transform = transform;
+        element.style.transformOrigin = '0 0';
+      });
+      
       this.lastTransform = transform;
     }
   },
 
   /**
-   * Start 60 FPS camera update loop
+   * Start optimized camera update loop - only updates when player moves
    */
   startCameraLoop: function() {
     if (this.cameraAnimationId) {
       cancelAnimationFrame(this.cameraAnimationId);
     }
     
+    // Track last known player position to detect movement
+    let lastPlayerX = window.playerX;
+    let lastPlayerY = window.playerY;
+    
     const updateLoop = () => {
       if (this.cameraEnabled) {
-        this.centerOnPlayer();
+        // Only update camera if player has actually moved
+        const currentPlayerX = window.playerX;
+        const currentPlayerY = window.playerY;
+        
+        if (currentPlayerX !== lastPlayerX || currentPlayerY !== lastPlayerY) {
+          this.centerOnPlayer();
+          lastPlayerX = currentPlayerX;
+          lastPlayerY = currentPlayerY;
+        }
+        
         this.cameraAnimationId = requestAnimationFrame(updateLoop);
       }
     };
@@ -118,6 +164,22 @@ const CameraSystem = {
     if (this.cameraAnimationId) {
       cancelAnimationFrame(this.cameraAnimationId);
       this.cameraAnimationId = null;
+    }
+  },
+
+  /**
+   * Pause camera updates temporarily (for performance)
+   */
+  pauseCamera: function() {
+    this.stopCameraLoop();
+  },
+
+  /**
+   * Resume camera updates
+   */
+  resumeCamera: function() {
+    if (this.cameraEnabled) {
+      this.startCameraLoop();
     }
   },
 
@@ -146,12 +208,28 @@ const CameraSystem = {
       this.resizeHandler = null;
     }
     
-    // Apply reset transform efficiently
+    // Apply reset transform efficiently to both canvases and DOM player
     if (window.canvas) {
       const resetTransform = 'scale(1) translate(0px, 0px)';
       window.canvas.style.transform = resetTransform;
       window.canvas.style.transformOrigin = '0 0';
       window.canvas.style.webkitTransform = resetTransform; // Webkit compatibility
+      
+      // Also reset player canvas
+      if (window.playerCanvas) {
+        window.playerCanvas.style.transform = resetTransform;
+        window.playerCanvas.style.transformOrigin = '0 0';
+        window.playerCanvas.style.webkitTransform = resetTransform;
+      }
+      
+      // Also reset DOM player element
+      const playerSprite = document.getElementById('player-sprite');
+      if (playerSprite) {
+        playerSprite.style.transform = resetTransform;
+        playerSprite.style.transformOrigin = '0 0';
+        playerSprite.style.webkitTransform = resetTransform;
+      }
+      
       this.lastTransform = resetTransform;
     }
   },

@@ -3,32 +3,78 @@
     }
 
     .wall {
-      background-color: #1E3A5F; /* Dark blue walls to match logo */
-      border: none; /* Remove borders */
+      background: linear-gradient(135deg, 
+        rgba(45, 45, 65, 0.95) 0%, 
+        rgba(55, 55, 75, 0.92) 25%, 
+        rgba(65, 65, 85, 0.90) 50%, 
+        rgba(75, 75, 95, 0.92) 75%, 
+        rgba(85, 85, 105, 0.95) 100%);
+      background-size: 300% 300%;
+      animation: subtleWallFlow 12s ease-in-out infinite;
+      border: none;
+      box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.1);
+      transition: all 0.8s ease;
     }
 
     .path {
-      background-color: #B8E6FF; /* Light blue paths */
-      border: none; /* Remove borders */
+      background: linear-gradient(45deg, 
+        rgba(245, 240, 255, 0.90) 0%, 
+        rgba(220, 200, 240, 0.85) 15%, 
+        rgba(200, 180, 220, 0.80) 30%, 
+        rgba(180, 160, 200, 0.85) 45%, 
+        rgba(160, 140, 180, 0.90) 60%, 
+        rgba(180, 160, 200, 0.85) 75%, 
+        rgba(220, 200, 240, 0.80) 90%, 
+        rgba(245, 240, 255, 0.90) 100%);
+      background-size: 400% 400%;
+      animation: flowingPurpleWhite 8s ease-in-out infinite;
+      border: none;
+      box-shadow: inset 0 0 2px rgba(180, 160, 200, 0.3);
+      transition: all 0.8s ease;
     }
     
     .black {
-      background-color: #1E3A5F; /* Dark blue instead of black */
-      border: none; /* Remove borders */
+      background: linear-gradient(45deg, 
+        rgba(15, 20, 35, 0.98) 0%, 
+        rgba(25, 30, 45, 0.95) 25%, 
+        rgba(35, 40, 55, 0.92) 50%, 
+        rgba(45, 50, 65, 0.95) 75%, 
+        rgba(55, 60, 75, 0.98) 100%);
+      background-size: 400% 400%;
+      animation: subtleBlackFlow 18s ease-in-out infinite;
+      border: none;
+      box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.3);
+      transition: all 0.8s ease;
     }
 
     .start {
-      background-color: #32CD32; /* Bright green for start */
-      border: 2px solid transparent; /* Transparent border to create inset effect */
-      border-radius: 2px;
+      background: radial-gradient(circle at center, 
+        rgba(100, 220, 150, 0.6) 0%, 
+        rgba(80, 200, 130, 0.5) 30%, 
+        rgba(60, 180, 110, 0.4) 60%, 
+        rgba(40, 160, 90, 0.5) 100%);
+      background-size: 150% 150%;
+      animation: subtleStartGlow 8s ease-in-out infinite;
+      border: 1px solid rgba(100, 220, 150, 0.3);
+      border-radius: 20%;
       box-sizing: border-box;
+      box-shadow: 0 0 8px rgba(100, 220, 150, 0.2), inset 0 0 8px rgba(255, 255, 255, 0.1);
+      transition: all 1s ease;
     }
 
     .end {
-      background-color: #FF4500; /* Orange-red for end to match logo theme */
-      border: 2px solid transparent; /* Transparent border to create inset effect */
-      border-radius: 2px;
+      background: radial-gradient(circle at center, 
+        rgba(255, 120, 120, 0.6) 0%, 
+        rgba(235, 100, 100, 0.5) 30%, 
+        rgba(215, 80, 80, 0.4) 60%, 
+        rgba(195, 60, 60, 0.5) 100%);
+      background-size: 150% 150%;
+      animation: subtleEndGlow 6s ease-in-out infinite;
+      border: 1px solid rgba(255, 120, 120, 0.3);
+      border-radius: 20%;
       box-sizing: border-box;
+      box-shadow: 0 0 8px rgba(255, 120, 120, 0.2), inset 0 0 8px rgba(255, 255, 255, 0.1);
+      transition: all 1s ease;
     }
     
     .small-left {
@@ -69,7 +115,7 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 999;
+      z-index: 5000; /* High z-index to cover all game elements including player sprite */
     }
 
     #end-screen.hidden {
@@ -166,4 +212,60 @@
     #back-button:hover {
       background-color: #FFA500;
       transform: translateY(-2px);
+    }
+
+    /* Animated gradient and texture effects */
+    @keyframes wallShimmer {
+      0% { background-position: 0% 0%; }
+      50% { background-position: 100% 100%; }
+      100% { background-position: 0% 0%; }
+    }
+
+    @keyframes flowingPurpleWhite {
+      0% { 
+        background-position: 0% 0%; 
+        background-size: 400% 400%;
+      }
+      25% { 
+        background-position: 100% 50%; 
+        background-size: 450% 450%;
+      }
+      50% { 
+        background-position: 50% 100%; 
+        background-size: 400% 400%;
+      }
+      75% { 
+        background-position: 0% 50%; 
+        background-size: 350% 350%;
+      }
+      100% { 
+        background-position: 0% 0%; 
+        background-size: 400% 400%;
+      }
+    }
+
+    @keyframes blackShimmer {
+      0% { background-position: 0% 100%; }
+      50% { background-position: 100% 0%; }
+      100% { background-position: 0% 100%; }
+    }
+
+    @keyframes startSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes startGlow {
+      0% { box-shadow: 0 0 20px rgba(0, 230, 118, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.3); }
+      100% { box-shadow: 0 0 35px rgba(0, 230, 118, 1), inset 0 0 25px rgba(255, 255, 255, 0.5); }
+    }
+
+    @keyframes endSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(-360deg); }
+    }
+
+    @keyframes endPulse {
+      0% { box-shadow: 0 0 25px rgba(255, 23, 68, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.4); }
+      100% { box-shadow: 0 0 40px rgba(255, 23, 68, 1), inset 0 0 30px rgba(255, 255, 255, 0.6); }
     }
