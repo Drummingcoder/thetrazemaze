@@ -8,15 +8,6 @@ console.log('Game Actions module loaded');
 const GameActions = {
 
   /**
-   * Restarts the current maze game
-   * Simply reloads the page to reset all game state
-   */
-  restartMaze: function() {
-    // Force complete page reload to reset all game state
-    window.location.reload();
-  },
-
-  /**
    * Navigates back to the main game selection screen
    */
   goBack: function() {

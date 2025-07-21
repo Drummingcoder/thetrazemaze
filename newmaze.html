@@ -376,9 +376,24 @@
       left: -9999px;
       background-image: url('stickman-running-spritesheet.png'), url('waving-stickman-spritesheet.png');
     }
+
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000000;
+      z-index: 5000;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
+  <!-- Black loading screen overlay -->
+  <div id="loading-overlay"></div>
   <!-- COMMENTED OUT - Two large waving stickmen on either side of the maze -->
   <!-- <div class="waving-stickman stickman-left"></div> -->
   <!-- <div class="waving-stickman stickman-right"></div> -->
@@ -421,6 +436,18 @@
   <script src="./js/main-library.js"></script>
 
   <script>
+    // Show black loading overlay and fade out after 0.75s
+    window.addEventListener('DOMContentLoaded', function() {
+      var loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) {
+        setTimeout(function() {
+          loadingOverlay.style.opacity = '0';
+          setTimeout(function() {
+            loadingOverlay.style.display = 'none';
+          }, 400);
+        }, 750);
+      }
+    });
     // =================================================================
     // DEBUG CONSOLE SYSTEM
     // =================================================================

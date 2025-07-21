@@ -185,10 +185,61 @@ const GameInitializer = {
     if (restartButton && !restartButton.hasAttribute('data-initialized')) {
       restartButton.addEventListener("click", function() {
         GameInitializer.cleanupGameSystems();
+        location.reload();
         if (window.CameraSystem) {
           window.CameraSystem.resetCamera();
+          // Re-initialize camera to apply zoom and centering
+          if (typeof window.CameraSystem.initializeNewCamera === 'function') {
+            window.CameraSystem.initializeNewCamera();
+          }
         }
-        myLibrary.restartMaze();
+        /*// Reset player position to starting position
+        window.playerX = window.startCol * window.cellSize;
+        window.playerY = window.startRow * window.cellSize;
+        if (window.player) {
+          window.player.style.top = window.playerY + "px";
+          window.player.style.left = window.playerX + "px";
+        }
+        // Reset timer
+        if (window.myLibrary) {
+          if (typeof GameTimer.resetTimer === 'function') {
+            alert('Game timer reset');
+            GameTimer.resetTimer();
+          } else {
+            window.myLibrary.timeElapsed = 0;
+            if (window.myLibrary.interval) {
+              clearInterval(window.myLibrary.interval);
+              window.myLibrary.interval = null;
+            }
+          }
+        }
+        // Reset hearts and invincibility
+        window.playerHearts = 3;
+        window.playerInvincible = false;
+        if (window.playerInvincibleTimeout) {
+          clearInterval(window.playerInvincibleTimeout);
+          window.playerInvincibleTimeout = null;
+        }
+        if (typeof updateHeartOverlay === 'function') updateHeartOverlay();
+        // Ensure hearts overlay is visible
+        var heartsOverlay = document.getElementById('hearts-overlay');
+        if (heartsOverlay) heartsOverlay.style.display = '';
+        // Hide end screen and indicators
+        if (window.endScreen) window.endScreen.classList.add('hidden');
+        var personalBestElem = document.getElementById('personal-best');
+        var newPersonalBestElem = document.getElementById('new-personal-best');
+        var endContentElem = document.getElementById('end-content');
+        if (personalBestElem) personalBestElem.style.display = '';
+        if (newPersonalBestElem) newPersonalBestElem.style.display = 'none';
+        if (endContentElem) endContentElem.textContent = '';
+        // Set flag so timer starts on first player movement
+        window.timerShouldStart = true;
+        // Force initial render and animation system reset
+        if (window.CanvasRenderer) {
+          window.CanvasRenderer.resetCache();
+          window.CanvasRenderer.renderFrame();
+          window.CanvasRenderer.prepareAnimationSystem();
+        }*/
       });
       restartButton.setAttribute('data-initialized', 'true');
     }

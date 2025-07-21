@@ -42,7 +42,7 @@ const PlayerController = {
   isDashing: false, // Whether player is currently dashing
   dashSpeed: 16, // Speed during dash (pixels per frame) - increased for faster dash movement
   dashDuration: 15, // Number of frames the dash lasts - reduced from 20 to 15 for quicker, snappier dash
-  dashCooldown: 15, // Frames to wait before next dash (0.25 seconds at 60fps)
+  dashCooldown: 45, // Frames to wait before next dash (0.25 seconds at 60fps)
   dashTimer: 0, // Current dash timer
   dashCooldownTimer: 0, // Current cooldown timer
   dashDirectionX: 0, // X direction of current dash
@@ -933,6 +933,12 @@ const PlayerController = {
    * @param {boolean} interval - Whether timer is running
    */
   movePlayer: function(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval) {
+    // Start timer on first movement after reset
+    if (window.timerShouldStart && typeof GameTimer.startTimer === 'function') {
+      const timerElement = document.getElementById("timer");
+      GameTimer.startTimer(timerElement);
+      window.timerShouldStart = false;
+    }
     // Prevent movement if end screen is visible
     if (!endScreen.classList.contains("hidden")) {
       return;
@@ -1079,7 +1085,11 @@ const PlayerController = {
     // Check if player reached the goal
     if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
       // Stop the timer
-      window.clearInterval(GameTimer.interval);
+      if (typeof GameTimer.stopTimer === 'function') {
+        GameTimer.stopTimer();
+      } else {
+        window.clearInterval(GameTimer.interval);
+      }
       
       // Calculate completion time
       const endTime = new Date();
@@ -1110,7 +1120,11 @@ const PlayerController = {
    */
   endMultipleGoalsGame: function() {
     // Stop the timer
-    window.clearInterval(GameTimer.interval);
+    if (typeof GameTimer.stopTimer === 'function') {
+        GameTimer.stopTimer();
+    } else {
+      window.clearInterval(GameTimer.interval);
+    }
     
     // Calculate final score (number of goals reached)
     const finalScore = mazecount;
