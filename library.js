@@ -245,7 +245,18 @@ var myLibrary = {
           maze.appendChild(window.player);
         }, 200);
       }
-      if (this.timeElapsed >= 30000) {
+      // Set time limit based on maze size
+      let timeLimit;
+      if (window.mazeSize === 15) {
+        timeLimit = 60000; // 1 min for small maze
+      } else if (window.mazeSize === 35) {
+        timeLimit = 180000; // 3 min for medium maze
+      } else if (window.mazeSize === 61) {
+        timeLimit = 300000; // 5 min for big maze
+      } else {
+        timeLimit = 30000; // fallback default
+      }
+      if (this.timeElapsed >= timeLimit) {
         window.clearInterval(this.interval);
         const endTime = new Date();
         const timeTaken = mazecount;

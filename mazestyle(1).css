@@ -1,0 +1,169 @@
+    audio {
+      display: none;
+    }
+
+    .wall {
+      background-color: #1E3A5F; /* Dark blue walls to match logo */
+      border: none; /* Remove borders */
+    }
+
+    .path {
+      background-color: #B8E6FF; /* Light blue paths */
+      border: none; /* Remove borders */
+    }
+    
+    .black {
+      background-color: #1E3A5F; /* Dark blue instead of black */
+      border: none; /* Remove borders */
+    }
+
+    .start {
+      background-color: #32CD32; /* Bright green for start */
+      border: 2px solid transparent; /* Transparent border to create inset effect */
+      border-radius: 2px;
+      box-sizing: border-box;
+    }
+
+    .end {
+      background-color: #FF4500; /* Orange-red for end to match logo theme */
+      border: 2px solid transparent; /* Transparent border to create inset effect */
+      border-radius: 2px;
+      box-sizing: border-box;
+    }
+    
+    .small-left {
+      text-align: left !important;
+      font-size: 8px;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    
+    #title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .timer {
+      text-align: center;
+      font-size: 20px;
+    }
+    
+    #timer {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+
+    #end-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(43, 134, 197, 0.95); /* Blue overlay to match logo */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 5000; /* High z-index to cover all game elements including player sprite */
+    }
+
+    #end-screen.hidden {
+      display: none;
+    }
+
+    #end-screen h2 {
+      font-size: 32px;
+      color: #FF8C00; /* Orange text to match logo */
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(30, 58, 95, 0.7);
+    }
+
+    #end-time-taken {
+      font-size: 24px;
+      color: white;
+      margin-bottom: 10px;
+      text-shadow: 1px 1px 2px rgba(30, 58, 95, 0.7);
+    }
+    
+    #best-time {
+      font-size: 24px;
+      color: white;
+      margin-bottom: 10px;
+      text-shadow: 1px 1px 2px rgba(30, 58, 95, 0.7);
+    }
+    
+    #personal-best {
+      font-size: 24px;
+      color: white;
+      margin-bottom: 10px;
+      text-shadow: 1px 1px 2px rgba(30, 58, 95, 0.7);
+    }
+    
+    #new-personal-best {
+      font-size: 24px;
+      color: #FF8C00; /* Orange for new personal best */
+      margin-bottom: 10px;
+      text-shadow: 1px 1px 2px rgba(30, 58, 95, 0.7);
+      font-weight: bold;
+    }
+
+    #copy-button {
+      padding: 10px 20px;
+      font-size: 20px;
+      background-color: #FF8C00; /* Orange buttons to match logo */
+      color: #1E3A5F; /* Dark blue text */
+      border: 2px solid #1E3A5F;
+      cursor: pointer;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    
+    #copy-button:hover {
+      background-color: #FFA500;
+      transform: translateY(-2px);
+    }
+    
+    #restart-button {
+      padding: 10px 20px;
+      font-size: 20px;
+      background-color: #FF8C00; /* Orange buttons to match logo */
+      color: #1E3A5F; /* Dark blue text */
+      border: 2px solid #1E3A5F;
+      cursor: pointer;
+      margin-top: 10px;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    
+    #restart-button:hover {
+      background-color: #FFA500;
+      transform: translateY(-2px);
+    }
+
+    #back-button {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 10px;
+      font-size: 16px;
+      background-color: #FF8C00; /* Orange button to match logo */
+      color: #1E3A5F; /* Dark blue text */
+      border: 2px solid #1E3A5F;
+      cursor: pointer;
+      display: none;
+      border-radius: 6px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    
+    #back-button:hover {
+      background-color: #FFA500;
+      transform: translateY(-2px);
+    }
