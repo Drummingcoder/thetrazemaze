@@ -1,4 +1,63 @@
 /**
+ * Detect collision with enemies and spikes in a square around the player sprite
+ * Checks for spikes (cell value 4) and enemies (cell value 5 or custom logic)
+ * @param {number} playerRow
+ * @param {number} playerCol
+ * @param {number} radius
+ * @returns {boolean} true if collision detected
+ */
+function detectCollisionWithEnemiesAndSpikes(playerRow, playerCol, radius = 1) {
+  if (!window.mazeStructure) return false;
+  const mazeSize = window.mazeSize;
+  for (let dr = -radius; dr <= radius; dr++) {
+    for (let dc = -radius; dc <= radius; dc++) {
+      const r = playerRow + dr;
+      const c = playerCol + dc;
+      if (r >= 0 && r < mazeSize && c >= 0 && c < mazeSize) {
+        const cell = window.mazeStructure[r][c];
+        if (cell === 4) {
+          // Spike collision
+          return true;
+        }
+        // Example: enemies could be cell value 5, or you can add custom logic here
+        if (cell === 5) {
+          // Enemy collision
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+/**
+ * Draw a spike decoration on the maze
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cellSize
+ */
+function drawSpike(ctx, x, y, cellSize) {
+  ctx.save();
+  // Position at bottom center of cell
+  ctx.translate(x + cellSize/2, y + cellSize);
+  // Draw spike base (triangle fills cell vertically)
+  ctx.beginPath();
+  ctx.moveTo(-cellSize*0.4, 0); // left base
+  ctx.lineTo(0, -cellSize);    // tip at top of cell
+  ctx.lineTo(cellSize*0.4, 0); // right base
+  ctx.closePath();
+  ctx.fillStyle = '#B0BEC5'; // Light gray for spike
+  ctx.fill();
+  // Spike highlight
+  ctx.beginPath();
+  ctx.moveTo(0, -cellSize);
+  ctx.lineTo(0, 0);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+/**
  * Draw a torch decoration on the maze
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} x
@@ -322,34 +381,6 @@ const CanvasRenderer = {
           if (typeof drawSpike === 'function') drawSpike(ctx, x, y, cellSize); // Draw spike
           continue;
         }
-/**
- * Draw a spike decoration on the maze
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} x
- * @param {number} y
- * @param {number} cellSize
- */
-function drawSpike(ctx, x, y, cellSize) {
-  ctx.save();
-  // Position at bottom center of cell
-  ctx.translate(x + cellSize/2, y + cellSize);
-  // Draw spike base (triangle fills cell vertically)
-  ctx.beginPath();
-  ctx.moveTo(-cellSize*0.4, 0); // left base
-  ctx.lineTo(0, -cellSize);    // tip at top of cell
-  ctx.lineTo(cellSize*0.4, 0); // right base
-  ctx.closePath();
-  ctx.fillStyle = '#B0BEC5'; // Light gray for spike
-  ctx.fill();
-  // Spike highlight
-  ctx.beginPath();
-  ctx.moveTo(0, -cellSize);
-  ctx.lineTo(0, 0);
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.restore();
-}
       }
     }
     // Removed drawHearts(window.ctx); from drawMaze (hearts now use overlay)
@@ -373,12 +404,26 @@ function drawSpike(ctx, x, y, cellSize) {
    */
   updatePlayerPosition: function() {
     if (!this.playerElement) return;
-    
+
     // Use the dedicated positioning function for consistency
     this.updateSpritePosition();
-    
-    // The drawPlayer function will handle animation during the regular render cycle
-    // No need to duplicate animation logic here
+
+    // Detect collision with spikes/enemies in a square around the player
+    // Get player position in maze coordinates
+    if (window.player) {
+      // Calculate player position in maze grid
+      const top = parseInt(window.player.style.top);
+      const left = parseInt(window.player.style.left);
+      const cellSize = window.cellSize;
+      const playerRow = Math.round(top / cellSize);
+      const playerCol = Math.round(left / cellSize);
+      if (detectCollisionWithEnemiesAndSpikes(playerRow, playerCol, 1)) {
+        // Collision detected: lose a heart or trigger game logic
+        if (typeof window.loseHeart === 'function') {
+          window.loseHeart();
+        }
+      }
+    }
   },
 
   /**
@@ -583,8 +628,23 @@ window.loseHeart = function() {
       }
     }, blinkInterval);
     if (window.playerHearts === 0) {
-      // Game over: show end screen or reset
-      if (window.endScreen) window.endScreen.classList.remove('hidden');
+      // Game over: show end screen with failure message
+      if (window.endScreen) {
+        window.endScreen.classList.remove('hidden');
+        // Set failure message and hide personal best
+        var personalBestElem = document.getElementById('personal-best');
+        var newPersonalBestElem = document.getElementById('new-personal-best');
+        var endContentElem = document.getElementById('end-content');
+        if (endContentElem) {
+          endContentElem.textContent = 'Level Failed...';
+        }
+        if (personalBestElem) {
+          personalBestElem.style.display = 'none';
+        }
+        if (newPersonalBestElem) {
+          newPersonalBestElem.style.display = 'none';
+        }
+      }
       setHeartOverlayVisible(false);
     }
   }
