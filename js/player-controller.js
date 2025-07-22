@@ -886,12 +886,33 @@ const PlayerController = {
    * @param {number} newCol - New column position
    */
   updatePlayerPosition: function(newRow, newCol) {
-    // For smooth movement, this function is simplified
-    // Position updates happen directly in smoothMovementLoop()
+    // Enhanced position update with validation and coordination
     if (newRow !== undefined && newCol !== undefined) {
-      playerX = newCol * cellSize;
-      playerY = newRow * cellSize;
+      // Validate input values
+      if (typeof newRow !== 'number' || typeof newCol !== 'number') {
+        console.warn('Invalid position values provided to updatePlayerPosition:', newRow, newCol);
+        return;
+      }
+      
+      // Update global player position
+      window.playerX = newCol * window.cellSize;
+      window.playerY = newRow * window.cellSize;
+      
+      // Update internal target positions for smooth movement
+      this.targetX = window.playerX;
+      this.targetY = window.playerY;
+      
+      // Ensure PlayerAnimation knows about position change
+      if (window.PlayerAnimation && window.PlayerAnimation.updatePosition) {
+        window.PlayerAnimation.updatePosition(window.playerX, window.playerY);
+      }
+      
+      // Update camera and render
       this.updateCameraAndRender();
+      
+      console.log('Player position updated to:', newRow, newCol, '(pixel:', window.playerX, window.playerY, ')');
+    } else {
+      console.warn('updatePlayerPosition called with undefined values:', newRow, newCol);
     }
   },
 
@@ -1166,6 +1187,26 @@ const PlayerController = {
    * Start the smooth movement system
    */
   startSmoothMovement: function() {
+    // Set up key event listeners for smooth movement
+    document.addEventListener('keydown', (event) => {
+      this.handleKeyDown(event.key);
+      
+      // Handle dash key (Shift)
+      if (event.key === 'Shift') {
+        this.handleDashKey();
+        event.preventDefault();
+      }
+      
+      // Prevent default for movement keys
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(event.key)) {
+        event.preventDefault();
+      }
+    });
+    
+    document.addEventListener('keyup', (event) => {
+      this.handleKeyUp(event.key);
+    });
+    
     // Initialize dash indicator UI
     this.updateDashIndicator();
     
@@ -1175,7 +1216,41 @@ const PlayerController = {
     // Mark movement as active
     this.isMovementActive = true;
     
-    console.log('Smooth movement system started');
+    console.log('Smooth movement system started with event listeners');
+  },
+
+  /**
+   * Initialize player position for smooth movement
+   */
+  initializePlayerPosition: function() {
+    // Ensure player starts at proper position
+    if (window.startRow !== undefined && window.startCol !== undefined) {
+      window.playerX = window.startCol * window.cellSize;
+      window.playerY = window.startRow * window.cellSize;
+      
+      // Update internal target positions
+      this.targetX = window.playerX;
+      this.targetY = window.playerY;
+      
+      console.log('Player position initialized:', window.playerX, window.playerY);
+    }
+  },
+
+  /**
+   * Create virtual player object for positioning
+   */
+  createVirtualPlayer: function() {
+    // This function maintains compatibility with the HTML
+    // The actual player rendering is handled by CanvasRenderer
+    if (!window.player) {
+      window.player = {
+        style: {
+          top: window.playerY + 'px',
+          left: window.playerX + 'px'
+        }
+      };
+    }
+    console.log('Virtual player object created');
   },
 
   /**
