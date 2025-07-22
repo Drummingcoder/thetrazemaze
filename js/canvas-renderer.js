@@ -142,6 +142,107 @@ const CanvasRenderer = {
   renderThrottle: 16, // Limit renders to ~60 FPS
 
   /**
+   * Setup and configure canvas elements with proper sizing and rendering contexts
+   */
+  setupCanvas: function(mazeSize, cellSize) {
+    console.log('Setting up canvas with maze size:', mazeSize, 'cell size:', cellSize);
+    
+    // Calculate actual maze dimensions in pixels
+    const mazeWidthPx = mazeSize * cellSize;
+    const mazeHeightPx = mazeSize * cellSize;
+    
+    // Get canvas elements
+    const mazeContainer = document.getElementById("maze-container");
+    const canvas = document.getElementById("maze-canvas");
+    const ctx = canvas.getContext("2d");
+    const playerCanvas = document.getElementById("player-canvas");
+    const playerCtx = playerCanvas.getContext("2d");
+    
+    // Set canvas sizes to the actual maze size
+    canvas.width = mazeWidthPx;
+    canvas.height = mazeHeightPx;
+    playerCanvas.width = mazeWidthPx;
+    playerCanvas.height = mazeHeightPx;
+    
+    // Configure maze canvas for crisp geometric rendering
+    ctx.imageSmoothingEnabled = false; // Pixelated for crisp maze edges
+    
+    // Configure player canvas for smooth sprite rendering
+    playerCtx.imageSmoothingEnabled = true;
+    playerCtx.imageSmoothingQuality = 'high';
+    if (playerCtx.webkitImageSmoothingEnabled !== undefined) playerCtx.webkitImageSmoothingEnabled = true;
+    if (playerCtx.mozImageSmoothingEnabled !== undefined) playerCtx.mozImageSmoothingEnabled = true;
+    if (playerCtx.msImageSmoothingEnabled !== undefined) playerCtx.msImageSmoothingEnabled = true;
+    if (playerCtx.oImageSmoothingEnabled !== undefined) playerCtx.oImageSmoothingEnabled = true;
+    
+    // Create dynamic styles for responsive sizing
+    const style = document.createElement('style');
+    style.textContent = `
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        position: relative;
+        min-height: 100vh;
+        min-width: 100vw;
+      }
+      #maze-container {
+        width: ${mazeWidthPx}px;
+        height: ${mazeHeightPx}px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: visible;
+      }
+      #maze-canvas {
+        display: block;
+        image-rendering: pixelated; /* Crisp edges for maze geometry */
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1; /* Behind player */
+      }
+      #player-canvas {
+        display: block;
+        image-rendering: auto; /* Smooth rendering for player sprite */
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 3; /* Well above maze */
+        pointer-events: none; /* Allow clicks to pass through to maze */
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Store references globally for module access
+    window.mazeContainer = mazeContainer;
+    window.canvas = canvas;
+    window.ctx = ctx;
+    window.playerCanvas = playerCanvas;
+    window.playerCtx = playerCtx;
+    
+    console.log('Canvas setup complete:', {
+      canvasSize: [mazeWidthPx, mazeHeightPx],
+      mazeSize: mazeSize,
+      cellSize: cellSize
+    });
+    
+    return {
+      mazeContainer,
+      canvas,
+      ctx,
+      playerCanvas,
+      playerCtx,
+      mazeWidthPx,
+      mazeHeightPx
+    };
+  },
+
+  /**
    * Initialize sprite loading - DOM-based approach with FIXED positioning
    */
   initSprites: function() {

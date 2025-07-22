@@ -1379,6 +1379,88 @@ const PlayerController = {
       indicator.className = 'disabled';
     }
   },
+
+  /**
+   * Creates and initializes the virtual player object
+   * @returns {Object} Virtual player object with style properties
+   */
+  createVirtualPlayer: function() {
+    console.log('PlayerController: Creating virtual player object');
+    
+    // Create a virtual player object that mimics DOM behavior for library compatibility
+    const player = {
+      style: {
+        get top() { 
+          return window.playerY + "px"; 
+        },
+        set top(value) { 
+          const newY = parseInt(value);
+          window.playerY = newY;
+          // Don't trigger camera/render immediately - let movement system batch updates
+        },
+        get left() { 
+          return window.playerX + "px"; 
+        },
+        set left(value) { 
+          const newX = parseInt(value);
+          window.playerX = newX;
+          // Don't trigger camera/render immediately - let movement system batch updates
+        }
+      }
+    };
+    
+    // Make player global
+    window.player = player;
+    console.log('PlayerController: Virtual player created and set globally');
+    
+    return player;
+  },
+
+  /**
+   * Initializes player position at the maze start
+   */
+  initializePlayerPosition: function() {
+    console.log('PlayerController: Initializing player position');
+    
+    // IMMEDIATE FORCE RESET player position to starting position
+    if (window.startCol !== undefined && window.startRow !== undefined && window.cellSize !== undefined) {
+      window.playerX = window.startCol * window.cellSize;
+      window.playerY = window.startRow * window.cellSize;
+      
+      console.log(`PlayerController: Player position set to (${window.playerX}, ${window.playerY}) - grid (${window.startRow}, ${window.startCol})`);
+      
+      // Update virtual player if it exists
+      if (window.player && window.player.style) {
+        window.player.style.left = window.playerX + "px";
+        window.player.style.top = window.playerY + "px";
+      }
+    } else {
+      console.warn('PlayerController: Unable to initialize player position - missing maze data');
+    }
+  },
+
+  /**
+   * Updates player position across all systems
+   */
+  updatePlayerPosition: function() {
+    console.log('PlayerController: Updating player position');
+    
+    // PRIORITY: Update the visual sprite first (DOM-based sprite)
+    if (window.CanvasRenderer && window.CanvasRenderer.updatePlayerPosition) {
+      window.CanvasRenderer.updatePlayerPosition();
+    }
+    
+    // Update virtual player for library compatibility (no visual offset)
+    if (window.player && window.player.style) {
+      window.player.style.left = window.playerX + "px";
+      window.player.style.top = window.playerY + "px";
+    }
+    
+    // Call the internal player position update if needed
+    if (this.internalUpdatePlayerPosition) {
+      this.internalUpdatePlayerPosition();
+    }
+  }
 };
 
 // Make PlayerController globally available

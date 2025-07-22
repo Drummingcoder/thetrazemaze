@@ -8,6 +8,56 @@ console.log('Game Initializer module loaded');
 const GameInitializer = {
   
   /**
+   * Setup debug console system
+   */
+  setupDebugConsole: function() {
+    // Debug logging function
+    window.debugLog = function(message, type = 'info') {
+      const debugConsole = document.getElementById('debug-console');
+      if (!debugConsole) return;
+      
+      const timestamp = new Date().toLocaleTimeString() + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
+      const entry = document.createElement('div');
+      entry.className = `debug-entry debug-${type}`;
+      entry.innerHTML = `<span class="debug-timestamp">[${timestamp}]</span> ${message}`;
+      
+      debugConsole.appendChild(entry);
+      
+      // Auto-scroll to bottom
+      debugConsole.scrollTop = debugConsole.scrollHeight;
+      
+      // Keep only last 100 entries to prevent memory issues
+      const entries = debugConsole.querySelectorAll('.debug-entry');
+      if (entries.length > 100) {
+        entries[0].remove();
+      }
+    };
+
+    // Clear debug console function
+    window.clearDebug = function() {
+      const debugConsole = document.getElementById('debug-console');
+      if (debugConsole) debugConsole.innerHTML = '';
+    };
+  },
+
+  /**
+   * Setup loading overlay with fade out effect
+   */
+  setupLoadingOverlay: function() {
+    window.addEventListener('DOMContentLoaded', function() {
+      var loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) {
+        setTimeout(function() {
+          loadingOverlay.style.opacity = '0';
+          setTimeout(function() {
+            loadingOverlay.style.display = 'none';
+          }, 400);
+        }, 750);
+      }
+    });
+  },
+
+  /**
    * Comprehensive cleanup function to prevent memory leaks and accumulation
    */
   cleanupGameSystems: function() {
