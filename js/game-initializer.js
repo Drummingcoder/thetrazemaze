@@ -8,6 +8,232 @@ console.log('Game Initializer module loaded');
 const GameInitializer = {
   
   /**
+   * Complete game restart function - equivalent to page reload
+   * Resets all game state and reinitializes everything from scratch
+   */
+  restartGameFromScratch: function() {
+    console.log('GameInitializer: Starting complete game restart...');
+    
+    // Step 1: Stop all running systems
+    this.stopAllSystems();
+    
+    // Step 2: Reset all game state variables
+    this.resetGameState();
+    
+    // Step 3: Reset player position and state
+    this.resetPlayerState();
+    
+    // Step 4: Reset UI elements
+    this.resetUIElements();
+    
+    // Step 5: Reset modules
+    this.resetModules();
+    
+    // Step 6: Reinitialize the complete game
+    this.initializeGame();
+    
+    console.log('GameInitializer: Complete game restart finished');
+  },
+
+  /**
+   * Stop all running systems and intervals
+   */
+  stopAllSystems: function() {
+    console.log('GameInitializer: Stopping all systems...');
+    
+    // Stop PlayerController systems
+    if (window.PlayerController && window.PlayerController.cleanupMovementSystems) {
+      window.PlayerController.cleanupMovementSystems();
+    }
+    
+    // Stop timer systems
+    if (window.GameTimer && window.GameTimer.stopTimer) {
+      window.GameTimer.stopTimer();
+    }
+    
+    // Stop audio systems
+    /* DISABLED: Audio systems commented out for performance
+    if (window.AudioManager) {
+      if (window.AudioManager.stopMusic) {
+        window.AudioManager.stopMusic();
+      }
+      if (window.AudioManager.audioCheckInterval) {
+        clearInterval(window.AudioManager.audioCheckInterval);
+        window.AudioManager.audioCheckInterval = null;
+      }
+    }
+    */
+    
+    // Stop EventHandler intervals
+    /* DISABLED: Audio-related intervals commented out for performance
+    if (window.EventHandler && window.EventHandler.audioCheckInterval) {
+      clearInterval(window.EventHandler.audioCheckInterval);
+      window.EventHandler.audioCheckInterval = null;
+    }
+    */
+    
+    // Clear any global intervals
+    if (window.interval) {
+      window.interval = false;
+    }
+  },
+
+  /**
+   * Reset all game state variables to initial values
+   */
+  resetGameState: function() {
+    console.log('GameInitializer: Resetting game state...');
+    
+    // Reset timing variables
+    window.time = 0;
+    window.interval = false;
+    window.startTime = null;
+    window.first = 0;
+    
+    // Reset movement variables
+    if (window.PlayerController) {
+      window.PlayerController.playerIsMoving = false;
+      if (window.PlayerController.smoothMovementKeys) {
+        window.PlayerController.smoothMovementKeys = {};
+      }
+    }
+    
+    // Reset audio state through AudioManager
+    /* DISABLED: Audio state reset commented out for performance
+    if (window.AudioManager) {
+      window.AudioManager.musicStarted = false;
+      // Don't reset audioPreloaded - keep loaded audio
+    }
+    */
+    
+    // Reset EventHandler state
+    if (window.EventHandler) {
+      window.EventHandler.firstMovement = 0;
+    }
+  },
+
+  /**
+   * Reset player position and state to starting values
+   */
+  resetPlayerState: function() {
+    console.log('GameInitializer: Resetting player state...');
+    
+    // FORCE RESET player position to starting position
+    window.playerX = window.startCol * window.cellSize;
+    window.playerY = window.startRow * window.cellSize;
+    
+    // Update virtual player object if it exists
+    if (window.player && window.player.style) {
+      window.player.style.left = window.playerX + "px";
+      window.player.style.top = window.playerY + "px";
+    }
+    
+    // Reset player movement state in PlayerController
+    if (window.PlayerController) {
+      if (window.PlayerController.resetPlayerState) {
+        window.PlayerController.resetPlayerState();
+      }
+    }
+  },
+
+  /**
+   * Reset UI elements to initial state
+   */
+  resetUIElements: function() {
+    console.log('GameInitializer: Resetting UI elements...');
+    
+    // Reset timer display
+    if (window.timerElement) {
+      window.timerElement.textContent = '00:00.000';
+    }
+    
+    // Hide end screen
+    if (window.endScreen) {
+      window.endScreen.classList.add('hidden');
+    }
+    
+    // Reset end screen content back to default "Congratulations!"
+    if (window.endText) {
+      window.endText.textContent = 'Congratulations!';
+    }
+    
+    // Reset personal best display
+    const personalBestElem = document.getElementById('personal-best');
+    const newPersonalBestElem = document.getElementById('new-personal-best');
+    if (personalBestElem) personalBestElem.style.display = '';
+    if (newPersonalBestElem) newPersonalBestElem.style.display = 'none';
+    
+    // Reset heart system
+    window.playerHearts = 3;
+    window.playerInvincible = false;
+    if (window.playerInvincibleTimeout) {
+      clearInterval(window.playerInvincibleTimeout);
+      window.playerInvincibleTimeout = null;
+    }
+    
+    // Update heart overlay and ensure it's visible
+    if (typeof updateHeartOverlay === 'function') {
+      updateHeartOverlay();
+    }
+    if (typeof setHeartOverlayVisible === 'function') {
+      setHeartOverlayVisible(true);
+    }
+    
+    // Show controls hint
+    const controlsHint = document.getElementById('controls-hint');
+    if (controlsHint) {
+      controlsHint.classList.remove('hidden');
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        if (controlsHint && !controlsHint.classList.contains('hidden')) {
+          controlsHint.classList.add('hidden');
+        }
+      }, 5000);
+    }
+    
+    // Reset dash and ground pound indicators
+    const dashIndicator = document.getElementById('dash-indicator');
+    const groundPoundIndicator = document.getElementById('ground-pound-indicator');
+    if (dashIndicator) {
+      dashIndicator.textContent = 'Dash Ready';
+      dashIndicator.classList.remove('cooldown');
+    }
+    if (groundPoundIndicator) {
+      groundPoundIndicator.textContent = 'Ground Pound Ready';
+      groundPoundIndicator.classList.remove('cooldown', 'active', 'disabled');
+    }
+  },
+
+  /**
+   * Reset all modules to initial state
+   */
+  resetModules: function() {
+    console.log('GameInitializer: Resetting modules...');
+    
+    // Reset camera system
+    if (window.CameraSystem) {
+      window.CameraSystem.resetCamera();
+      window.CameraSystem.cameraUpdatePending = false;
+    }
+    
+    // Reset canvas renderer
+    if (window.CanvasRenderer) {
+      window.CanvasRenderer.renderPending = false;
+      window.CanvasRenderer.renderQueued = false;
+      if (window.CanvasRenderer.resetCache) {
+        window.CanvasRenderer.resetCache();
+      }
+    }
+    
+    // Reset player controller movement state
+    if (window.PlayerController) {
+      if (window.PlayerController.isMovementActive) {
+        window.PlayerController.isMovementActive = false;
+      }
+    }
+  },
+
+  /**
    * Setup debug console system
    */
   setupDebugConsole: function() {
@@ -67,10 +293,12 @@ const GameInitializer = {
     }
     
     // Clear any audio check intervals
+    /* DISABLED: Audio intervals commented out for performance
     if (audioCheckInterval) {
       clearInterval(audioCheckInterval);
       audioCheckInterval = null;
     }
+    */
     
     // Reset render state
     if (window.CanvasRenderer) {
@@ -121,9 +349,11 @@ const GameInitializer = {
       }
       
       // Start lazy audio loading AFTER maze is fully initialized
+      /* DISABLED: Audio loading commented out for performance
       setTimeout(() => {
         this.preloadAudioAsync();
       }, 100); // Additional delay to ensure smooth maze startup
+      */
     }, 50); // Small delay to ensure reset is complete
   },
 
@@ -214,6 +444,7 @@ const GameInitializer = {
    * Placeholder for audio preloading (if needed)
    */
   preloadAudioAsync: function() {
+    /* DISABLED: Audio preloading commented out for performance
     // Start audio loading after page is fully loaded and maze is initialized
     setTimeout(() => {
       if (typeof audioPreloaded !== 'undefined' && !audioPreloaded && typeof audioLoadingInProgress !== 'undefined' && !audioLoadingInProgress) {
@@ -221,6 +452,8 @@ const GameInitializer = {
         console.log('Audio preloading started');
       }
     }, 200); // Ensure maze has time to fully initialize
+    */
+    console.log('Audio preloading disabled for performance');
   },
 
   /**
@@ -234,62 +467,8 @@ const GameInitializer = {
 
     if (restartButton && !restartButton.hasAttribute('data-initialized')) {
       restartButton.addEventListener("click", function() {
-        GameInitializer.cleanupGameSystems();
-        location.reload();
-        if (window.CameraSystem) {
-          window.CameraSystem.resetCamera();
-          // Re-initialize camera to apply zoom and centering
-          if (typeof window.CameraSystem.initializeNewCamera === 'function') {
-            window.CameraSystem.initializeNewCamera();
-          }
-        }
-        /*// Reset player position to starting position
-        window.playerX = window.startCol * window.cellSize;
-        window.playerY = window.startRow * window.cellSize;
-        if (window.player) {
-          window.player.style.top = window.playerY + "px";
-          window.player.style.left = window.playerX + "px";
-        }
-        // Reset timer
-        if (window.myLibrary) {
-          if (typeof GameTimer.resetTimer === 'function') {
-            alert('Game timer reset');
-            GameTimer.resetTimer();
-          } else {
-            window.myLibrary.timeElapsed = 0;
-            if (window.myLibrary.interval) {
-              clearInterval(window.myLibrary.interval);
-              window.myLibrary.interval = null;
-            }
-          }
-        }
-        // Reset hearts and invincibility
-        window.playerHearts = 3;
-        window.playerInvincible = false;
-        if (window.playerInvincibleTimeout) {
-          clearInterval(window.playerInvincibleTimeout);
-          window.playerInvincibleTimeout = null;
-        }
-        if (typeof updateHeartOverlay === 'function') updateHeartOverlay();
-        // Ensure hearts overlay is visible
-        var heartsOverlay = document.getElementById('hearts-overlay');
-        if (heartsOverlay) heartsOverlay.style.display = '';
-        // Hide end screen and indicators
-        if (window.endScreen) window.endScreen.classList.add('hidden');
-        var personalBestElem = document.getElementById('personal-best');
-        var newPersonalBestElem = document.getElementById('new-personal-best');
-        var endContentElem = document.getElementById('end-content');
-        if (personalBestElem) personalBestElem.style.display = '';
-        if (newPersonalBestElem) newPersonalBestElem.style.display = 'none';
-        if (endContentElem) endContentElem.textContent = '';
-        // Set flag so timer starts on first player movement
-        window.timerShouldStart = true;
-        // Force initial render and animation system reset
-        if (window.CanvasRenderer) {
-          window.CanvasRenderer.resetCache();
-          window.CanvasRenderer.renderFrame();
-          window.CanvasRenderer.prepareAnimationSystem();
-        }*/
+        console.log('Restart button clicked - starting complete game restart');
+        GameInitializer.restartGameFromScratch();
       });
       restartButton.setAttribute('data-initialized', 'true');
     }
@@ -316,3 +495,12 @@ const GameInitializer = {
 
 // Make GameInitializer available globally
 window.GameInitializer = GameInitializer;
+
+// Create convenient global alias for the restart function
+window.restartMaze = function() {
+  console.log('Global restartMaze() called');
+  GameInitializer.restartGameFromScratch();
+};
+
+// Also make it available as a shorter alias
+window.restart = window.restartMaze;

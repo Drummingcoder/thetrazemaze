@@ -92,11 +92,19 @@ const PlayerAnimation = {
     this.isAnimationLoopRunning = true;
     console.log('🔄 Starting independent animation loop');
     
+    let lastAnimationUpdate = 0;
+    const animationUpdateInterval = 33.33; // ~30 FPS for animations (smoother than 60fps for sprites)
+    
     const animationLoop = () => {
       if (!this.isAnimationLoopRunning) return;
       
-      // Update animations
-      this.updateAnimation();
+      const currentTime = performance.now();
+      
+      // Throttle animation updates to ~30 FPS
+      if (currentTime - lastAnimationUpdate >= animationUpdateInterval) {
+        this.updateAnimation();
+        lastAnimationUpdate = currentTime;
+      }
       
       // Continue the loop
       this.animationLoopId = requestAnimationFrame(animationLoop);

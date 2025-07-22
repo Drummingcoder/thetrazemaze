@@ -60,6 +60,10 @@ const PlayerController = {
   // Performance optimization variables
   lastUIUpdate: 0, // Timestamp of last UI update
   uiUpdateInterval: 50, // Update UI every 50ms instead of every frame
+  
+  // Frame rate limiting for movement loop
+  lastMovementUpdate: 0,
+  movementUpdateInterval: 16.67, // ~60 FPS (1000ms / 60fps = 16.67ms)
 
 
   /**
@@ -597,6 +601,15 @@ const PlayerController = {
    * Smooth movement animation loop
    */
   smoothMovementLoop: function() {
+    // PERFORMANCE: Frame rate throttling - limit to ~60 FPS
+    const currentTime = performance.now();
+    if (currentTime - this.lastMovementUpdate < this.movementUpdateInterval) {
+      // Skip this frame, schedule next one
+      this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
+      return;
+    }
+    this.lastMovementUpdate = currentTime;
+    
     let moved = false;
     let newX = window.playerX;
     let newY = window.playerY;
@@ -1098,7 +1111,13 @@ const PlayerController = {
 
       // Show completion screen after brief delay
       setTimeout(() => {
-        endContent.textContent = "Time taken: " + formattedTime;
+        // Set time in the dedicated time element, not the h2 title
+        const timeElement = document.getElementById('end-time-taken');
+        if (timeElement) {
+          timeElement.textContent = "Time taken: " + formattedTime;
+        }
+        
+        // Keep the h2 title as "Congratulations!" - don't overwrite it
         
         // Calculate and display personal best
         const bestTime = PersonalBestManager.calculatePersonalBestTime(timeTaken, type);
@@ -1460,6 +1479,62 @@ const PlayerController = {
     if (this.internalUpdatePlayerPosition) {
       this.internalUpdatePlayerPosition();
     }
+  },
+
+  /**
+   * Reset player state to initial values for game restart
+   */
+  resetPlayerState: function() {
+    console.log('PlayerController: Resetting player state');
+    
+    // Reset movement state
+    this.playerIsMoving = false;
+    this.isMovementActive = false;
+    
+    // Clear movement keys
+    if (this.smoothMovementKeys) {
+      this.smoothMovementKeys = {};
+    }
+    
+    // Reset jump state completely
+    this.isJumping = false;
+    this.jumpStartTime = 0;
+    this.chargedJumpVelocity = null;
+    this.verticalVelocity = 0;
+    this.isGrounded = true;
+    this.coyoteTimeCounter = 0;
+    this.wasGroundedLastFrame = false;
+    
+    // Reset dash state completely
+    this.isDashing = false;
+    this.dashTimer = 0;
+    this.dashCooldownTimer = 0;
+    this.dashDirectionX = 0;
+    this.dashDirectionY = 0;
+    
+    // Reset ground pound state completely
+    this.isGroundPounding = false;
+    this.groundPoundPhase = 'none';
+    this.groundPoundHoverTimer = 0;
+    this.groundPoundCooldownTimer = 0;
+    
+    // Clear any animation frame
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    
+    // Reset any animation state
+    if (this.currentDirection) {
+      this.currentDirection = 'idle';
+    }
+    
+    // Reset UI indicators
+    this.updateDashIndicator();
+    this.updateGroundPoundIndicator();
+    this.updateJumpChargeIndicator();
+    
+    console.log('PlayerController: Player state reset complete');
   }
 };
 

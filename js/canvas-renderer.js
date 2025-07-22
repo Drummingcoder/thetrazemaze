@@ -139,7 +139,7 @@ const CanvasRenderer = {
   lastPlayerX: -1,
   lastPlayerY: -1,
   lastRenderTime: 0,
-  renderThrottle: 16, // Limit renders to ~60 FPS
+  renderThrottle: 33, // Limit renders to ~30 FPS for better performance
 
   /**
    * Setup and configure canvas elements with proper sizing and rendering contexts
@@ -491,13 +491,16 @@ const CanvasRenderer = {
   },
 
   /**
-   * Draw the player - DOM-based positioning with animation
+   * Draw the player - DOM-based positioning with animation (optimized)
    */
   drawPlayer: function() {
     if (!this.playerElement) return;
     
-    // Handle animation when moving
-    this.updateAnimation();
+    // Only update sprite position when actually needed
+    this.updateSpritePosition();
+    
+    // Animation is handled by PlayerAnimation's independent loop
+    // No need to call updateAnimation here anymore
   },
 
   /**
@@ -529,6 +532,7 @@ const CanvasRenderer = {
 
   /**
    * Update sprite position - SIMPLE: Always center on screen (window viewport)
+   * Optimized to avoid unnecessary DOM updates
    */
   updateSpritePosition: function() {
     if (!this.playerElement) {
@@ -547,18 +551,21 @@ const CanvasRenderer = {
     const centerX = (windowWidth / 2) - (spriteSize / 2);
     const centerY = (windowHeight / 2) - (spriteSize / 2);
     
-    console.log(`🎯 Positioning sprite at: (${centerX}, ${centerY}) in window ${windowWidth}x${windowHeight}`);
+    // Only update DOM if position actually changed (avoid unnecessary reflows)
+    const currentLeft = parseInt(this.playerElement.style.left) || 0;
+    const currentTop = parseInt(this.playerElement.style.top) || 0;
     
-    // Apply position immediately
-    this.playerElement.style.left = centerX + 'px';
-    this.playerElement.style.top = centerY + 'px';
+    if (Math.abs(currentLeft - centerX) > 1 || Math.abs(currentTop - centerY) > 1) {
+      this.playerElement.style.left = centerX + 'px';
+      this.playerElement.style.top = centerY + 'px';
+    }
     
     // DON'T force background position here - let the animation system handle it!
     // The animation system will set the correct frame via updateSpriteFrame()
   },
 
   /**
-   * Main rendering function - ULTRA SIMPLIFIED for maximum performance
+   * Main rendering function - OPTIMIZED with dirty checking
    */
   renderFrame: function() {
     // Frame rate throttling - don't render more than ~60 FPS
@@ -573,11 +580,19 @@ const CanvasRenderer = {
     if (!this.mazeDrawn) {
       this.drawMaze();
       this.mazeDrawn = true;
-      // Debug logging removed for performance
     }
     
-    // Always update player (this is fast since it's DOM-based)
-    this.drawPlayer();
+    // DIRTY RENDERING: Only update player if position actually changed
+    const currentPlayerX = window.playerX || 0;
+    const currentPlayerY = window.playerY || 0;
+    
+    if (currentPlayerX !== this.lastPlayerX || currentPlayerY !== this.lastPlayerY) {
+      // Player position changed - update sprite
+      this.drawPlayer();
+      this.lastPlayerX = currentPlayerX;
+      this.lastPlayerY = currentPlayerY;
+    }
+    // If player hasn't moved, skip the expensive player update
   },
 
   /**
@@ -691,6 +706,9 @@ function updateHeartOverlay() {
   heartDiv.innerHTML = hearts;
 }
 
+// Make updateHeartOverlay globally accessible
+window.updateHeartOverlay = updateHeartOverlay;
+
 // Utility to show/hide heart overlay
 function setHeartOverlayVisible(visible) {
   const heartDiv = document.getElementById('heart-overlay');
@@ -698,6 +716,9 @@ function setHeartOverlayVisible(visible) {
     heartDiv.style.display = visible ? 'block' : 'none';
   }
 }
+
+// Make setHeartOverlayVisible globally accessible
+window.setHeartOverlayVisible = setHeartOverlayVisible;
 
 // Lose a heart and trigger invincibility/blink
 window.loseHeart = function() {

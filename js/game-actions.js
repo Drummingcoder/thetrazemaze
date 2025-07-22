@@ -191,7 +191,14 @@ const GameActions = {
 
     // Show completion information
     setTimeout(() => {
-      endContent.textContent = "Time taken: " + formattedTime;
+      // Set time in the dedicated time element, not the h2 title
+      const timeElement = document.getElementById('end-time-taken');
+      if (timeElement) {
+        timeElement.textContent = "Time taken: " + formattedTime;
+      }
+      
+      // Keep the h2 title as "Congratulations!" - don't overwrite it
+      // endContent should remain "Congratulations!" from initialization
       
       // Handle personal best tracking
       const bestTime = PersonalBestManager.calculatePersonalBestTime(timeTaken, type);

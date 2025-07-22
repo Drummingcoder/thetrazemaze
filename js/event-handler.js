@@ -169,8 +169,10 @@ const EventHandler = {
 
   /**
    * Starts game music
+   * DISABLED for performance optimization
    */
   startGameMusic: function() {
+    /* DISABLED: Music startup commented out for performance
     // Smart music playback - play immediately if loaded, queue if still loading
     if (window.AudioManager && window.AudioManager.isAudioPreloaded() && !window.AudioManager.isMusicStarted()) {
       // Audio ready - start music immediately
@@ -182,12 +184,16 @@ const EventHandler = {
       console.log('Audio still loading, will start music when ready...');
       this.setupAudioCheck();
     }
+    */
+    console.log('EventHandler.startGameMusic() - DISABLED for performance');
   },
 
   /**
    * Plays music using available audio system
+   * DISABLED for performance optimization
    */
   playMusic: function() {
+    /* DISABLED: Music playback commented out for performance
     try {
       // Use AudioManager directly instead of myLibrary
       if (window.AudioManager) {
@@ -200,14 +206,18 @@ const EventHandler = {
         console.log('Music started successfully via myLibrary');
       }
     } catch (error) {
-      console.warn('Music playback failed:', error);
+      console.warn('Could not start music:', error);
     }
+    */
+    console.log('EventHandler.playMusic() - DISABLED for performance');
   },
 
   /**
    * Sets up audio check interval for delayed music start
+   * DISABLED for performance optimization
    */
   setupAudioCheck: function() {
+    /* DISABLED: Audio check setup commented out for performance
     this.audioCheckInterval = setInterval(() => {
       if (window.AudioManager && window.AudioManager.isAudioPreloaded() && !window.AudioManager.isMusicStarted()) {
         this.playMusic();
@@ -224,6 +234,8 @@ const EventHandler = {
         this.audioCheckInterval = null;
       }
     }, 10000);
+    */
+    console.log('EventHandler.setupAudioCheck() - DISABLED for performance');
   },
 
   /**
