@@ -205,9 +205,14 @@ const GameActions = {
       // Keep the h2 title as "Congratulations!" - don't overwrite it
       // endContent should remain "Congratulations!" from initialization
       
-      // Handle personal best tracking
+      // Handle personal best tracking (now level-aware)
       const bestTime = PersonalBestManager.calculatePersonalBestTime(timeTaken, type);
       PersonalBestManager.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
+      
+      // Update level selector display if we're in level mode
+      if (window.LevelBestTimeManager && window.selectedLevel) {
+        window.LevelBestTimeManager.updateLevelDisplay(window.selectedLevel);
+      }
       
       // Show end screen
       endScreen.classList.remove("hidden");

@@ -207,8 +207,10 @@ const GameInitializer = {
     // Reset personal best display
     const personalBestElem = document.getElementById('personal-best');
     const newPersonalBestElem = document.getElementById('new-personal-best');
+    const endTimeTakenElem = document.getElementById('end-time-taken');
     if (personalBestElem) personalBestElem.style.display = '';
     if (newPersonalBestElem) newPersonalBestElem.style.display = 'none';
+    if (endTimeTakenElem) endTimeTakenElem.style.display = ''; // Ensure time display is visible for new games
     
     // Reset heart system
     window.playerHearts = 3;

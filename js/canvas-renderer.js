@@ -758,6 +758,8 @@ window.loseHeart = function() {
         var personalBestElem = document.getElementById('personal-best');
         var newPersonalBestElem = document.getElementById('new-personal-best');
         var endContentElem = document.getElementById('end-content');
+        var endTimeTakenElem = document.getElementById('end-time-taken');
+        
         if (endContentElem) {
           endContentElem.textContent = 'Level Failed...';
         }
@@ -766,6 +768,10 @@ window.loseHeart = function() {
         }
         if (newPersonalBestElem) {
           newPersonalBestElem.style.display = 'none';
+        }
+        // Hide the time taken display since the level wasn't completed
+        if (endTimeTakenElem) {
+          endTimeTakenElem.style.display = 'none';
         }
       }
       setHeartOverlayVisible(false);

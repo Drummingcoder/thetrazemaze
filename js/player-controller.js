@@ -1163,9 +1163,14 @@ const PlayerController = {
       setTimeout(() => {
         endContent.textContent = "Time taken: " + formattedTime;
         
-        // Calculate and display personal best
+        // Calculate and display personal best (now level-aware)
         const bestTime = PersonalBestManager.calculatePersonalBestTime(timeTaken, type);
         PersonalBestManager.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
+        
+        // Update level selector display if we're in level mode
+        if (window.LevelBestTimeManager && window.selectedLevel) {
+          window.LevelBestTimeManager.updateLevelDisplay(window.selectedLevel);
+        }
         
         // Show end screen
         endScreen.classList.remove("hidden");
@@ -1198,11 +1203,16 @@ const PlayerController = {
       const endContent = document.getElementById("end-time-taken");
       endContent.textContent = "Number of Goals Reached: " + mazecount;
       
-      // Calculate and display personal best for multiple goals mode
+      // Calculate and display personal best for multiple goals mode (now level-aware)
       const bestScore = PersonalBestManager.calculatePersonalBestTime(finalScore, type);
       const personalbest = document.getElementById("personal-best");
       const newpersonalbest = document.getElementById("new-personal-best");
       PersonalBestManager.displayPersonalBestTime(bestScore, type, personalbest, newpersonalbest);
+      
+      // Update level selector display if we're in level mode
+      if (window.LevelBestTimeManager && window.selectedLevel) {
+        window.LevelBestTimeManager.updateLevelDisplay(window.selectedLevel);
+      }
       
       // Show end screen
       const endScreen = document.getElementById("end-screen");

@@ -14,6 +14,12 @@ const PersonalBestManager = {
    * @returns {string} Unique identifier for this game configuration
    */
   generateMazeIdentifier: function(type) {
+    // If we're in level-based mode, use level-specific keys
+    if (window.selectedLevel && window.selectedLevel >= 1) {
+      return `level_${window.selectedLevel}_best_time`;
+    }
+    
+    // Fall back to legacy configuration-based system for backward compatibility
     let mazeIdentifier;
     
     // Determine base identifier based on difficulty and mode

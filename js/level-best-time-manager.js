@@ -1,0 +1,163 @@
+/**
+ * Level Best Time Manager Module
+ * Handles saving, loading, and displaying best times for specific levels
+ */
+
+console.log('Level Best Time Manager module loaded');
+
+const LevelBestTimeManager = {
+
+  /**
+   * Generates a localStorage key for a specific level
+   * @param {number} levelNumber - The level number (1-10)
+   * @returns {string} The localStorage key for this level
+   */
+  generateLevelKey: function(levelNumber) {
+    return `level_${levelNumber}_best_time`;
+  },
+
+  /**
+   * Gets the stored best time for a specific level
+   * @param {number} levelNumber - The level number (1-10)
+   * @returns {number|null} The best time in milliseconds, or null if no time exists
+   */
+  getBestTime: function(levelNumber) {
+    const key = this.generateLevelKey(levelNumber);
+    const storedTime = localStorage.getItem(key);
+    return storedTime ? parseFloat(storedTime) : null;
+  },
+
+  /**
+   * Sets the best time for a specific level (only if it's better than existing)
+   * Note: In level mode, PersonalBestManager handles the actual storage
+   * This function is kept for compatibility but defers to PersonalBestManager
+   * @param {number} levelNumber - The level number (1-10)
+   * @param {number} newTime - The new completion time in milliseconds
+   * @returns {boolean} True if a new best time was set, false otherwise
+   */
+  setBestTime: function(levelNumber, newTime) {
+    // In level mode, let PersonalBestManager handle the storage since it's now level-aware
+    // This ensures consistency between end screen and level selector displays
+    if (window.PersonalBestManager) {
+      const previousLevel = window.selectedLevel;
+      window.selectedLevel = levelNumber; // Temporarily set level for PersonalBestManager
+      
+      const currentBest = window.PersonalBestManager.getStoredBest("");
+      const isNewBest = !currentBest || newTime < currentBest;
+      
+      if (isNewBest) {
+        window.PersonalBestManager.setBest("", newTime);
+        console.log(`New best time for Level ${levelNumber}: ${this.formatTime(newTime)}`);
+      }
+      
+      window.selectedLevel = previousLevel; // Restore original level
+      return isNewBest;
+    }
+    
+    // Fallback to direct storage if PersonalBestManager not available
+    const currentBest = this.getBestTime(levelNumber);
+    if (!currentBest || newTime < currentBest) {
+      const key = this.generateLevelKey(levelNumber);
+      localStorage.setItem(key, newTime.toString());
+      console.log(`New best time for Level ${levelNumber}: ${this.formatTime(newTime)}`);
+      return true;
+    }
+    
+    return false;
+  },
+
+  /**
+   * Formats time in milliseconds to MM:SS.mmm format using GameTimer
+   * @param {number} timeMs - Time in milliseconds
+   * @returns {string} Formatted time string
+   */
+  formatTime: function(timeMs) {
+    if (!timeMs || isNaN(timeMs)) {
+      return '--:--';
+    }
+    
+    // Use the same formatting as GameTimer to ensure consistency
+    if (window.GameTimer && window.GameTimer.formatTime) {
+      return window.GameTimer.formatTime(timeMs);
+    }
+    
+    // Fallback formatting if GameTimer not available
+    const totalSeconds = Math.floor(timeMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = Math.floor(timeMs % 1000);
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+  },
+
+  /**
+   * Updates the best time display for a specific level card
+   * @param {number} levelNumber - The level number (1-10)
+   */
+  updateLevelDisplay: function(levelNumber) {
+    const bestTime = this.getBestTime(levelNumber);
+    const displayElement = document.getElementById(`level-${levelNumber}-best-time`);
+    
+    if (displayElement) {
+      if (bestTime) {
+        displayElement.textContent = `Best: ${this.formatTime(bestTime)}`;
+        displayElement.classList.remove('no-time');
+      } else {
+        displayElement.textContent = 'Best: --:--';
+        displayElement.classList.add('no-time');
+      }
+    }
+  },
+
+  /**
+   * Updates all level displays with their best times
+   */
+  updateAllLevelDisplays: function() {
+    for (let i = 1; i <= 10; i++) {
+      this.updateLevelDisplay(i);
+    }
+  },
+
+  /**
+   * Clears the best time for a specific level
+   * @param {number} levelNumber - The level number (1-10)
+   */
+  clearBestTime: function(levelNumber) {
+    const key = this.generateLevelKey(levelNumber);
+    localStorage.removeItem(key);
+    this.updateLevelDisplay(levelNumber);
+  },
+
+  /**
+   * Clears all level best times
+   */
+  clearAllBestTimes: function() {
+    for (let i = 1; i <= 10; i++) {
+      this.clearBestTime(i);
+    }
+  },
+
+  /**
+   * Checks if a time would be a new best for a level (without setting it)
+   * @param {number} levelNumber - The level number (1-10)
+   * @param {number} newTime - The time to check in milliseconds
+   * @returns {boolean} True if this would be a new best time
+   */
+  wouldBeNewBest: function(levelNumber, newTime) {
+    const currentBest = this.getBestTime(levelNumber);
+    return !currentBest || newTime < currentBest;
+  },
+
+  /**
+   * Gets formatted best time for display
+   * @param {number} levelNumber - The level number (1-10)
+   * @returns {string} Formatted best time or placeholder
+   */
+  getFormattedBestTime: function(levelNumber) {
+    const bestTime = this.getBestTime(levelNumber);
+    return bestTime ? this.formatTime(bestTime) : '--:--';
+  }
+};
+
+// Make LevelBestTimeManager globally available
+window.LevelBestTimeManager = LevelBestTimeManager;
