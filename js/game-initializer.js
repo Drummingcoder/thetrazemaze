@@ -36,6 +36,48 @@ const GameInitializer = {
   },
 
   /**
+   * Restart for new level - similar to restartGameFromScratch but optimized for level switching
+   */
+  restartForNewLevel: function() {
+    console.log('GameInitializer: Starting restart for new level...');
+    
+    // Step 1: Stop all running systems
+    this.stopAllSystems();
+    
+    // Step 2: Reset all game state variables (including timer)
+    this.resetGameState();
+    
+    // Step 3: Reset player position and state (will be updated after maze data loads)
+    this.resetPlayerState();
+    
+    // Step 4: Reset UI elements completely
+    this.resetUIElements();
+    
+    // Step 5: Reset modules
+    this.resetModules();
+    
+    // Step 6: Clear canvases to prepare for new maze
+    this.clearCanvases();
+    
+    console.log('GameInitializer: Restart for new level complete');
+  },
+
+  /**
+   * Clear all canvases
+   */
+  clearCanvases: function() {
+    console.log('GameInitializer: Clearing canvases...');
+    
+    if (window.canvas && window.ctx) {
+      window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height);
+    }
+    
+    if (window.playerCanvas && window.playerCtx) {
+      window.playerCtx.clearRect(0, 0, window.playerCanvas.width, window.playerCanvas.height);
+    }
+  },
+
+  /**
    * Stop all running systems and intervals
    */
   stopAllSystems: function() {
@@ -147,6 +189,11 @@ const GameInitializer = {
       window.timerElement.textContent = '00:00.000';
     }
     
+    // Reset GameTimer completely
+    if (window.GameTimer && window.GameTimer.resetTimer) {
+      window.GameTimer.resetTimer();
+    }
+    
     // Hide end screen
     if (window.endScreen) {
       window.endScreen.classList.add('hidden');
@@ -191,16 +238,38 @@ const GameInitializer = {
       }, 5000);
     }
     
-    // Reset dash and ground pound indicators
+    // Reset dash indicator completely
     const dashIndicator = document.getElementById('dash-indicator');
-    const groundPoundIndicator = document.getElementById('ground-pound-indicator');
     if (dashIndicator) {
       dashIndicator.textContent = 'Dash Ready';
       dashIndicator.classList.remove('cooldown');
+      // Reset any PlayerController dash state
+      if (window.PlayerController) {
+        window.PlayerController.dashCooldownTimer = 0;
+      }
     }
+    
+    // Reset ground pound indicator completely
+    const groundPoundIndicator = document.getElementById('ground-pound-indicator');
     if (groundPoundIndicator) {
       groundPoundIndicator.textContent = 'Ground Pound Ready';
       groundPoundIndicator.classList.remove('cooldown', 'active', 'disabled');
+      // Reset any PlayerController ground pound state
+      if (window.PlayerController) {
+        window.PlayerController.groundPoundCooldownTimer = 0;
+        window.PlayerController.isGroundPounding = false;
+      }
+    }
+    
+    // Reset jump charge indicator
+    const jumpChargeIndicator = document.getElementById('jump-charge-indicator');
+    if (jumpChargeIndicator) {
+      jumpChargeIndicator.classList.remove('visible');
+      jumpChargeIndicator.style.opacity = '0';
+      // Reset any PlayerController jump state
+      if (window.PlayerController) {
+        window.PlayerController.jumpCharging = false;
+      }
     }
   },
 

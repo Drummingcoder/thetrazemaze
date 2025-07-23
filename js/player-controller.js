@@ -871,6 +871,12 @@ const PlayerController = {
     this.dashCooldownTimer = 0;
     this.lastKeyPressTime = {};
     
+    // Reset ground pound state
+    this.isGroundPounding = false;
+    this.groundPoundPhase = 'none';
+    this.groundPoundHoverTimer = 0;
+    this.groundPoundCooldownTimer = 0;
+    
     // Cancel any pending animation frames
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
@@ -878,6 +884,42 @@ const PlayerController = {
     }
     
     console.log('Movement systems cleaned up');
+  },
+
+  /**
+   * Reset player state for game restart - focuses on ability cooldowns and states
+   */
+  resetPlayerState: function() {
+    console.log('PlayerController: Resetting player state...');
+    
+    // Reset all ability states and cooldowns
+    this.isDashing = false;
+    this.dashTimer = 0;
+    this.dashCooldownTimer = 0;
+    
+    this.isGroundPounding = false;
+    this.groundPoundPhase = 'none';
+    this.groundPoundHoverTimer = 0;
+    this.groundPoundCooldownTimer = 0;
+    
+    this.isJumping = false;
+    this.jumpStartTime = 0;
+    this.chargedJumpVelocity = null;
+    this.jumpCharging = false;
+    
+    // Reset gravity and movement state
+    this.verticalVelocity = 0;
+    this.isGrounded = false;
+    this.coyoteTimeCounter = 0;
+    this.wasGroundedLastFrame = false;
+    
+    // Reset movement keys
+    this.smoothMovementKeys = {};
+    this.keysPressed = {};
+    this.playerIsMoving = false;
+    this.lastKeyPressTime = {};
+    
+    console.log('PlayerController: Player state reset complete');
   },
 
   /**
