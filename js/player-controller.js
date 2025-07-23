@@ -42,7 +42,7 @@ const PlayerController = {
   isDashing: false, // Whether player is currently dashing
   dashSpeed: 16, // Speed during dash (pixels per frame) - increased for faster dash movement
   dashDuration: 15, // Number of frames the dash lasts - reduced from 20 to 15 for quicker, snappier dash
-  dashCooldown: 15, // Frames to wait before next dash (0.25 seconds at 60fps)
+  dashCooldown: 45, // Frames to wait before next dash (0.25 seconds at 60fps)
   dashTimer: 0, // Current dash timer
   dashCooldownTimer: 0, // Current cooldown timer
   dashDirectionX: 0, // X direction of current dash
@@ -871,6 +871,12 @@ const PlayerController = {
     this.dashCooldownTimer = 0;
     this.lastKeyPressTime = {};
     
+    // Reset ground pound state
+    this.isGroundPounding = false;
+    this.groundPoundPhase = 'none';
+    this.groundPoundHoverTimer = 0;
+    this.groundPoundCooldownTimer = 0;
+    
     // Cancel any pending animation frames
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
@@ -881,17 +887,74 @@ const PlayerController = {
   },
 
   /**
+   * Reset player state for game restart - focuses on ability cooldowns and states
+   */
+  resetPlayerState: function() {
+    console.log('PlayerController: Resetting player state...');
+    
+    // Reset all ability states and cooldowns
+    this.isDashing = false;
+    this.dashTimer = 0;
+    this.dashCooldownTimer = 0;
+    
+    this.isGroundPounding = false;
+    this.groundPoundPhase = 'none';
+    this.groundPoundHoverTimer = 0;
+    this.groundPoundCooldownTimer = 0;
+    
+    this.isJumping = false;
+    this.jumpStartTime = 0;
+    this.chargedJumpVelocity = null;
+    this.jumpCharging = false;
+    
+    // Reset gravity and movement state
+    this.verticalVelocity = 0;
+    this.isGrounded = false;
+    this.coyoteTimeCounter = 0;
+    this.wasGroundedLastFrame = false;
+    
+    // Reset movement keys
+    this.smoothMovementKeys = {};
+    this.keysPressed = {};
+    this.playerIsMoving = false;
+    this.lastKeyPressTime = {};
+    
+    console.log('PlayerController: Player state reset complete');
+  },
+
+  /**
    * Update player position (for compatibility with library)
    * @param {number} newRow - New row position
    * @param {number} newCol - New column position
    */
   updatePlayerPosition: function(newRow, newCol) {
-    // For smooth movement, this function is simplified
-    // Position updates happen directly in smoothMovementLoop()
+    // Enhanced position update with validation and coordination
     if (newRow !== undefined && newCol !== undefined) {
-      playerX = newCol * cellSize;
-      playerY = newRow * cellSize;
+      // Validate input values
+      if (typeof newRow !== 'number' || typeof newCol !== 'number') {
+        console.warn('Invalid position values provided to updatePlayerPosition:', newRow, newCol);
+        return;
+      }
+      
+      // Update global player position
+      window.playerX = newCol * window.cellSize;
+      window.playerY = newRow * window.cellSize;
+      
+      // Update internal target positions for smooth movement
+      this.targetX = window.playerX;
+      this.targetY = window.playerY;
+      
+      // Ensure PlayerAnimation knows about position change
+      if (window.PlayerAnimation && window.PlayerAnimation.updatePosition) {
+        window.PlayerAnimation.updatePosition(window.playerX, window.playerY);
+      }
+      
+      // Update camera and render
       this.updateCameraAndRender();
+      
+      console.log('Player position updated to:', newRow, newCol, '(pixel:', window.playerX, window.playerY, ')');
+    } else {
+      console.warn('updatePlayerPosition called with undefined values:', newRow, newCol);
     }
   },
 
@@ -933,6 +996,12 @@ const PlayerController = {
    * @param {boolean} interval - Whether timer is running
    */
   movePlayer: function(event, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval) {
+    // Start timer on first movement after reset
+    if (window.timerShouldStart && typeof GameTimer.startTimer === 'function') {
+      const timerElement = document.getElementById("timer");
+      GameTimer.startTimer(timerElement);
+      window.timerShouldStart = false;
+    }
     // Prevent movement if end screen is visible
     if (!endScreen.classList.contains("hidden")) {
       return;
@@ -1079,7 +1148,11 @@ const PlayerController = {
     // Check if player reached the goal
     if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
       // Stop the timer
-      window.clearInterval(GameTimer.interval);
+      if (typeof GameTimer.stopTimer === 'function') {
+        GameTimer.stopTimer();
+      } else {
+        window.clearInterval(GameTimer.interval);
+      }
       
       // Calculate completion time
       const endTime = new Date();
@@ -1110,7 +1183,11 @@ const PlayerController = {
    */
   endMultipleGoalsGame: function() {
     // Stop the timer
-    window.clearInterval(GameTimer.interval);
+    if (typeof GameTimer.stopTimer === 'function') {
+        GameTimer.stopTimer();
+    } else {
+      window.clearInterval(GameTimer.interval);
+    }
     
     // Calculate final score (number of goals reached)
     const finalScore = mazecount;
@@ -1152,6 +1229,26 @@ const PlayerController = {
    * Start the smooth movement system
    */
   startSmoothMovement: function() {
+    // Set up key event listeners for smooth movement
+    document.addEventListener('keydown', (event) => {
+      this.handleKeyDown(event.key);
+      
+      // Handle dash key (Shift)
+      if (event.key === 'Shift') {
+        this.handleDashKey();
+        event.preventDefault();
+      }
+      
+      // Prevent default for movement keys
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(event.key)) {
+        event.preventDefault();
+      }
+    });
+    
+    document.addEventListener('keyup', (event) => {
+      this.handleKeyUp(event.key);
+    });
+    
     // Initialize dash indicator UI
     this.updateDashIndicator();
     
@@ -1161,7 +1258,41 @@ const PlayerController = {
     // Mark movement as active
     this.isMovementActive = true;
     
-    console.log('Smooth movement system started');
+    console.log('Smooth movement system started with event listeners');
+  },
+
+  /**
+   * Initialize player position for smooth movement
+   */
+  initializePlayerPosition: function() {
+    // Ensure player starts at proper position
+    if (window.startRow !== undefined && window.startCol !== undefined) {
+      window.playerX = window.startCol * window.cellSize;
+      window.playerY = window.startRow * window.cellSize;
+      
+      // Update internal target positions
+      this.targetX = window.playerX;
+      this.targetY = window.playerY;
+      
+      console.log('Player position initialized:', window.playerX, window.playerY);
+    }
+  },
+
+  /**
+   * Create virtual player object for positioning
+   */
+  createVirtualPlayer: function() {
+    // This function maintains compatibility with the HTML
+    // The actual player rendering is handled by CanvasRenderer
+    if (!window.player) {
+      window.player = {
+        style: {
+          top: window.playerY + 'px',
+          left: window.playerX + 'px'
+        }
+      };
+    }
+    console.log('Virtual player object created');
   },
 
   /**

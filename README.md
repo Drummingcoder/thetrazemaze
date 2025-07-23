@@ -1,10 +1,12 @@
 # The Traze Maze
 
-A maze game made by me. Still under development.
-Hopefully, this game can turn out to be a combination between a shooter and a platformer game and the element of a maze mixed in. 
+A maze platformer game made by me. Still under development and online @ https://summer.hackclub.com/projects/1408.
+I'm aiming for this game can turn out to be a combination between a shooter and a platformer game and the element of a maze mixed in. 
 
 This game is a level by level game that you have to navigate the maze using arrow keys or WASD to reach the end. 
 Simply go to the website: https://drummingcoder.github.io/thetrazemaze/ to play the game or learn more about it!
 
 AI (Github Copilot) is used to help design the look of the website and augment its functionality. I just did some of
 the maze generation and movement.
+
+Going to add more levels and upgrades, as well as more features soon!

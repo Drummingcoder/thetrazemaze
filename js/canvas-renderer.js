@@ -1,4 +1,63 @@
 /**
+ * Detect collision with enemies and spikes in a square around the player sprite
+ * Checks for spikes (cell value 4) and enemies (cell value 5 or custom logic)
+ * @param {number} playerRow
+ * @param {number} playerCol
+ * @param {number} radius
+ * @returns {boolean} true if collision detected
+ */
+function detectCollisionWithEnemiesAndSpikes(playerRow, playerCol, radius = 1) {
+  if (!window.mazeStructure) return false;
+  const mazeSize = window.mazeSize;
+  for (let dr = -radius; dr <= radius; dr++) {
+    for (let dc = -radius; dc <= radius; dc++) {
+      const r = playerRow + dr;
+      const c = playerCol + dc;
+      if (r >= 0 && r < mazeSize && c >= 0 && c < mazeSize) {
+        const cell = window.mazeStructure[r][c];
+        if (cell === 4) {
+          // Spike collision
+          return true;
+        }
+        // Example: enemies could be cell value 5, or you can add custom logic here
+        if (cell === 5) {
+          // Enemy collision
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+/**
+ * Draw a spike decoration on the maze
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cellSize
+ */
+function drawSpike(ctx, x, y, cellSize) {
+  ctx.save();
+  // Position at bottom center of cell
+  ctx.translate(x + cellSize/2, y + cellSize);
+  // Draw spike base (triangle fills cell vertically)
+  ctx.beginPath();
+  ctx.moveTo(-cellSize*0.4, 0); // left base
+  ctx.lineTo(0, -cellSize);    // tip at top of cell
+  ctx.lineTo(cellSize*0.4, 0); // right base
+  ctx.closePath();
+  ctx.fillStyle = '#B0BEC5'; // Light gray for spike
+  ctx.fill();
+  // Spike highlight
+  ctx.beginPath();
+  ctx.moveTo(0, -cellSize);
+  ctx.lineTo(0, 0);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+/**
  * Draw a torch decoration on the maze
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} x
@@ -80,7 +139,108 @@ const CanvasRenderer = {
   lastPlayerX: -1,
   lastPlayerY: -1,
   lastRenderTime: 0,
-  renderThrottle: 16, // Limit renders to ~60 FPS
+  renderThrottle: 33, // Limit renders to ~30 FPS for better performance
+
+  /**
+   * Setup and configure canvas elements with proper sizing and rendering contexts
+   */
+  setupCanvas: function(mazeSize, cellSize) {
+    console.log('Setting up canvas with maze size:', mazeSize, 'cell size:', cellSize);
+    
+    // Calculate actual maze dimensions in pixels
+    const mazeWidthPx = mazeSize * cellSize;
+    const mazeHeightPx = mazeSize * cellSize;
+    
+    // Get canvas elements
+    const mazeContainer = document.getElementById("maze-container");
+    const canvas = document.getElementById("maze-canvas");
+    const ctx = canvas.getContext("2d");
+    const playerCanvas = document.getElementById("player-canvas");
+    const playerCtx = playerCanvas.getContext("2d");
+    
+    // Set canvas sizes to the actual maze size
+    canvas.width = mazeWidthPx;
+    canvas.height = mazeHeightPx;
+    playerCanvas.width = mazeWidthPx;
+    playerCanvas.height = mazeHeightPx;
+    
+    // Configure maze canvas for crisp geometric rendering
+    ctx.imageSmoothingEnabled = false; // Pixelated for crisp maze edges
+    
+    // Configure player canvas for smooth sprite rendering
+    playerCtx.imageSmoothingEnabled = true;
+    playerCtx.imageSmoothingQuality = 'high';
+    if (playerCtx.webkitImageSmoothingEnabled !== undefined) playerCtx.webkitImageSmoothingEnabled = true;
+    if (playerCtx.mozImageSmoothingEnabled !== undefined) playerCtx.mozImageSmoothingEnabled = true;
+    if (playerCtx.msImageSmoothingEnabled !== undefined) playerCtx.msImageSmoothingEnabled = true;
+    if (playerCtx.oImageSmoothingEnabled !== undefined) playerCtx.oImageSmoothingEnabled = true;
+    
+    // Create dynamic styles for responsive sizing
+    const style = document.createElement('style');
+    style.textContent = `
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        position: relative;
+        min-height: 100vh;
+        min-width: 100vw;
+      }
+      #maze-container {
+        width: ${mazeWidthPx}px;
+        height: ${mazeHeightPx}px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: visible;
+      }
+      #maze-canvas {
+        display: block;
+        image-rendering: pixelated; /* Crisp edges for maze geometry */
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1; /* Behind player */
+      }
+      #player-canvas {
+        display: block;
+        image-rendering: auto; /* Smooth rendering for player sprite */
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 3; /* Well above maze */
+        pointer-events: none; /* Allow clicks to pass through to maze */
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Store references globally for module access
+    window.mazeContainer = mazeContainer;
+    window.canvas = canvas;
+    window.ctx = ctx;
+    window.playerCanvas = playerCanvas;
+    window.playerCtx = playerCtx;
+    
+    console.log('Canvas setup complete:', {
+      canvasSize: [mazeWidthPx, mazeHeightPx],
+      mazeSize: mazeSize,
+      cellSize: cellSize
+    });
+    
+    return {
+      mazeContainer,
+      canvas,
+      ctx,
+      playerCanvas,
+      playerCtx,
+      mazeWidthPx,
+      mazeHeightPx
+    };
+  },
 
   /**
    * Initialize sprite loading - DOM-based approach with FIXED positioning
@@ -322,34 +482,6 @@ const CanvasRenderer = {
           if (typeof drawSpike === 'function') drawSpike(ctx, x, y, cellSize); // Draw spike
           continue;
         }
-/**
- * Draw a spike decoration on the maze
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} x
- * @param {number} y
- * @param {number} cellSize
- */
-function drawSpike(ctx, x, y, cellSize) {
-  ctx.save();
-  // Position at bottom center of cell
-  ctx.translate(x + cellSize/2, y + cellSize);
-  // Draw spike base (triangle fills cell vertically)
-  ctx.beginPath();
-  ctx.moveTo(-cellSize*0.4, 0); // left base
-  ctx.lineTo(0, -cellSize);    // tip at top of cell
-  ctx.lineTo(cellSize*0.4, 0); // right base
-  ctx.closePath();
-  ctx.fillStyle = '#B0BEC5'; // Light gray for spike
-  ctx.fill();
-  // Spike highlight
-  ctx.beginPath();
-  ctx.moveTo(0, -cellSize);
-  ctx.lineTo(0, 0);
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.restore();
-}
       }
     }
     // Removed drawHearts(window.ctx); from drawMaze (hearts now use overlay)
@@ -359,13 +491,16 @@ function drawSpike(ctx, x, y, cellSize) {
   },
 
   /**
-   * Draw the player - DOM-based positioning with animation
+   * Draw the player - DOM-based positioning with animation (optimized)
    */
   drawPlayer: function() {
     if (!this.playerElement) return;
     
-    // Handle animation when moving
-    this.updateAnimation();
+    // Only update sprite position when actually needed
+    this.updateSpritePosition();
+    
+    // Animation is handled by PlayerAnimation's independent loop
+    // No need to call updateAnimation here anymore
   },
 
   /**
@@ -373,16 +508,31 @@ function drawSpike(ctx, x, y, cellSize) {
    */
   updatePlayerPosition: function() {
     if (!this.playerElement) return;
-    
+
     // Use the dedicated positioning function for consistency
     this.updateSpritePosition();
-    
-    // The drawPlayer function will handle animation during the regular render cycle
-    // No need to duplicate animation logic here
+
+    // Detect collision with spikes/enemies in a square around the player
+    // Get player position in maze coordinates
+    if (window.player) {
+      // Calculate player position in maze grid
+      const top = parseInt(window.player.style.top);
+      const left = parseInt(window.player.style.left);
+      const cellSize = window.cellSize;
+      const playerRow = Math.round(top / cellSize);
+      const playerCol = Math.round(left / cellSize);
+      if (detectCollisionWithEnemiesAndSpikes(playerRow, playerCol, 1)) {
+        // Collision detected: lose a heart or trigger game logic
+        if (typeof window.loseHeart === 'function') {
+          window.loseHeart();
+        }
+      }
+    }
   },
 
   /**
    * Update sprite position - SIMPLE: Always center on screen (window viewport)
+   * Optimized to avoid unnecessary DOM updates
    */
   updateSpritePosition: function() {
     if (!this.playerElement) {
@@ -401,18 +551,21 @@ function drawSpike(ctx, x, y, cellSize) {
     const centerX = (windowWidth / 2) - (spriteSize / 2);
     const centerY = (windowHeight / 2) - (spriteSize / 2);
     
-    console.log(`🎯 Positioning sprite at: (${centerX}, ${centerY}) in window ${windowWidth}x${windowHeight}`);
+    // Only update DOM if position actually changed (avoid unnecessary reflows)
+    const currentLeft = parseInt(this.playerElement.style.left) || 0;
+    const currentTop = parseInt(this.playerElement.style.top) || 0;
     
-    // Apply position immediately
-    this.playerElement.style.left = centerX + 'px';
-    this.playerElement.style.top = centerY + 'px';
+    if (Math.abs(currentLeft - centerX) > 1 || Math.abs(currentTop - centerY) > 1) {
+      this.playerElement.style.left = centerX + 'px';
+      this.playerElement.style.top = centerY + 'px';
+    }
     
     // DON'T force background position here - let the animation system handle it!
     // The animation system will set the correct frame via updateSpriteFrame()
   },
 
   /**
-   * Main rendering function - ULTRA SIMPLIFIED for maximum performance
+   * Main rendering function - OPTIMIZED with dirty checking
    */
   renderFrame: function() {
     // Frame rate throttling - don't render more than ~60 FPS
@@ -427,11 +580,19 @@ function drawSpike(ctx, x, y, cellSize) {
     if (!this.mazeDrawn) {
       this.drawMaze();
       this.mazeDrawn = true;
-      // Debug logging removed for performance
     }
     
-    // Always update player (this is fast since it's DOM-based)
-    this.drawPlayer();
+    // DIRTY RENDERING: Only update player if position actually changed
+    const currentPlayerX = window.playerX || 0;
+    const currentPlayerY = window.playerY || 0;
+    
+    if (currentPlayerX !== this.lastPlayerX || currentPlayerY !== this.lastPlayerY) {
+      // Player position changed - update sprite
+      this.drawPlayer();
+      this.lastPlayerX = currentPlayerX;
+      this.lastPlayerY = currentPlayerY;
+    }
+    // If player hasn't moved, skip the expensive player update
   },
 
   /**
@@ -536,6 +697,7 @@ function updateHeartOverlay() {
     heartDiv.style.fontFamily = 'Arial, sans-serif';
     heartDiv.style.color = '#FF1744';
     heartDiv.style.textShadow = '0 2px 8px #FF5252';
+    heartDiv.style.display = 'none'; // Hidden by default
     document.body.appendChild(heartDiv);
   }
   let hearts = '';
@@ -545,6 +707,9 @@ function updateHeartOverlay() {
   heartDiv.innerHTML = hearts;
 }
 
+// Make updateHeartOverlay globally accessible
+window.updateHeartOverlay = updateHeartOverlay;
+
 // Utility to show/hide heart overlay
 function setHeartOverlayVisible(visible) {
   const heartDiv = document.getElementById('heart-overlay');
@@ -552,6 +717,9 @@ function setHeartOverlayVisible(visible) {
     heartDiv.style.display = visible ? 'block' : 'none';
   }
 }
+
+// Make setHeartOverlayVisible globally accessible
+window.setHeartOverlayVisible = setHeartOverlayVisible;
 
 // Lose a heart and trigger invincibility/blink
 window.loseHeart = function() {
@@ -583,8 +751,23 @@ window.loseHeart = function() {
       }
     }, blinkInterval);
     if (window.playerHearts === 0) {
-      // Game over: show end screen or reset
-      if (window.endScreen) window.endScreen.classList.remove('hidden');
+      // Game over: show end screen with failure message
+      if (window.endScreen) {
+        window.endScreen.classList.remove('hidden');
+        // Set failure message and hide personal best
+        var personalBestElem = document.getElementById('personal-best');
+        var newPersonalBestElem = document.getElementById('new-personal-best');
+        var endContentElem = document.getElementById('end-content');
+        if (endContentElem) {
+          endContentElem.textContent = 'Level Failed...';
+        }
+        if (personalBestElem) {
+          personalBestElem.style.display = 'none';
+        }
+        if (newPersonalBestElem) {
+          newPersonalBestElem.style.display = 'none';
+        }
+      }
       setHeartOverlayVisible(false);
     }
   }

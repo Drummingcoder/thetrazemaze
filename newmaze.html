@@ -376,18 +376,423 @@
       left: -9999px;
       background-image: url('stickman-running-spritesheet.png'), url('waving-stickman-spritesheet.png');
     }
+
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000000;
+      z-index: 5000;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    /* Start Screen Styles */
+    #start-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, rgba(35, 40, 55, 0.98) 0%, rgba(45, 50, 65, 0.98) 100%);
+      color: #C0C0C0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Courier New', monospace;
+      z-index: 3000;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    #start-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.95);
+    }
+
+    .start-content {
+      text-align: center;
+      max-width: 600px;
+      padding: 40px;
+    }
+
+    .start-content h1 {
+      font-size: 48px;
+      color: #2196F3;
+      margin-bottom: 40px;
+      text-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+      font-weight: bold;
+    }
+
+    .start-buttons {
+      display: flex;
+      flex-direction: row;
+      gap: 30px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .start-buttons button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #7B7F85 100%);
+      color: #FFFFFF;
+      border: 3px solid #E1BEE7;
+      border-radius: 20px;
+      padding: 18px 45px;
+      font-size: 20px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      min-width: 180px;
+      box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .start-buttons button::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transform: rotate(45deg);
+      transition: all 0.5s;
+      opacity: 0;
+    }
+
+    .start-buttons button:hover {
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 50%, #0D47A1 100%);
+      color: #FFFFFF;
+      border-color: #1976D2;
+      transform: translateY(-4px) scale(1.05);
+      box-shadow: 0 12px 40px rgba(33, 150, 243, 0.6);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .start-buttons button:hover::before {
+      opacity: 1;
+      animation: shimmer 0.6s ease-in-out;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    .start-buttons button:active {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 8px 25px rgba(33, 150, 243, 0.5);
+    }
+
+    /* Settings gear icon in top right */
+    #settings-gear {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #7B7F85 0%, #C0C0C0 100%);
+      border: 2px solid #A0A4AA;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #232837;
+      transition: all 0.3s ease;
+      z-index: 3001;
+      box-shadow: 0 2px 8px rgba(123, 127, 133, 0.2);
+    }
+
+    #settings-gear:hover {
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+      color: #C0C0C0;
+      border-color: #1976D2;
+      transform: rotate(180deg);
+      box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+    }
+
+    /* About button in bottom right */
+    #about-corner {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #7B7F85 0%, #C0C0C0 100%);
+      color: #232837;
+      border: 2px solid #A0A4AA;
+      border-radius: 25px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 3001;
+      box-shadow: 0 2px 8px rgba(123, 127, 133, 0.2);
+    }
+
+    #about-corner:hover {
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+      color: #C0C0C0;
+      border-color: #1976D2;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+    }
+
+    /* Level Select Screen Styles */
+    #level-select-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, rgba(35, 40, 55, 0.98) 0%, rgba(45, 50, 65, 0.98) 100%);
+      color: #C0C0C0;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Courier New', monospace;
+      z-index: 3000;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    #level-select-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.95);
+    }
+
+    .level-select-content {
+      text-align: center;
+      max-width: 1000px;
+      padding: 30px;
+    }
+
+    .level-select-content h1 {
+      font-size: 42px;
+      color: #2196F3;
+      margin-bottom: 20px;
+      text-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+      font-weight: bold;
+    }
+
+    .level-select-content p {
+      font-size: 18px;
+      color: #C0C0C0;
+      margin-bottom: 40px;
+      opacity: 0.8;
+    }
+
+    .level-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .level-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #7B7F85 100%);
+      color: #FFFFFF;
+      border: 3px solid #E1BEE7;
+      border-radius: 15px;
+      padding: 15px 15px;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+      min-height: 120px;
+    }
+
+    .level-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transform: rotate(45deg);
+      transition: all 0.5s;
+      opacity: 0;
+    }
+
+    .level-card:hover {
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 50%, #0D47A1 100%);
+      border-color: #1976D2;
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 15px 45px rgba(33, 150, 243, 0.6);
+    }
+
+    .level-card:hover::before {
+      opacity: 1;
+      animation: shimmer 0.6s ease-in-out;
+    }
+
+    .level-card.locked {
+      background: linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%);
+      border-color: #9CA3AF;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .level-card.locked:hover {
+      background: linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%);
+      transform: none;
+      box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .level-number {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .level-name {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .level-difficulty {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .back-to-menu {
+      background: linear-gradient(135deg, #7B7F85 0%, #C0C0C0 100%);
+      color: #232837;
+      border: 2px solid #A0A4AA;
+      border-radius: 25px;
+      padding: 12px 30px;
+      font-size: 16px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(123, 127, 133, 0.2);
+    }
+
+    .back-to-menu:hover {
+      background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+      color: #C0C0C0;
+      border-color: #1976D2;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+    }
   </style>
 </head>
 <body>
+  <!-- Black loading screen overlay -->
+  <div id="loading-overlay"></div>
   <!-- COMMENTED OUT - Two large waving stickmen on either side of the maze -->
   <!-- <div class="waving-stickman stickman-left"></div> -->
   <!-- <div class="waving-stickman stickman-right"></div> -->
   
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <!-- Settings gear icon in top right -->
+    <div id="settings-gear" title="Settings">⚙️</div>
+    
+    <!-- About button in bottom right -->
+    <div id="about-corner" title="About">About</div>
+    
+    <div class="start-content">
+      <h1>The Traze Maze</h1>
+      <div class="start-buttons">
+        <button id="start-game-btn">🚀 Start Game</button>
+        <button id="upgrades-btn">⭐ Upgrades</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Level Select Screen -->
+  <div id="level-select-screen">
+    <div class="level-select-content">
+      <h1>Select Level</h1>
+      <p>Choose your challenge and test your maze-solving skills!</p>
+      
+      <div class="level-grid">
+        <div class="level-card" id="level-1-card" data-level="1">
+          <div class="level-number">Level 1</div>
+          <div class="level-name">🌟 The Beginning</div>
+        </div>
+        
+        <div class="level-card locked" id="level-2-card" data-level="2">
+          <div class="level-number">Level 2</div>
+          <div class="level-name">🔥 Heat Wave</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+        
+        <div class="level-card locked" id="level-3-card" data-level="3">
+          <div class="level-number">Level 3</div>
+          <div class="level-name">❄️ Ice Palace</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+        
+        <div class="level-card locked" id="level-4-card" data-level="4">
+          <div class="level-number">Level 4</div>
+          <div class="level-name">⚡ Lightning Storm</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+        
+        <div class="level-card locked" id="level-5-card" data-level="5">
+          <div class="level-number">Level 5</div>
+          <div class="level-name">🌊 Ocean Depths</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+        
+        <div class="level-card locked" id="level-6-card" data-level="6">
+          <div class="level-number">Level 6</div>
+          <div class="level-name">🌋 Volcano Core</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+        
+        <div class="level-card locked" id="level-7-card" data-level="7">
+          <div class="level-number">Level 7</div>
+          <div class="level-name">🌌 Space Station</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+        
+        <div class="level-card locked" id="level-8-card" data-level="8">
+          <div class="level-number">Level 8</div>
+          <div class="level-name">🏰 Ancient Castle</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+        
+        <div class="level-card locked" id="level-9-card" data-level="9">
+          <div class="level-number">Level 9</div>
+          <div class="level-name">🎭 Mirror Maze</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+        
+        <div class="level-card locked" id="level-10-card" data-level="10">
+          <div class="level-number">Level 10</div>
+          <div class="level-name">👑 Final Challenge</div>
+          <div class="level-difficulty">Coming Soon</div>
+        </div>
+      </div>
+      
+      <button class="back-to-menu" id="back-to-menu-btn">← Back to Menu</button>
+    </div>
+  </div>
+
   <div id="timer">00:00.000</div>
   <div id="dash-indicator">Dash Ready</div>
   <div id="ground-pound-indicator">Ground Pound Ready</div>
   <div id="controls-hint">Arrow Keys/WASD: Move | Shift/Space: Dash | Hold Up/W: Charge Jump | Down/S (in air): Ground Pound</div>
-  <!-- <div id="debug-console"></div> -->
+  <!--<div id="debug-console"></div>-->
   <div id="maze-container">
     <canvas id="maze-canvas"></canvas>
     <canvas id="player-canvas"></canvas>
@@ -395,7 +800,7 @@
 
   <div id="end-screen" class="hidden">
   <button id="back-button">Back</button>
-  <h2>Congratulations!</h2>
+  <h2 id="end-content">Congratulations!</h2>
 
   <div id="end-time-taken"></div>
   <div id="personal-best">
@@ -407,6 +812,8 @@
   </div>
   
   <!-- Modular JavaScript Files - Load in dependency order -->
+  <script src="./js/debug-console.js"></script>
+  <script src="./js/url-parameters.js"></script>
   <script src="./js/audio-manager.js"></script>
   <script src="./js/game-timer.js"></script>
   <script src="./js/personal-best-manager.js"></script>
@@ -416,41 +823,368 @@
   <script src="./js/player-animation.js"></script>
   <script src="./js/canvas-renderer.js"></script>
   <script src="./js/player-controller.js"></script>
+  <script src="./js/event-handler.js"></script>
   <script src="./js/game-initializer.js"></script>
   <script src="./js/game-actions.js"></script>
   <script src="./js/main-library.js"></script>
 
   <script>
     // =================================================================
-    // DEBUG CONSOLE SYSTEM
+    // START SCREEN MANAGEMENT
     // =================================================================
-    window.debugLog = function(message, type = 'info') {
-      const debugConsole = document.getElementById('debug-console');
-      if (!debugConsole) return;
+    
+    // Start screen state
+    let isGameStarted = false;
+    
+    // Initialize start screen
+    function initializeStartScreen() {
+      const startScreen = document.getElementById('start-screen');
+      const startGameBtn = document.getElementById('start-game-btn');
+      const settingsGear = document.getElementById('settings-gear');
+      const upgradesBtn = document.getElementById('upgrades-btn');
+      const aboutCorner = document.getElementById('about-corner');
       
-      const timestamp = new Date().toLocaleTimeString() + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
-      const entry = document.createElement('div');
-      entry.className = `debug-entry debug-${type}`;
-      entry.innerHTML = `<span class="debug-timestamp">[${timestamp}]</span> ${message}`;
+      // Hide game elements initially
+      const gameElements = [
+        document.getElementById('timer'),
+        document.getElementById('dash-indicator'),
+        document.getElementById('ground-pound-indicator'),
+        document.getElementById('controls-hint'),
+        document.getElementById('maze-container')
+      ];
       
-      debugConsole.appendChild(entry);
-      
-      // Auto-scroll to bottom
-      debugConsole.scrollTop = debugConsole.scrollHeight;
-      
-      // Keep only last 100 entries to prevent memory issues
-      const entries = debugConsole.querySelectorAll('.debug-entry');
-      if (entries.length > 100) {
-        entries[0].remove();
+      // Also hide the controls hint specifically
+      const controlsHint = document.getElementById('controls-hint');
+      if (controlsHint) {
+        controlsHint.classList.add('hidden');
       }
-    };
+      
+      // Hide heart overlay if it exists
+      if (typeof setHeartOverlayVisible === 'function') {
+        setHeartOverlayVisible(false);
+      } else {
+        // Fallback: hide heart overlay directly
+        const heartOverlay = document.getElementById('heart-overlay');
+        if (heartOverlay) {
+          heartOverlay.style.display = 'none';
+        }
+      }
+      
+      gameElements.forEach(element => {
+        if (element) {
+          element.style.display = 'none';
+        }
+      });
+      
+      // Start game button handler - now goes to level select
+      if (startGameBtn) {
+        startGameBtn.addEventListener('click', function() {
+          console.log('Start Game clicked - showing level select');
+          showLevelSelect();
+        });
+      }
+      // Settings gear icon handler (placeholder for now)
+      if (settingsGear) {
+        settingsGear.addEventListener('click', function() {
+          console.log('Settings gear clicked');
+          alert('Settings feature coming soon!');
+        });
+      }
+      
+      // Upgrades button handler (placeholder for now)
+      if (upgradesBtn) {
+        upgradesBtn.addEventListener('click', function() {
+          console.log('Upgrades clicked');
+          alert('Upgrades feature coming soon! 🚀\n\nUpgrade your player with:\n• Faster movement speed\n• Longer dash distance\n• Reduced cooldowns\n• Special abilities');
+        });
+      }
+      
+      // About corner button handler (placeholder for now)
+      if (aboutCorner) {
+        aboutCorner.addEventListener('click', function() {
+          console.log('About corner clicked');
+          alert('The Traze Maze v2.0\n\nNavigate through the maze as fast as you can!\n\nControls:\n• Arrow Keys/WASD: Move\n• Shift/Space: Dash\n• Hold Up/W: Charge Jump\n• Down/S (in air): Ground Pound\n\nCreated by Drummingcoder');
+        });
+      }
+    }
+    
+    // Show level select screen
+    function showLevelSelect() {
+      console.log('Showing level select screen...');
+      
+      // Hide start screen
+      const startScreen = document.getElementById('start-screen');
+      if (startScreen) {
+        startScreen.classList.add('hidden');
+        setTimeout(() => {
+          startScreen.style.display = 'none';
+        }, 500);
+      }
+      
+      // Show level select screen
+      const levelSelectScreen = document.getElementById('level-select-screen');
+      if (levelSelectScreen) {
+        setTimeout(() => {
+          levelSelectScreen.style.display = 'flex';
+          setTimeout(() => {
+            levelSelectScreen.classList.remove('hidden');
+          }, 50);
+        }, 300);
+      }
+      
+      // Setup level select event listeners
+      setupLevelSelectListeners();
+    }
+    
+    // Setup level select event listeners
+    function setupLevelSelectListeners() {
+      // Level 1 card (unlocked)
+      const level1Card = document.getElementById('level-1-card');
+      if (level1Card) {
+        level1Card.addEventListener('click', function() {
+          console.log('Level 1 selected');
+          startGameWithLevel(1);
+        });
+      }
+      
+      // Locked level cards (levels 2-10, show coming soon message)
+      const lockedCards = document.querySelectorAll('.level-card.locked');
+      lockedCards.forEach(card => {
+        card.addEventListener('click', function() {
+          const levelNum = card.getAttribute('data-level');
+          console.log(`Locked level ${levelNum} clicked`);
+          alert(`Level ${levelNum} is coming soon! 🚧\n\nStay tuned for more challenging mazes!`);
+        });
+      });
+      
+      // Back to menu button
+      const backToMenuBtn = document.getElementById('back-to-menu-btn');
+      if (backToMenuBtn) {
+        backToMenuBtn.addEventListener('click', function() {
+          console.log('Back to menu clicked');
+          showStartScreen();
+        });
+      }
+    }
+    
+    // Show start screen (back from level select)
+    function showStartScreen() {
+      console.log('Returning to start screen...');
+      
+      // Cleanup game systems to stop timers and movement
+      if (window.GameInitializer && window.GameInitializer.cleanupGameSystems) {
+        window.GameInitializer.cleanupGameSystems();
+      }
+      
+      // Hide end screen if it's showing
+      const endScreen = document.getElementById('end-screen');
+      if (endScreen && !endScreen.classList.contains('hidden')) {
+        endScreen.classList.add('hidden');
+      }
+      
+      // Hide game elements
+      const gameElements = [
+        document.getElementById('timer'),
+        document.getElementById('dash-indicator'),
+        document.getElementById('ground-pound-indicator'),
+        document.getElementById('controls-hint'),
+        document.getElementById('maze-container')
+      ];
+      
+      gameElements.forEach(element => {
+        if (element) {
+          element.style.display = 'none';
+        }
+      });
+      
+      // Reset game started flag
+      isGameStarted = false;
+      
+      // Hide level select screen
+      const levelSelectScreen = document.getElementById('level-select-screen');
+      if (levelSelectScreen) {
+        levelSelectScreen.classList.add('hidden');
+        setTimeout(() => {
+          levelSelectScreen.style.display = 'none';
+        }, 500);
+      }
+      
+      // Show start screen
+      const startScreen = document.getElementById('start-screen');
+      if (startScreen) {
+        setTimeout(() => {
+          startScreen.style.display = 'flex';
+          setTimeout(() => {
+            startScreen.classList.remove('hidden');
+          }, 50);
+        }, 300);
+      }
+    }
+    
+    // Make showStartScreen globally available
+    window.showStartScreen = showStartScreen;
+    
+    // Start game with specific level
+    function startGameWithLevel(levelNumber) {
+      console.log(`Starting game with level ${levelNumber}...`);
+      
+      // Set the selected level globally
+      window.selectedLevel = levelNumber;
+      
+      // CRITICAL: Use existing GameInitializer reset functions
+      if (window.GameInitializer) {
+        console.log('Calling GameInitializer.restartForNewLevel() for level', levelNumber);
+        window.GameInitializer.restartForNewLevel();
+      }
+      
+      // Re-initialize maze data for the selected level AFTER reset
+      const mazeData = window.MazeGenerator.getMazeData(levelNumber);
+      console.log('Loading maze data for level', levelNumber, ':', mazeData);
+      
+      // Update global maze variables
+      window.mazeStructure = mazeData.mazeStructure;
+      window.mazeSize = mazeData.mazeSize;
+      window.startRow = mazeData.startRow;
+      window.startCol = mazeData.startCol;
+      window.endRow = mazeData.endRow;
+      window.endCol = mazeData.endCol;
+      
+      // Recalculate cell size for the new maze size
+      const availableWidth = window.innerWidth;
+      const availableHeight = window.innerHeight;
+      const maxCellSizeWidth = Math.floor(availableWidth / window.mazeSize);
+      const maxCellSizeHeight = Math.floor(availableHeight / window.mazeSize);
+      window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
+      
+      // Ensure minimum cell size
+      if (window.cellSize < 3) {
+        window.cellSize = 3;
+      }
+      
+      // Update canvas sizes
+      const mazeWidthPx = window.mazeSize * window.cellSize;
+      const mazeHeightPx = window.mazeSize * window.cellSize;
+      
+      if (window.canvas) {
+        window.canvas.width = mazeWidthPx;
+        window.canvas.height = mazeHeightPx;
+        console.log('Canvas resized to:', mazeWidthPx, 'x', mazeHeightPx);
+      }
+      
+      if (window.playerCanvas) {
+        window.playerCanvas.width = mazeWidthPx;
+        window.playerCanvas.height = mazeHeightPx;
+        console.log('Player canvas resized to:', mazeWidthPx, 'x', mazeHeightPx);
+      }
+      
+      // Force reset player position after maze data is updated
+      window.playerX = window.startCol * window.cellSize;
+      window.playerY = window.startRow * window.cellSize;
+      console.log('Player position force-reset to:', window.playerX, window.playerY);
+      
+      // Force render to ensure maze displays
+      if (window.CanvasRenderer) {
+        setTimeout(() => {
+          console.log('Force rendering maze after level change...');
+          window.CanvasRenderer.renderFrame();
+        }, 100);
+      }
+      
+      // Start the actual game
+      startGame(levelNumber);
+    }
+    
+    // Start the actual game (modified to accept level parameter)
+    function startGame(levelNumber = 1) {
+      console.log(`Starting game... Level: ${levelNumber}`);
+      isGameStarted = true;
+      
+      // Show loading overlay during game initialization
+      const loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) {
+        loadingOverlay.style.display = 'block';
+        loadingOverlay.style.opacity = '1';
+      }
+      
+      // Hide level select screen (or start screen if coming directly)
+      const levelSelectScreen = document.getElementById('level-select-screen');
+      const startScreen = document.getElementById('start-screen');
+      
+      if (levelSelectScreen && levelSelectScreen.style.display === 'flex') {
+        levelSelectScreen.classList.add('hidden');
+        setTimeout(() => {
+          levelSelectScreen.style.display = 'none';
+        }, 500);
+      } else if (startScreen && startScreen.style.display !== 'none') {
+        startScreen.classList.add('hidden');
+        setTimeout(() => {
+          startScreen.style.display = 'none';
+        }, 500);
+      }
+      
+      // Show game elements
+      const gameElements = [
+        document.getElementById('timer'),
+        document.getElementById('dash-indicator'),
+        document.getElementById('ground-pound-indicator'),
+        document.getElementById('controls-hint'),
+        document.getElementById('maze-container')
+      ];
+      
+      gameElements.forEach(element => {
+        if (element) {
+          element.style.display = 'block';
+        }
+      });
+      
+      // Also remove the hidden class from controls hint
+      const controlsHint = document.getElementById('controls-hint');
+      if (controlsHint) {
+        controlsHint.classList.remove('hidden');
+      }
+      
+      // Show heart overlay when game starts
+      if (typeof setHeartOverlayVisible === 'function') {
+        setHeartOverlayVisible(true);
+      } else {
+        // Fallback: show heart overlay directly
+        const heartOverlay = document.getElementById('heart-overlay');
+        if (heartOverlay) {
+          heartOverlay.style.display = 'block';
+        }
+      }
+      
+      // Initialize the actual game
+      setTimeout(() => {
+        initializeGame();
+        
+        // Hide loading overlay after game is initialized
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+          setTimeout(() => {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+              loadingOverlay.style.display = 'none';
+            }, 400);
+          }, 500); // Give the game time to fully initialize
+        }
+      }, 100);
+    }
 
-    // Clear debug console function
-    window.clearDebug = function() {
-      const debugConsole = document.getElementById('debug-console');
-      if (debugConsole) debugConsole.innerHTML = '';
-    };
-
+    // Show black loading overlay and fade out after 0.75s
+    window.addEventListener('DOMContentLoaded', function() {
+      var loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) {
+        setTimeout(function() {
+          loadingOverlay.style.opacity = '0';
+          setTimeout(function() {
+            loadingOverlay.style.display = 'none';
+            // Initialize start screen after loading overlay disappears
+            initializeStartScreen();
+          }, 400);
+        }, 750);
+      }
+    });
     // =================================================================
     // MAIN GAME INITIALIZATION AND COORDINATION
     // =================================================================
@@ -470,67 +1204,7 @@
       // Silently handle storage errors
     }
     
-    // Lazy audio loading system - loads audio after maze initialization
-    let audioPreloaded = false;
-    let musicStarted = false;
-    let audioLoadingInProgress = false;
-    let audioCheckInterval = null; // Global audio check interval tracker
-
-    function preloadAudioAsync() {
-      if (audioPreloaded || audioLoadingInProgress) return;
-      
-      audioLoadingInProgress = true;
-      console.log('Starting lazy audio preload...');
-      
-      // Use setTimeout to prevent blocking the main thread
-      setTimeout(() => {
-        try {
-          // Use AudioManager directly instead of myLibrary
-          if (window.AudioManager) {
-            console.log('Calling AudioManager.preloadAudio()...');
-            window.AudioManager.preloadAudio();
-            
-            // Add event listeners to check if audio actually loads
-            if (window.AudioManager.preloadedAudio) {
-              window.AudioManager.preloadedAudio.addEventListener('canplaythrough', () => {
-                audioPreloaded = true;
-                audioLoadingInProgress = false;
-                console.log('Audio preloaded successfully via AudioManager - canplaythrough event');
-              });
-              
-              window.AudioManager.preloadedAudio.addEventListener('error', (e) => {
-                console.error('Audio loading error:', e);
-                audioPreloaded = false;
-                audioLoadingInProgress = false;
-              });
-              
-              // Fallback timeout - mark as loaded after 2 seconds even if no event fires
-              setTimeout(() => {
-                if (audioLoadingInProgress) {
-                  console.log('Audio preload timeout - assuming loaded');
-                  audioPreloaded = true;
-                  audioLoadingInProgress = false;
-                }
-              }, 2000);
-            } else {
-              console.warn('AudioManager.preloadedAudio is null after preloadAudio call');
-              audioPreloaded = false;
-              audioLoadingInProgress = false;
-            }
-          } else {
-            console.warn('AudioManager not available, trying myLibrary fallback');
-            myLibrary.preloadAudio();
-            audioPreloaded = true;
-            audioLoadingInProgress = false;
-            console.log('Audio preloaded successfully via myLibrary');
-          }
-        } catch (error) {
-          console.warn('Audio preload failed:', error);
-          audioPreloaded = false;
-          audioLoadingInProgress = false;
-        }
-      }, 150); // Small delay to ensure maze is fully rendered first
-    }
+    // Audio loading moved to AudioManager module
 
     // Preload assets immediately when script loads
     window.addEventListener('DOMContentLoaded', function() {
@@ -544,66 +1218,34 @@
       });
     });
  
-  var searchParams = new URLSearchParams(window.location.search);
-  var type = searchParams.get('type');
-  var multiple = searchParams.get('multiple');
-  var difficulty = searchParams.get('difficulty') || 'medium'; // Default to medium if not specified
-  var mode = searchParams.get('mode') || 'hard'; // Default to hard mode if not specified
+  // Initialize URL parameters using module
+  if (window.URLParameters) {
+    window.URLParameters.init();
+  } else {
+    console.error('URLParameters module not loaded');
+    // Fallback values
+    window.type = null;
+    window.multiple = null;
+    window.difficulty = 'medium';
+    window.mode = 'hard';
+    window.easy = false;
+  }
   
-  // Complex navigable maze with 4x4 path areas and 2x2 walls - designed for challenge and fun (1 = wall, 0 = path)
-  const predefinedMaze = [
-     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,1,1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,1,1,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,2,0,1,1,0,0,0,0,0,0,0,0,2,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,3,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,2,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,2,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,3,1,1,0,0,0,0,0,0,0,0,0,3,1,1,3,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,3,0,0,0,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,1,0,0,0,0,1,1,0,0,2,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,3,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,2,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,2,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,3,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,2,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,2,0,0,1],
-    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-  ];
+  // Get maze data from MazeGenerator module
+  console.log('MazeGenerator available:', !!window.MazeGenerator);
+  if (window.MazeGenerator) {
+    console.log('MazeGenerator.getMazeData available:', !!window.MazeGenerator.getMazeData);
+  }
+  
+  // Get the selected level (default to 1 if not set)
+  const selectedLevel = window.selectedLevel || 1;
+  const mazeData = MazeGenerator.getMazeData(selectedLevel);
+  console.log('Maze data for level', selectedLevel, ':', mazeData);
+  const predefinedMaze = mazeData.mazeStructure;
   
   // Set maze size based on predefined maze
-  mazeSize = predefinedMaze.length;
+  mazeSize = mazeData.mazeSize;
+  console.log('Maze size:', mazeSize);
   
   // Calculate the maximum possible cell size to fill the screen
   const availableWidth = window.innerWidth;
@@ -704,6 +1346,7 @@
     const endScreen = document.getElementById("end-screen");
     const restartButton = document.getElementById("restart-button");
     const backButton = document.getElementById("back-button");
+    const endText = document.getElementById("end-content");
     const endContent = document.getElementById("end-time-taken");
     const personalbest = document.getElementById("personal-best");
     const newpersonalbest = document.getElementById("new-personal-best");
@@ -715,6 +1358,7 @@
     window.restartButton = restartButton;
     window.backButton = backButton;
     window.endContent = endContent;
+    window.endText = endText;
     window.personalbest = personalbest;
     window.newpersonalbest = newpersonalbest;
     window.mazeContainer = mazeContainer;
@@ -750,7 +1394,6 @@
     window.mazecount = mazecount;
     window.type = type;
     window.easy = easy;
-    window.audioCheckInterval = audioCheckInterval;
     
     // Smooth movement system variables (keep some references for compatibility)
     let playerIsMoving = false;
@@ -829,42 +1472,21 @@
       configurable: false
     });
     
-    // IMMEDIATE FORCE RESET player position to starting position (BEFORE ANY OTHER CODE)
-    // EXPLICIT reset with logging
-    playerX = startCol * cellSize;
-    playerY = startRow * cellSize;
+    // Initialize player position using PlayerController
+    if (window.PlayerController && window.PlayerController.initializePlayerPosition) {
+      window.PlayerController.initializePlayerPosition();
+    } else {
+      // Fallback position initialization
+      window.playerX = startCol * cellSize;
+      window.playerY = startRow * cellSize;
+    }
     
-    // Update global player position
-    window.playerX = playerX;
-    window.playerY = playerY;
-    
-    // Don't call createMaze since we're using our own Canvas rendering
-    // myLibrary.createMaze();
-
-    // Create a virtual player object that mimics DOM behavior for library compatibility
-    var player = {
-      style: {
-        get top() { 
-          return window.playerY + "px"; 
-        },
-        set top(value) { 
-          const newY = parseInt(value);
-          window.playerY = newY;
-          // Don't trigger camera/render immediately - let movement system batch updates
-        },
-        get left() { 
-          return window.playerX + "px"; 
-        },
-        set left(value) { 
-          const newX = parseInt(value);
-          window.playerX = newX;
-          // Don't trigger camera/render immediately - let movement system batch updates
-        }
-      }
-    };
-    
-    // Make player global
-    window.player = player;
+    // Create virtual player using PlayerController
+    if (window.PlayerController && window.PlayerController.createVirtualPlayer) {
+      window.PlayerController.createVirtualPlayer();
+    } else {
+      console.warn('PlayerController not available for virtual player creation');
+    }
     
     // Initialize the canvas rendering system
     function initializeGame() {
@@ -905,33 +1527,34 @@
       }
     }
     
-    // Force complete reset on page load
+    // Force complete reset on page load but don't start game yet
     window.addEventListener('load', function() {
-      if (window.CameraSystem) {
-        window.CameraSystem.resetCamera();
-      }
-      initializeGame();
-      
-      // Start audio loading after page is fully loaded and maze is initialized
-      setTimeout(() => {
-        console.log('Checking audio loading conditions...');
-        console.log('audioPreloaded:', audioPreloaded);
-        console.log('audioLoadingInProgress:', audioLoadingInProgress);
-        console.log('AudioManager available:', !!window.AudioManager);
-        console.log('myLibrary available:', !!window.myLibrary);
-        
-        if (typeof audioPreloaded !== 'undefined' && !audioPreloaded && typeof audioLoadingInProgress !== 'undefined' && !audioLoadingInProgress) {
-          if (window.GameInitializer) {
-            console.log('Starting audio preload via GameInitializer...');
-            window.GameInitializer.preloadAudioAsync();
-          } else {
-            console.log('Starting audio preload via local function...');
-            preloadAudioAsync(); // Fallback to local function
-          }
-        } else {
-          console.log('Audio loading conditions not met - skipping preload');
+      // Only initialize if game has been started
+      if (isGameStarted) {
+        if (window.CameraSystem) {
+          window.CameraSystem.resetCamera();
         }
-      }, 200); // Ensure maze has time to fully initialize
+        initializeGame();
+        
+        // Start audio loading after page is fully loaded and maze is initialized
+        setTimeout(() => {
+          console.log('Starting audio preload via AudioManager...');
+          if (window.AudioManager) {
+            console.log('AudioManager available:', !!window.AudioManager);
+            console.log('AudioManager.isAudioPreloaded():', window.AudioManager.isAudioPreloaded());
+            console.log('AudioManager.isAudioLoading():', window.AudioManager.isAudioLoading());
+            
+            if (!window.AudioManager.isAudioPreloaded() && !window.AudioManager.isAudioLoading()) {
+              console.log('Starting audio preload via AudioManager...');
+              window.AudioManager.preloadAudioAsync();
+            } else {
+              console.log('Audio already preloaded or loading - skipping preload');
+            }
+          } else {
+            console.warn('AudioManager not available - audio preload skipped');
+          }
+        }, 200); // Ensure maze has time to fully initialize
+      }
     });
     
     // Add missing resize handler
@@ -941,10 +1564,11 @@
       }
     });
     
-    // No need to wait for sprite loading - initialize immediately
-    initializeGame();
+    // No need to wait for sprite loading - initialize only when game starts
+    // initializeGame(); // Commented out - now handled by start screen
 
-    // Force an immediate render to ensure maze displays
+    // Force an immediate render to ensure maze displays - only when game starts
+    /*
     setTimeout(() => {
       console.log('Forcing initial maze render...');
       console.log('Maze structure exists:', !!window.mazeStructure);
@@ -959,6 +1583,7 @@
         window.CanvasRenderer.renderFrame();
       }
     }, 100);
+    */
 
     // Auto-hide controls hint after 5 seconds
     setTimeout(() => {
@@ -968,152 +1593,24 @@
       }
     }, 5000);
 
-    // Add missing player position update function
+    // Player position update function - delegates to PlayerController
     function updatePlayerPosition() {
-      // PRIORITY: Update the visual sprite first (DOM-based sprite)
-      if (window.CanvasRenderer && window.CanvasRenderer.updatePlayerPosition) {
-        window.CanvasRenderer.updatePlayerPosition();
-      }
-      
-      // Update virtual player for library compatibility (no visual offset)
-      if (window.player && window.player.style) {
-        window.player.style.left = window.playerX + "px";
-        window.player.style.top = window.playerY + "px";
-      }
-      
-      // Also call the PlayerController update if it exists
       if (window.PlayerController && window.PlayerController.updatePlayerPosition) {
         window.PlayerController.updatePlayerPosition();
+      } else {
+        console.warn('PlayerController not available for position update');
       }
     }
 
     // Make this function globally available
     window.updatePlayerPosition = updatePlayerPosition;
 
-  // Smooth pixel-based movement system - replaces cell-based movement
-  window.addEventListener("keydown", (event) => {
-    // Prevent movement if end screen is visible
-    if (endScreen && !endScreen.classList.contains("hidden")) {
-      return;
-    }
-    
-    if (event.key === "y" || event.key === "Y") {
-      // Calculate player's grid position for debugging
-      const playerGridRow = Math.round(playerY / cellSize);
-      const playerGridCol = Math.round(playerX / cellSize);
-      const mazeCenter = Math.round(mazeSize / 2);
-      const distanceFromCenter = Math.sqrt(Math.pow(playerGridRow - mazeCenter, 2) + Math.pow(playerGridCol - mazeCenter, 2));
-      
-      console.log(`Player Position: Row ${playerGridRow}, Col ${playerGridCol} (Pixel: ${playerX}, ${playerY}) (distance from center: ${distanceFromCenter.toFixed(2)})`);
-      return;
-    }
-    
-    // Handle dash key separately
-    if (event.key === "Shift" || event.key === " ") {
-      event.preventDefault();
-      if (window.PlayerController) {
-        window.PlayerController.handleDashKey();
-      }
-      return;
-    }
-    
-    if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
-      event.preventDefault();
-      
-      // Start timer and music only once
-      if (!interval) {
-        interval = true;
-        const timerResult = myLibrary.startTimer(timerElement);
-        if (timerResult && timerResult.startTime) {
-          startTime = timerResult.startTime;
-          window.startTime = startTime;
-        }
-      }
-      if (first === 0) {
-        // Smart music playback - play immediately if loaded, queue if still loading
-        if (audioPreloaded && !musicStarted) {
-          // Audio ready - start music immediately
-          setTimeout(() => {
-            try {
-              // Use AudioManager directly instead of myLibrary
-              if (window.AudioManager) {
-                window.AudioManager.playMusic();
-                musicStarted = true;
-                console.log('Music started successfully via AudioManager');
-              } else {
-                console.warn('AudioManager not available, trying myLibrary fallback');
-                myLibrary.playMusic();
-                musicStarted = true;
-                console.log('Music started successfully via myLibrary');
-              }
-            } catch (error) {
-              console.warn('Music playback failed:', error);
-            }
-          }, 0);
-        } else if (!musicStarted && !window.audioCheckInterval) {
-          // Audio not ready - set up a check to start music when available
-          console.log('Audio still loading, will start music when ready...');
-          window.audioCheckInterval = setInterval(() => {
-            if (audioPreloaded && !musicStarted) {
-              try {
-                // Use AudioManager directly instead of myLibrary
-                if (window.AudioManager) {
-                  window.AudioManager.playMusic();
-                  musicStarted = true;
-                  console.log('Music started after audio loading completed via AudioManager');
-                } else {
-                  console.warn('AudioManager not available, trying myLibrary fallback');
-                  myLibrary.playMusic();
-                  musicStarted = true;
-                  console.log('Music started after audio loading completed via myLibrary');
-                }
-                clearInterval(window.audioCheckInterval);
-                window.audioCheckInterval = null;
-              } catch (error) {
-                console.warn('Music playback failed:', error);
-                clearInterval(window.audioCheckInterval);
-                window.audioCheckInterval = null;
-              }
-            }
-          }, 250); // Check every 250ms instead of 100ms to reduce overhead
-          
-          // Safety timeout to prevent infinite checking (stop trying after 10 seconds)
-          setTimeout(() => {
-            if (!musicStarted && window.audioCheckInterval) {
-              console.warn('Audio loading timeout - continuing without music');
-              clearInterval(window.audioCheckInterval);
-              window.audioCheckInterval = null;
-            }
-          }, 10000);
-        }
-        first++;
-      }
-      
-      // Mark player as moving and handle smooth movement
-      if (window.PlayerController) {
-        // Hide controls hint when user starts moving
-        const controlsHint = document.getElementById('controls-hint');
-        if (controlsHint && !controlsHint.classList.contains('hidden')) {
-          controlsHint.classList.add('hidden');
-        }
-        
-        // Start smooth movement system if not already running
-        if (window.PlayerController.startSmoothMovement && !window.PlayerController.isMovementActive) {
-          window.PlayerController.startSmoothMovement();
-        }
-        window.PlayerController.handleKeyDown(event.key);
-      }
-    }
-  });
-
-  window.addEventListener("keyup", (event) => {
-    if (event.key.includes("Arrow") || event.key === "w" || event.key === "a" || event.key === "s" || event.key === "d") {
-      // Handle key release through PlayerController
-      if (window.PlayerController) {
-        window.PlayerController.handleKeyUp(event.key);
-      }
-    }
-  });
+  // Setup event handling through EventHandler module
+  if (window.EventHandler) {
+    window.EventHandler.setupEventListeners();
+  } else {
+    console.warn('EventHandler module not available - event handling may not work');
+  }
 
   // Remove old cell-based movement function - replaced with smooth movement
   // function startContinuousMovement() { ... } - REMOVED
@@ -1131,15 +1628,7 @@
     // The following code coordinates the various modules and handles
     // browser events. Core game logic has been moved to modules.
     
-    // Add cleanup on page unload
-    window.addEventListener('beforeunload', function() {
-      if (window.GameInitializer && window.GameInitializer.cleanupGameSystems) {
-        window.GameInitializer.cleanupGameSystems();
-      }
-      if (window.PlayerController && window.PlayerController.cleanupMovementSystems) {
-        window.PlayerController.cleanupMovementSystems();
-      }
-    });
+    // Event handlers are now managed by EventHandler module
     
     // Resize handling moved to GameInitializer module
   </script>

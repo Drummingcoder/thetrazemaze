@@ -8,20 +8,16 @@ console.log('Game Actions module loaded');
 const GameActions = {
 
   /**
-   * Restarts the current maze game
-   * Simply reloads the page to reset all game state
-   */
-  restartMaze: function() {
-    // Force complete page reload to reset all game state
-    window.location.reload();
-  },
-
-  /**
    * Navigates back to the main game selection screen
    */
   goBack: function() {
-    // Redirect to the main index page
-    window.location.href = "index.html";
+    // Show the start screen instead of redirecting
+    if (typeof window.showStartScreen === 'function') {
+      window.showStartScreen();
+    } else {
+      // Fallback to redirect if function not available
+      window.location.href = "index.html";
+    }
   },
 
   /**
@@ -200,7 +196,14 @@ const GameActions = {
 
     // Show completion information
     setTimeout(() => {
-      endContent.textContent = "Time taken: " + formattedTime;
+      // Set time in the dedicated time element, not the h2 title
+      const timeElement = document.getElementById('end-time-taken');
+      if (timeElement) {
+        timeElement.textContent = "Time taken: " + formattedTime;
+      }
+      
+      // Keep the h2 title as "Congratulations!" - don't overwrite it
+      // endContent should remain "Congratulations!" from initialization
       
       // Handle personal best tracking
       const bestTime = PersonalBestManager.calculatePersonalBestTime(timeTaken, type);

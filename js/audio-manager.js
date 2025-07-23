@@ -8,12 +8,20 @@ console.log('Audio Manager module loaded');
 const AudioManager = {
   // Audio instance for background music
   preloadedAudio: null,
+  
+  // Audio loading state management
+  audioPreloaded: false,
+  musicStarted: false,
+  audioLoadingInProgress: false,
+  audioCheckInterval: null,
 
   /**
    * Preloads the background music to reduce lag when first played
    * Uses the 'Enaudi Experience.mp3' file
+   * DISABLED for performance optimization
    */
   preloadAudio: function() {
+    /* DISABLED: Audio preloading commented out for performance
     console.log('AudioManager.preloadAudio() called');
     
     // Create new Audio object with the music file
@@ -44,13 +52,17 @@ const AudioManager = {
     // Trigger the actual loading process without playing
     this.preloadedAudio.load();
     console.log('Audio load() method called');
+    */
+    console.log('AudioManager.preloadAudio() - DISABLED for performance');
   },
 
   /**
    * Plays the background music
    * Handles both preloaded audio and fallback scenarios
+   * DISABLED for performance optimization
    */
   playMusic: function() {
+    /* DISABLED: Music playback commented out for performance
     // Check if we have a preloaded audio instance
     if (this.preloadedAudio) {
       // Reset playback position to the beginning
@@ -70,6 +82,8 @@ const AudioManager = {
       var audio = new Audio('Enaudi Experience.mp3');
       audio.play();
     }
+    */
+    console.log('AudioManager.playMusic() - DISABLED for performance');
   },
 
   /**
@@ -89,6 +103,162 @@ const AudioManager = {
     if (this.preloadedAudio) {
       this.preloadedAudio.pause();
     }
+  },
+
+  /**
+   * Lazy audio loading system - loads audio after maze initialization
+   * DISABLED for performance optimization
+   */
+  preloadAudioAsync: function() {
+    /* DISABLED: Async audio preloading commented out for performance
+    if (this.audioPreloaded || this.audioLoadingInProgress) return;
+    
+    this.audioLoadingInProgress = true;
+    console.log('Starting lazy audio preload...');
+    
+    // Use setTimeout to prevent blocking the main thread
+    setTimeout(() => {
+      try {
+        console.log('Calling AudioManager.preloadAudio()...');
+        this.preloadAudio();
+        
+        // Add event listeners to check if audio actually loads
+        if (this.preloadedAudio) {
+          this.preloadedAudio.addEventListener('canplaythrough', () => {
+            this.audioPreloaded = true;
+            this.audioLoadingInProgress = false;
+            console.log('Audio preloaded successfully via AudioManager - canplaythrough event');
+          });
+          
+          this.preloadedAudio.addEventListener('error', (e) => {
+            console.error('Audio loading error:', e);
+            this.audioPreloaded = false;
+            this.audioLoadingInProgress = false;
+          });
+          
+          // Fallback timeout - mark as loaded after 2 seconds even if no event fires
+          setTimeout(() => {
+            if (this.audioLoadingInProgress) {
+              console.log('Audio preload timeout - assuming loaded');
+              this.audioPreloaded = true;
+              this.audioLoadingInProgress = false;
+            }
+          }, 2000);
+        } else {
+          console.warn('AudioManager.preloadedAudio is null after preloadAudio call');
+          this.audioPreloaded = false;
+          this.audioLoadingInProgress = false;
+        }
+      } catch (error) {
+        console.warn('Audio preload failed:', error);
+        this.audioPreloaded = false;
+        this.audioLoadingInProgress = false;
+      }
+    }, 150); // Small delay to ensure maze is fully rendered first
+    */
+    console.log('AudioManager.preloadAudioAsync() - DISABLED for performance');
+  },
+
+  /**
+   * Handles smart music playback with loading checks
+   */
+  startMusicWhenReady: function() {
+    // Smart music playback - play immediately if loaded, queue if still loading
+    if (this.audioPreloaded && !this.musicStarted) {
+      // Audio ready - start music immediately
+      setTimeout(() => {
+        try {
+          this.playMusic();
+          this.musicStarted = true;
+          console.log('Music started successfully via AudioManager');
+        } catch (error) {
+          console.warn('Music playback failed:', error);
+        }
+      }, 0);
+    } else if (!this.musicStarted && !this.audioCheckInterval) {
+      // Audio not ready - set up a check to start music when available
+      console.log('Audio still loading, will start music when ready...');
+      this.audioCheckInterval = setInterval(() => {
+        if (this.audioPreloaded && !this.musicStarted) {
+          try {
+            this.playMusic();
+            this.musicStarted = true;
+            console.log('Music started after audio loading completed via AudioManager');
+            clearInterval(this.audioCheckInterval);
+            this.audioCheckInterval = null;
+          } catch (error) {
+            console.warn('Music playback failed:', error);
+            clearInterval(this.audioCheckInterval);
+            this.audioCheckInterval = null;
+          }
+        }
+      }, 250); // Check every 250ms instead of 100ms to reduce overhead
+      
+      // Safety timeout to prevent infinite checking (stop trying after 10 seconds)
+      setTimeout(() => {
+        if (!this.musicStarted && this.audioCheckInterval) {
+          console.warn('Audio loading timeout - continuing without music');
+          clearInterval(this.audioCheckInterval);
+          this.audioCheckInterval = null;
+        }
+      }, 10000);
+    }
+  },
+
+  /**
+   * Starts background music when audio is ready, with interval checking
+   */
+  startBackgroundMusicIfReady: function() {
+    if (this.musicStarted || this.audioCheckInterval) return;
+    
+    console.log('Setting up background music check interval...');
+    this.audioCheckInterval = setInterval(() => {
+      if (this.audioPreloaded && !this.musicStarted) {
+        try {
+          this.playMusic();
+          console.log('Music started after audio loading completed via AudioManager');
+          clearInterval(this.audioCheckInterval);
+          this.audioCheckInterval = null;
+        } catch (error) {
+          console.warn('Music playback failed:', error);
+          clearInterval(this.audioCheckInterval);
+          this.audioCheckInterval = null;
+        }
+      }
+    }, 250);
+    
+    // Safety timeout to prevent infinite checking (stop trying after 10 seconds)
+    setTimeout(() => {
+      if (!this.musicStarted && this.audioCheckInterval) {
+        console.warn('Audio loading timeout - continuing without music');
+        clearInterval(this.audioCheckInterval);
+        this.audioCheckInterval = null;
+      }
+    }, 10000);
+  },
+
+  /**
+   * Gets the current audio preloading status
+   * @returns {boolean} True if audio is preloaded and ready
+   */
+  isAudioPreloaded: function() {
+    return this.audioPreloaded;
+  },
+
+  /**
+   * Gets the current music playing status
+   * @returns {boolean} True if music has been started
+   */
+  isMusicStarted: function() {
+    return this.musicStarted;
+  },
+
+  /**
+   * Gets the current audio loading status
+   * @returns {boolean} True if audio is currently being loaded
+   */
+  isAudioLoading: function() {
+    return this.audioLoadingInProgress;
   }
 };
 
