@@ -697,6 +697,7 @@ function updateHeartOverlay() {
     heartDiv.style.fontFamily = 'Arial, sans-serif';
     heartDiv.style.color = '#FF1744';
     heartDiv.style.textShadow = '0 2px 8px #FF5252';
+    heartDiv.style.display = 'none'; // Hidden by default
     document.body.appendChild(heartDiv);
   }
   let hearts = '';

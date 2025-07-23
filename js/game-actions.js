@@ -11,8 +11,13 @@ const GameActions = {
    * Navigates back to the main game selection screen
    */
   goBack: function() {
-    // Redirect to the main index page
-    window.location.href = "index.html";
+    // Show the start screen instead of redirecting
+    if (typeof window.showStartScreen === 'function') {
+      window.showStartScreen();
+    } else {
+      // Fallback to redirect if function not available
+      window.location.href = "index.html";
+    }
   },
 
   /**
