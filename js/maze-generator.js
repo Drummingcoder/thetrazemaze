@@ -615,10 +615,10 @@ const MazeGenerator = {
   },
   
   /**
-   * Generates level 2 maze (98x98) procedurally
+   * Generates level 2 maze (99x99) procedurally
    */
   generateLevel2Maze: function() {
-    const size = 98;
+    const size = 99;
     const maze = [];
     
     // Initialize with walls
