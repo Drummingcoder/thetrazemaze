@@ -31,6 +31,7 @@ remove), better guns, and faster shooting.
 - Enemies
 - Guns
 - Better organization and commenting of code
+- Functioning music and a better soundtrack
 
 ### Bugs:
 - Timer doesn't immediately stop upon touching the end square
