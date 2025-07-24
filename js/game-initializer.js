@@ -81,8 +81,6 @@ const GameInitializer = {
    * Stop all running systems and intervals
    */
   stopAllSystems: function() {
-    console.log('GameInitializer: Stopping all systems...');
-    
     // Stop PlayerController systems
     if (window.PlayerController && window.PlayerController.cleanupMovementSystems) {
       window.PlayerController.cleanupMovementSystems();

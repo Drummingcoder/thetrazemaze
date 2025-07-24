@@ -22,6 +22,12 @@ const LevelBestTimeManager = {
    * @returns {number|null} The best time in milliseconds, or null if no time exists
    */
   getBestTime: function(levelNumber) {
+    // Use PersonalBestManager for consistent data access
+    if (window.PersonalBestManager && window.PersonalBestManager.getRawPersonalBestForLevel) {
+      return window.PersonalBestManager.getRawPersonalBestForLevel(levelNumber);
+    }
+    
+    // Fallback to direct localStorage access
     const key = this.generateLevelKey(levelNumber);
     const storedTime = localStorage.getItem(key);
     return storedTime ? parseFloat(storedTime) : null;

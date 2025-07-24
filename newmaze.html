@@ -354,7 +354,7 @@
       box-shadow: none; /* Removed shadow */
       /* Performance optimizations */
       will-change: transform;
-      transform: translateZ(0); /* Force GPU acceleration */
+      transform: translateZ(0);
       backface-visibility: hidden;
       /* Dynamic sizing will be applied via JavaScript */
     }
@@ -672,17 +672,10 @@
 
     .level-best-time {
       font-size: 12px;
-      margin-top: 8px;
-      padding: 4px 8px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 6px;
-      opacity: 0.9;
+      color: #FFD700; /* Gold color for best time */
+      margin-top: 5px;
       font-weight: bold;
-    }
-
-    .level-best-time.no-time {
-      opacity: 0.6;
-      font-style: italic;
+      opacity: 0.9;
     }
 
     .back-to-menu {
@@ -742,70 +735,61 @@
         <div class="level-card" id="level-1-card" data-level="1">
           <div class="level-number">Level 1</div>
           <div class="level-name">🌟 The Beginning</div>
-          <div class="level-best-time" id="level-1-best-time">Best: --:--</div>
+          <div class="level-best-time" id="level-1-best-time">--:--</div>
         </div>
         
         <div class="level-card locked" id="level-2-card" data-level="2">
           <div class="level-number">Level 2</div>
           <div class="level-name">🔥 Heat Wave</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-2-best-time">Best: --:--</div>
         </div>
         
         <div class="level-card locked" id="level-3-card" data-level="3">
           <div class="level-number">Level 3</div>
           <div class="level-name">❄️ Ice Palace</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-3-best-time">Best: --:--</div>
         </div>
         
         <div class="level-card locked" id="level-4-card" data-level="4">
           <div class="level-number">Level 4</div>
           <div class="level-name">⚡ Lightning Storm</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-4-best-time">Best: --:--</div>
         </div>
         
         <div class="level-card locked" id="level-5-card" data-level="5">
           <div class="level-number">Level 5</div>
           <div class="level-name">🌊 Ocean Depths</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-5-best-time">Best: --:--</div>
         </div>
         
         <div class="level-card locked" id="level-6-card" data-level="6">
           <div class="level-number">Level 6</div>
           <div class="level-name">🌋 Volcano Core</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-6-best-time">Best: --:--</div>
         </div>
         
         <div class="level-card locked" id="level-7-card" data-level="7">
           <div class="level-number">Level 7</div>
           <div class="level-name">🌌 Space Station</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-7-best-time">Best: --:--</div>
         </div>
         
         <div class="level-card locked" id="level-8-card" data-level="8">
           <div class="level-number">Level 8</div>
           <div class="level-name">🏰 Ancient Castle</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-8-best-time">Best: --:--</div>
         </div>
         
         <div class="level-card locked" id="level-9-card" data-level="9">
           <div class="level-number">Level 9</div>
           <div class="level-name">🎭 Mirror Maze</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-9-best-time">Best: --:--</div>
         </div>
         
         <div class="level-card locked" id="level-10-card" data-level="10">
           <div class="level-number">Level 10</div>
           <div class="level-name">👑 Final Challenge</div>
           <div class="level-difficulty">Coming Soon</div>
-          <div class="level-best-time" id="level-10-best-time">Best: --:--</div>
         </div>
       </div>
       
@@ -842,7 +826,6 @@
   <script src="./js/audio-manager.js"></script>
   <script src="./js/game-timer.js"></script>
   <script src="./js/personal-best-manager.js"></script>
-  <script src="./js/level-best-time-manager.js"></script>
   <script src="./js/maze-generator.js"></script>
   <script src="./js/maze-renderer.js"></script>
   <script src="./js/camera-system.js"></script>
@@ -954,13 +937,10 @@
           levelSelectScreen.style.display = 'flex';
           setTimeout(() => {
             levelSelectScreen.classList.remove('hidden');
+            // Always load personal best times when screen is shown
+            loadLevelBestTimes();
           }, 50);
         }, 300);
-      }
-      
-      // Update all level best time displays
-      if (window.LevelBestTimeManager) {
-        window.LevelBestTimeManager.updateAllLevelDisplays();
       }
       
       // Setup level select event listeners
@@ -1008,9 +988,9 @@
       }
       
       // Hide end screen if it's showing
-      const endScreen = document.getElementById('end-screen');
-      if (endScreen && !endScreen.classList.contains('hidden')) {
-        endScreen.classList.add('hidden');
+      const gameEndScreen = document.getElementById('end-screen');
+      if (gameEndScreen && !gameEndScreen.classList.contains('hidden')) {
+        gameEndScreen.classList.add('hidden');
       }
       
       // Hide game elements
@@ -1052,8 +1032,39 @@
       }
     }
     
-    // Make showStartScreen globally available
+    // Make functions globally available
     window.showStartScreen = showStartScreen;
+    window.showLevelSelect = showLevelSelect;
+    
+    // Load personal best times for all levels
+    function loadLevelBestTimes() {
+      console.log('Loading personal best times for level select...');
+      
+      // Update Level 1 (unlocked) using unified PersonalBestManager
+      if (window.PersonalBestManager) {
+        window.PersonalBestManager.updateLevelDisplay(1);
+      } else {
+        console.warn('PersonalBestManager not available when loading level best times');
+      }
+    }
+    
+    // Update personal best time for a specific level
+    function updateLevelBestTime(levelNumber) {
+      console.log('Updating best time for level', levelNumber);
+      
+      // Update using unified PersonalBestManager
+      if (window.PersonalBestManager) {
+        window.PersonalBestManager.updateLevelDisplay(levelNumber);
+      } else {
+        console.warn('PersonalBestManager not available when updating level best time');
+      }
+    }
+    
+    // Make functions globally available
+    window.loadLevelBestTimes = loadLevelBestTimes;
+    window.updateLevelBestTime = updateLevelBestTime;
+    
+    // Start game with specific leveltScreen;
     
     // Start game with specific level
     function startGameWithLevel(levelNumber) {

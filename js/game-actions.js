@@ -8,11 +8,13 @@ console.log('Game Actions module loaded');
 const GameActions = {
 
   /**
-   * Navigates back to the main game selection screen
+   * Navigates back to the level selection screen
    */
   goBack: function() {
-    // Show the start screen instead of redirecting
-    if (typeof window.showStartScreen === 'function') {
+    // Show the level select screen to see updated best times
+    if (typeof window.showLevelSelect === 'function') {
+      window.showLevelSelect();
+    } else if (typeof window.showStartScreen === 'function') {
       window.showStartScreen();
     } else {
       // Fallback to redirect if function not available
@@ -206,12 +208,11 @@ const GameActions = {
       // endContent should remain "Congratulations!" from initialization
       
       // Handle personal best tracking (now level-aware)
-      const bestTime = PersonalBestManager.calculatePersonalBestTime(timeTaken, type);
-      PersonalBestManager.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
+      PersonalBestManager.displayPersonalBestTime(timeTaken, type, personalbest, newpersonalbest);
       
       // Update level selector display if we're in level mode
-      if (window.LevelBestTimeManager && window.selectedLevel) {
-        window.LevelBestTimeManager.updateLevelDisplay(window.selectedLevel);
+      if (window.PersonalBestManager && window.selectedLevel) {
+        window.PersonalBestManager.updateLevelDisplay(window.selectedLevel);
       }
       
       // Show end screen

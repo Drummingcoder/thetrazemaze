@@ -1,6 +1,7 @@
 /**
  * Personal Best Manager Module
- * Handles saving, loading, and displaying personal best times
+ * Handles saving, loading, and displaying personal best times for levels
+ * Unified level-based storage system
  */
 
 console.log('Personal Best Manager module loaded');
@@ -8,187 +9,238 @@ console.log('Personal Best Manager module loaded');
 const PersonalBestManager = {
 
   /**
-   * Generates a unique identifier for the current game configuration
-   * Used as localStorage key for personal best times
-   * @param {string} type - Game type ("black" for hidden mode)
-   * @returns {string} Unique identifier for this game configuration
+   * Generates a localStorage key for a specific level
+   * @param {number} levelNumber - The level number (1-10), or uses window.selectedLevel if not provided
+   * @returns {string} The localStorage key for this level
    */
-  generateMazeIdentifier: function(type) {
-    // If we're in level-based mode, use level-specific keys
-    if (window.selectedLevel && window.selectedLevel >= 1) {
-      return `level_${window.selectedLevel}_best_time`;
-    }
-    
-    // Fall back to legacy configuration-based system for backward compatibility
-    let mazeIdentifier;
-    
-    // Determine base identifier based on difficulty and mode
-    if (easy === false) {
-      // Hard mode identifiers
-      if (mazeSize === 15) {
-        mazeIdentifier = type === "black" ? 'bsm' : 'sm';  // small maze
-      } else if (mazeSize === 35) {
-        mazeIdentifier = type === "black" ? 'bmm' : 'mm';  // medium maze
-      } else if (mazeSize === 61) {
-        mazeIdentifier = type === "black" ? 'bbm' : 'bm';  // big maze
-      }
-    } else {
-      // Easy mode identifiers (prefixed with 'e')
-      if (mazeSize === 15) {
-        mazeIdentifier = type === "black" ? 'besm' : 'esm'; // easy small maze
-      } else if (mazeSize === 35) {
-        mazeIdentifier = type === "black" ? 'bemm' : 'emm'; // easy medium maze
-      } else if (mazeSize === 61) {
-        mazeIdentifier = type === "black" ? 'bebm' : 'ebm'; // easy big maze
-      }
-    }
-
-    // Add suffix for multiple goals mode
-    if (multiple === "true") {
-      mazeIdentifier += 'm';
-    }
-
-    return mazeIdentifier;
+  generateLevelKey: function(levelNumber) {
+    const level = levelNumber || window.selectedLevel || 1;
+    return `level_${level}_best_time`;
   },
 
   /**
-   * Calculates the personal best time for the current game configuration
-   * @param {number} currentTime - The current completion time/score
-   * @param {string} type - Game type ("black" for hidden mode)
-   * @returns {number} The personal best time (lowest for single goal, highest for multiple goals)
+   * Gets the stored best time for a specific level
+   * @param {number} levelNumber - The level number (1-10), or uses window.selectedLevel if not provided
+   * @returns {number|null} The best time in milliseconds, or null if no time exists
    */
-  calculatePersonalBestTime: function(currentTime, type) {
-    // Get unique identifier for this game configuration
-    const mazeIdentifier = this.generateMazeIdentifier(type);
+  getBestTime: function(levelNumber) {
+    const key = this.generateLevelKey(levelNumber);
+    const storedTime = localStorage.getItem(key);
+    return storedTime ? parseFloat(storedTime) : null;
+  },
+
+  /**
+   * Sets the best time for a specific level (only if it's better than existing)
+   * @param {number} levelNumber - The level number (1-10), or uses window.selectedLevel if not provided
+   * @param {number} newTime - The new completion time in milliseconds
+   * @returns {boolean} True if a new best time was set, false otherwise
+   */
+  setBestTime: function(levelNumber, newTime) {
+    const level = levelNumber || window.selectedLevel || 1;
+    const currentBest = this.getBestTime(level);
     
-    // Retrieve stored personal best from localStorage
-    const storedBestTime = localStorage.getItem(mazeIdentifier);
-    let bestTime = currentTime;
-
-    if (multiple === "true") {
-      // Multiple goals mode: higher score is better
-      if (storedBestTime) {
-        bestTime = Math.max(currentTime, parseFloat(storedBestTime));
-      }
-    } else {
-      // Single goal mode: lower time is better
-      if (storedBestTime) {
-        bestTime = Math.min(currentTime, parseFloat(storedBestTime));
-      }
+    if (!currentBest || newTime < currentBest) {
+      const key = this.generateLevelKey(level);
+      localStorage.setItem(key, newTime.toString());
+      console.log(`New best time for Level ${level}: ${this.formatTime(newTime)}`);
+      return true;
     }
+    
+    return false;
+  },
 
-    return bestTime;
+  /**
+   * Formats time in milliseconds to MM:SS.mmm format using GameTimer
+   * @param {number} timeMs - Time in milliseconds
+   * @returns {string} Formatted time string
+   */
+  formatTime: function(timeMs) {
+    if (!timeMs || isNaN(timeMs)) {
+      return '--:--';
+    }
+    
+    // Use the same formatting as GameTimer to ensure consistency
+    if (window.GameTimer && window.GameTimer.formatTime) {
+      return window.GameTimer.formatTime(timeMs);
+    }
+    
+    // Fallback formatting if GameTimer not available
+    const totalSeconds = Math.floor(timeMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = Math.floor(timeMs % 1000);
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
   },
 
   /**
    * Displays the personal best time and updates it if a new record was set
-   * @param {number} currentTime - The current completion time/score
-   * @param {string} type - Game type ("black" for hidden mode)
+   * @param {number} currentTime - The current completion time in milliseconds
+   * @param {string} type - Game type (deprecated, kept for compatibility)
    * @param {HTMLElement} personalbest - Element to display personal best
    * @param {HTMLElement} newpersonalbest - Element to show for new records
    */
   displayPersonalBestTime: function(currentTime, type, personalbest, newpersonalbest) {
-    // Get unique identifier for this game configuration
-    const mazeIdentifier = this.generateMazeIdentifier(type);
+    const levelNumber = window.selectedLevel || 1;
+    const storedBestTime = this.getBestTime(levelNumber);
     
-    // Retrieve stored personal best from localStorage
-    const storedBestTime = localStorage.getItem(mazeIdentifier);
+    // Format display text for single goal mode (time-based)
     let bestTimeDisplay = "";
-
-    // Format display text based on game mode
-    if (multiple === "true") {
-      // Multiple goals mode: display number of goals
-      if (!isNaN(storedBestTime)) {
-        bestTimeDisplay = storedBestTime;
-      } else {
-        bestTimeDisplay = "--"; // No previous record
-      }
+    if (storedBestTime && !isNaN(storedBestTime)) {
+      bestTimeDisplay = this.formatTime(storedBestTime);
     } else {
-      // Single goal mode: display formatted time
-      if (storedBestTime && !isNaN(storedBestTime)) {
-        const bestTime = parseFloat(storedBestTime);
-        bestTimeDisplay = GameTimer.formatTime(bestTime);
-      } else {
-        bestTimeDisplay = "--:--"; // No previous record
-      }
+      bestTimeDisplay = "--:--"; // No previous record
     }
 
     // Update personal best display
-    personalbest.textContent = "Personal Best: " + bestTimeDisplay;
+    if (personalbest) {
+      personalbest.textContent = "Personal Best: " + bestTimeDisplay;
+    }
 
     // Check if this is a new personal best and update accordingly
-    if (multiple === "true") {
-      // Multiple goals mode: higher score is better
-      if (!storedBestTime || currentTime > parseFloat(storedBestTime)) {
-        // New high score achieved
-        newpersonalbest.style.display = "block";
-        localStorage.setItem(mazeIdentifier, currentTime.toString());
+    const isNewBest = this.setBestTime(levelNumber, currentTime);
+    
+    if (newpersonalbest) {
+      newpersonalbest.style.display = isNewBest ? "block" : "none";
+    }
+    
+    console.log(`Level ${levelNumber} completion: ${this.formatTime(currentTime)}, Best: ${bestTimeDisplay}, New Best: ${isNewBest}`);
+  },
+
+  /**
+   * Updates the best time display for a specific level card in the level select screen
+   * @param {number} levelNumber - The level number (1-10)
+   */
+  updateLevelDisplay: function(levelNumber) {
+    const bestTime = this.getBestTime(levelNumber);
+    const displayElement = document.getElementById(`level-${levelNumber}-best-time`);
+    
+    if (displayElement) {
+      if (bestTime) {
+        displayElement.textContent = `Best: ${this.formatTime(bestTime)}`;
+        displayElement.classList.remove('no-time');
       } else {
-        // No new record
-        newpersonalbest.style.display = "none";
-      }
-    } else {
-      // Single goal mode: lower time is better
-      if (!storedBestTime || currentTime < parseFloat(storedBestTime)) {
-        // New best time achieved
-        newpersonalbest.style.display = "block";
-        localStorage.setItem(mazeIdentifier, currentTime.toString());
-      } else {
-        // No new record
-        newpersonalbest.style.display = "none";
+        displayElement.textContent = 'Best: --:--';
+        displayElement.classList.add('no-time');
       }
     }
   },
 
   /**
-   * Gets the stored personal best for the current game configuration
-   * @param {string} type - Game type ("black" for hidden mode)
-   * @returns {number|null} The stored personal best, or null if none exists
+   * Updates all level displays with their best times
+   */
+  updateAllLevelDisplays: function() {
+    for (let i = 1; i <= 10; i++) {
+      this.updateLevelDisplay(i);
+    }
+  },
+
+  /**
+   * Gets the personal best time for a specific level (formatted for display)
+   * @param {number} levelNumber - The level number (1-10)
+   * @returns {string} Formatted personal best time or "Best: --:--" if none exists
+   */
+  getPersonalBestForLevel: function(levelNumber) {
+    const bestTime = this.getBestTime(levelNumber);
+    
+    if (bestTime && !isNaN(bestTime)) {
+      const formattedTime = this.formatTime(bestTime);
+      return `Best: ${formattedTime}`;
+    } else {
+      return "Best: --:--"; // No previous record
+    }
+  },
+
+  /**
+   * Gets the raw personal best time for a specific level (for comparison)
+   * @param {number} levelNumber - The level number (1-10)
+   * @returns {number|null} The raw time in milliseconds, or null if none exists
+   */
+  getRawPersonalBestForLevel: function(levelNumber) {
+    return this.getBestTime(levelNumber);
+  },
+
+  /**
+   * Clears the best time for a specific level
+   * @param {number} levelNumber - The level number (1-10)
+   */
+  clearBestTime: function(levelNumber) {
+    const key = this.generateLevelKey(levelNumber);
+    localStorage.removeItem(key);
+    this.updateLevelDisplay(levelNumber);
+    console.log(`Cleared best time for level ${levelNumber}`);
+  },
+
+  /**
+   * Clears all level best times
+   */
+  clearAllBestTimes: function() {
+    for (let i = 1; i <= 10; i++) {
+      this.clearBestTime(i);
+    }
+    console.log('Cleared all level best times');
+  },
+
+  /**
+   * Checks if a time would be a new best for a level (without setting it)
+   * @param {number} levelNumber - The level number (1-10)
+   * @param {number} newTime - The time to check in milliseconds
+   * @returns {boolean} True if this would be a new best time
+   */
+  wouldBeNewBest: function(levelNumber, newTime) {
+    const currentBest = this.getBestTime(levelNumber);
+    return !currentBest || newTime < currentBest;
+  },
+
+  /**
+   * Gets formatted best time for display
+   * @param {number} levelNumber - The level number (1-10)
+   * @returns {string} Formatted best time or "--:--"
+   */
+  getFormattedBestTime: function(levelNumber) {
+    const bestTime = this.getBestTime(levelNumber);
+    return bestTime ? this.formatTime(bestTime) : '--:--';
+  },
+
+  // Legacy compatibility methods (deprecated but kept for backward compatibility)
+  
+  /**
+   * @deprecated Use getBestTime() instead
    */
   getStoredBest: function(type) {
-    const mazeIdentifier = this.generateMazeIdentifier(type);
-    const storedBest = localStorage.getItem(mazeIdentifier);
-    
-    return storedBest ? parseFloat(storedBest) : null;
+    console.warn('getStoredBest() is deprecated, use getBestTime() instead');
+    return this.getBestTime();
   },
 
   /**
-   * Manually sets a personal best time (useful for testing or data migration)
-   * @param {string} type - Game type ("black" for hidden mode)
-   * @param {number} time - The time to set as personal best
+   * @deprecated Use setBestTime() instead
    */
   setBest: function(type, time) {
-    const mazeIdentifier = this.generateMazeIdentifier(type);
-    localStorage.setItem(mazeIdentifier, time.toString());
+    console.warn('setBest() is deprecated, use setBestTime() instead');
+    return this.setBestTime(null, time);
   },
 
   /**
-   * Clears the personal best for the current game configuration
-   * @param {string} type - Game type ("black" for hidden mode)
+   * @deprecated Use clearBestTime() or clearAllBestTimes() instead
    */
   clearBest: function(type) {
-    const mazeIdentifier = this.generateMazeIdentifier(type);
-    localStorage.removeItem(mazeIdentifier);
+    console.warn('clearBest() is deprecated, use clearBestTime() or clearAllBestTimes() instead');
+    this.clearBestTime();
   },
 
   /**
-   * Clears all personal best records
+   * @deprecated Use clearAllBestTimes() instead
    */
   clearAllBests: function() {
-    // List of all possible maze identifiers
-    const identifiers = [
-      'sm', 'bsm', 'mm', 'bmm', 'bm', 'bbm',        // Hard mode
-      'esm', 'besm', 'emm', 'bemm', 'ebm', 'bebm',  // Easy mode
-      'smm', 'bsmm', 'mmm', 'bmmm', 'bmm', 'bbmm',  // Hard mode multiple goals
-      'esmm', 'besmm', 'emmm', 'bemmm', 'ebmm', 'bebmm' // Easy mode multiple goals
-    ];
-    
-    // Remove each identifier from localStorage
-    identifiers.forEach(id => {
-      localStorage.removeItem(id);
-    });
+    console.warn('clearAllBests() is deprecated, use clearAllBestTimes() instead');
+    this.clearAllBestTimes();
   }
 };
 
 // Make PersonalBestManager globally available
 window.PersonalBestManager = PersonalBestManager;
+
+// Also make it available as LevelBestTimeManager for backward compatibility
+window.LevelBestTimeManager = PersonalBestManager;
+
+console.log('PersonalBestManager initialized with level-based storage system');

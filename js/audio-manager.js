@@ -18,10 +18,8 @@ const AudioManager = {
   /**
    * Preloads the background music to reduce lag when first played
    * Uses the 'Enaudi Experience.mp3' file
-   * DISABLED for performance optimization
    */
   preloadAudio: function() {
-    /* DISABLED: Audio preloading commented out for performance
     console.log('AudioManager.preloadAudio() called');
     
     // Create new Audio object with the music file
@@ -52,17 +50,13 @@ const AudioManager = {
     // Trigger the actual loading process without playing
     this.preloadedAudio.load();
     console.log('Audio load() method called');
-    */
-    console.log('AudioManager.preloadAudio() - DISABLED for performance');
   },
 
   /**
    * Plays the background music
    * Handles both preloaded audio and fallback scenarios
-   * DISABLED for performance optimization
    */
   playMusic: function() {
-    /* DISABLED: Music playback commented out for performance
     // Check if we have a preloaded audio instance
     if (this.preloadedAudio) {
       // Reset playback position to the beginning
@@ -82,8 +76,6 @@ const AudioManager = {
       var audio = new Audio('Enaudi Experience.mp3');
       audio.play();
     }
-    */
-    console.log('AudioManager.playMusic() - DISABLED for performance');
   },
 
   /**
@@ -107,10 +99,8 @@ const AudioManager = {
 
   /**
    * Lazy audio loading system - loads audio after maze initialization
-   * DISABLED for performance optimization
    */
   preloadAudioAsync: function() {
-    /* DISABLED: Async audio preloading commented out for performance
     if (this.audioPreloaded || this.audioLoadingInProgress) return;
     
     this.audioLoadingInProgress = true;
@@ -155,8 +145,6 @@ const AudioManager = {
         this.audioLoadingInProgress = false;
       }
     }, 150); // Small delay to ensure maze is fully rendered first
-    */
-    console.log('AudioManager.preloadAudioAsync() - DISABLED for performance');
   },
 
   /**
