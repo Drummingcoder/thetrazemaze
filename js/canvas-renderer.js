@@ -20,7 +20,6 @@ const CanvasRenderer = {
   lastPlayerX: -1,
   lastPlayerY: -1,
   lastRenderTime: 0,
-  renderThrottle: 33, // Limit renders to ~30 FPS for better performance
 
   /**
    * Setup and configure canvas elements with proper sizing and rendering contexts
@@ -439,13 +438,6 @@ const CanvasRenderer = {
    * Main rendering function - OPTIMIZED with dirty checking
    */
   renderFrame: function() {
-    // Frame rate throttling - don't render more than ~60 FPS
-    const now = performance.now();
-    if (now - this.lastRenderTime < this.renderThrottle) {
-      return; // Skip this frame
-    }
-    this.lastRenderTime = now;
-    
     // CRITICAL PERFORMANCE FIX: Only draw maze ONCE at startup, never again
     // The maze doesn't change, so redrawing it is pure waste
     if (!this.mazeDrawn) {

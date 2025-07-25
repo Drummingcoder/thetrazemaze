@@ -1045,8 +1045,8 @@ const PlayerController = {
       MazeRenderer.updateViewport(Math.floor(topPos), Math.floor(leftPos));
       
       // Update camera position if zoom/camera system is enabled
-      if (typeof updatePlayerPosition === 'function') {
-        updatePlayerPosition();
+      if (typeof window.CanvasRenderer.updatePlayerPosition === 'function') {
+        window.CanvasRenderer.updatePlayerPosition();
       }
       if (typeof updateCamera === 'function') {
         updateCamera();

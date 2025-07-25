@@ -41,6 +41,7 @@ remove), better guns, and faster shooting.
 - Spike detection is too wide
 - Cell size is inconsistent from level to level
 - Player can start running even if sprite isn't loaded in
+- Game runs slowly if chromebook is on battery saver
 
 ### Future features to add (beyond Aug 31st):
 - Leaderboard (if not done yet)

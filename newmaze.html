@@ -876,7 +876,7 @@
     window.isGameStarted = isGameStarted;
     
     // Maze and game variables
-    var mazeStructure, startRow, startCol, endRow, endCol; // Make global for library.js
+    var mazeStructure, startRow = 2, startCol = 2, endRow = 46, endCol = 46; // Make global for library.js
     let time = 0;
     let interval = false, startTime, startMaze;
     let first = 0;
@@ -896,7 +896,7 @@
     // Camera system variables
     let cameraX = 0;
     let cameraY = 0;
-    let currentZoom = 1.0;
+    let currentZoom = 2.0;
     let cameraEnabled = false;
     let cameraUpdatePending = false;
     
@@ -905,9 +905,20 @@
     let lastRenderTime = 0;
     const RENDER_THROTTLE = 16; // 60 FPS max for smoother movement
     let renderQueued = false;
-    
+
+    // Get the selected level (default to 1 if not set)
+    const selectedLevel = window.selectedLevel || 1;
+    const mazeData = MazeGenerator.getMazeData(selectedLevel);
+    console.log('Maze data for level', selectedLevel, ':', mazeData);
+    const predefinedMaze = mazeData.mazeStructure;
+    mazeStructure = predefinedMaze;
+
     // Size variables
-    let mazeSize, cellSize;
+    let mazeSize = mazeData.mazeSize, cellSize;
+
+    // Calculate cell size based only on screen dimensions (not maze size)
+    cellSize = Math.floor(Math.min(window.innerWidth, window.innerHeight) / 48);
+    if (cellSize < 3) cellSize = 3; // Ensure minimum cell size for playability
 
     // HTML element references
     const startScreen = document.getElementById('start-screen');
@@ -929,6 +940,7 @@
     const endContent = document.getElementById("end-time-taken");
     const personalbest = document.getElementById("personal-best");
     const newpersonalbest = document.getElementById("new-personal-best");
+    const controlsHint = document.getElementById('controls-hint');
 
     // Make all variables global for module access
     window.mazeContainer = mazeContainer;
@@ -940,103 +952,10 @@
     window.endText = endText;
     window.personalbest = personalbest;
     window.newpersonalbest = newpersonalbest;
-    window.mazeContainer = mazeContainer;
     window.canvas = canvas;
     window.ctx = ctx;
     window.playerCanvas = playerCanvas;
     window.playerCtx = playerCtx;
-    
-    // =================================================================
-    // START SCREEN MANAGEMENT
-    // =================================================================
-
-    // Initialize start screen using StartScreenManager module
-    function initializeStartScreen() {
-      if (window.StartScreenManager) {
-        window.StartScreenManager.initializeStartScreen();
-      } else {
-        console.error('StartScreenManager module not loaded');
-      }
-    }
-
-    function showOverlay() {
-      var loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) {
-        setTimeout(function() {
-          loadingOverlay.style.opacity = '0';
-          setTimeout(function() {
-            loadingOverlay.style.display = 'none';
-            // Initialize start screen after loading overlay disappears
-            initializeStartScreen();
-          }, 400);
-        }, 750);
-      }
-    }
-
-
-
-    // Show black loading overlay and fade out after 0.75s
-    window.addEventListener('DOMContentLoaded', showOverlay());
-    // =================================================================
-    // MAIN GAME INITIALIZATION AND COORDINATION
-    // =================================================================
-    // This script coordinates the various JavaScript modules and handles
-    // game-specific setup. Most game logic has been moved to modules:
-    // - Camera functions → js/camera-system.js
-    // - Rendering functions → js/canvas-renderer.js  
-    // - Player movement → js/player-controller.js
-    // - Game initialization → js/game-initializer.js
-    // =================================================================
-    
-    // FORCE CLEAR all browser storage to prevent any data persistence between sessions
-    try {
-      sessionStorage.clear();
-      // Don't clear localStorage as it contains best times
-    } catch (e) {
-      // Silently handle storage errors
-    }
-    
-    // Audio loading moved to AudioManager module
-  
-  // Get maze data from MazeGenerator module
-  console.log('MazeGenerator available:', !!window.MazeGenerator);
-  if (window.MazeGenerator) {
-    console.log('MazeGenerator.getMazeData available:', !!window.MazeGenerator.getMazeData);
-  }
-  
-  // Get the selected level (default to 1 if not set)
-  const selectedLevel = window.selectedLevel || 1;
-  const mazeData = MazeGenerator.getMazeData(selectedLevel);
-  console.log('Maze data for level', selectedLevel, ':', mazeData);
-  const predefinedMaze = mazeData.mazeStructure;
-  
-  // Set maze size based on predefined maze
-  mazeSize = mazeData.mazeSize;
-  console.log('Maze size:', mazeSize);
-  
-  // Calculate cell size based on screen dimensions and maze size
-  const maxCellSizeWidth = Math.floor(window.innerWidth / mazeSize);
-  const maxCellSizeHeight = Math.floor(window.innerHeight / mazeSize);
-  
-  // Use the smaller of the two to ensure the maze fits in both dimensions
-  cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
-  
-  // Ensure minimum cell size for playability (but don't limit maximum)
-  if (cellSize < 3) {
-    cellSize = 3; // Minimum viable cell size
-  }
-
-  
-  
-  // Setup canvas using CanvasRenderer module
-  if (window.CanvasRenderer && window.CanvasRenderer.setupCanvas) {
-    window.CanvasRenderer.setupCanvas(mazeSize, cellSize);
-  }
-    // FORCE RESET to 0 to prevent any persistence across reloads
-    playerX = 0;
-    playerY = 0; // Player position in pixels - EXPLICITLY RESET TO 0
-    
-    // Make all maze and player variables global for module access
     window.mazeStructure = mazeStructure;
     window.startRow = startRow;
     window.startCol = startCol;
@@ -1054,140 +973,34 @@
     window.type = type;
     window.easy = easy;
     
-    // Smooth movement system variables (keep some references for compatibility)
-    playerIsMoving = false;
-    movementSpeed = 6; // Increased from 3 to 6 pixels per frame for faster movement
-    smoothMovementKeys = {};
-    animationFrameId = null;
-    
-    // Bridge functions to connect modules with remaining inline code
-    function updateCameraAndRender() {
-      if (window.CameraSystem && window.CameraSystem.cameraEnabled) {
-        window.CameraSystem.updateCamera();
-      }
-      if (window.CanvasRenderer) {
-        window.CanvasRenderer.renderFrame();
-      }
-    }
-    
-    function cleanupGameSystems() {
-      if (window.GameInitializer) {
-        window.GameInitializer.cleanupGameSystems();
-      }
-    }
-    
-    // Collision detection and end checking moved to PlayerController module
-    
-    // Smooth movement animation loop moved to PlayerController module
-    
-    // Cleanup functions moved to GameInitializer module
-    
-    // Camera system moved to CameraSystem module
-    cameraX = 0;
-    cameraY = 0;
-    currentZoom = 1.0;
-    cameraEnabled = false;
-    
-    // Canvas rendering system moved to CanvasRenderer module
-    renderPending = false;
-    lastRenderTime = 0;
-    renderQueued = false;
-    
-    // drawMaze and drawPlayer functions moved to CanvasRenderer module
+    // Start Screen
 
-    // renderFrame and related functions moved to CanvasRenderer module
-    
-    // Camera functions moved to CameraSystem module
-    cameraUpdatePending = false;
-
-    // Setup predefined maze
-    mazeStructure = predefinedMaze;
-    
-    // Set start and end positions for the predefined maze
-    startRow = 2;  // In the expanded wide path area (top-left)
-    startCol = 2;
-    endRow = 46;   // Bottom right corner (last row - 1)
-    endCol = 46;   // Bottom right corner (last column - 1)
-    
-    // Update global variables after assignment
-    window.mazeStructure = mazeStructure;
-    window.startRow = startRow;
-    window.startCol = startCol;
-    window.endRow = endRow;
-    window.endCol = endCol;
-    window.mazeSize = mazeSize;
-    window.cellSize = cellSize;
-    
-    // CRITICAL: Prevent any changes to start position
-    Object.defineProperty(window, 'startRow', {
-      value: 2,
-      writable: false,
-      configurable: false
-    });
-    Object.defineProperty(window, 'startCol', {
-      value: 2,
-      writable: false,
-      configurable: false
-    });
-    
-    // Initialize player position using PlayerController
-    if (window.PlayerController && window.PlayerController.initializePlayerPosition) {
-      window.PlayerController.initializePlayerPosition();
-    } else {
-      // Fallback position initialization
-      window.playerX = startCol * cellSize;
-      window.playerY = startRow * cellSize;
-    }
-    
-    // Create virtual player using PlayerController
-    if (window.PlayerController && window.PlayerController.createVirtualPlayer) {
-      window.PlayerController.createVirtualPlayer();
-    } else {
-      console.warn('PlayerController not available for virtual player creation');
-    }
-    
-    // Initialize the canvas rendering system
-    function initializeGame() {
-      if (window.GameInitializer) {
-        window.GameInitializer.initializeGame();
-        
-        // Ensure virtual player is created
-        if (window.GameInitializer.createVirtualPlayer) {
-          const virtualPlayer = window.GameInitializer.createVirtualPlayer();
-          if (virtualPlayer) {
-            window.player = virtualPlayer;
-          }
-        }
+    // Initialize start screen using StartScreenManager module
+    function initializeStartScreen() {
+      showOverlay();
+      if (window.StartScreenManager) {
+        window.StartScreenManager.initializeStartScreen();
       } else {
-        // Fallback initialization if module not loaded
-        console.warn('GameInitializer module not loaded, using fallback');
-        if (window.CameraSystem) {
-          window.CameraSystem.resetCamera();
-        }
-        if (window.CanvasRenderer) {
-          window.CanvasRenderer.renderFrame();
-        }
-      }
-      
-      // Start the smooth movement system
-      if (window.PlayerController && window.PlayerController.startSmoothMovement) {
-        window.PlayerController.startSmoothMovement();
-      }
-      
-      // Initialize performance monitoring
-      if (window.CanvasRenderer && window.CanvasRenderer.monitorPerformance) {
-        window.CanvasRenderer.monitorPerformance();
-      }
-      
-      // Prepare animation system
-      if (window.CanvasRenderer && window.CanvasRenderer.prepareAnimationSystem) {
-        window.CanvasRenderer.prepareAnimationSystem();
+        console.error('StartScreenManager module not loaded');
       }
     }
-    
-    // Make initializeGame globally available
-    window.initializeGame = initializeGame;
-    
+
+    function showOverlay() {
+      var loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) {
+        setTimeout(function() {
+          loadingOverlay.style.opacity = '0';
+          setTimeout(function() {
+            loadingOverlay.style.display = 'none';
+
+          }, 400);
+        }, 750);
+      }
+    }
+
+    // Show black loading overlay and fade out after 0.75s
+    window.addEventListener('DOMContentLoaded', initializeStartScreen());
+
     // Force complete reset on page load but don't start game yet
     window.addEventListener('load', function() {
       // Only initialize if game has been started
@@ -1195,7 +1008,7 @@
         if (window.CameraSystem) {
           window.CameraSystem.resetCamera();
         }
-        initializeGame();
+        window.GameInitializer.initializeGame();
         
         // Start audio loading after page is fully loaded and maze is initialized
         setTimeout(() => {
@@ -1224,57 +1037,42 @@
         window.GameInitializer.resizeMaze();
       }
     });
-    
-    // No need to wait for sprite loading - initialize only when game starts
-    // initializeGame(); // Commented out - now handled by start screen
 
-    // Force an immediate render to ensure maze displays - only when game starts
-    /*
-    setTimeout(() => {
-      console.log('Forcing initial maze render...');
-      console.log('Maze structure exists:', !!window.mazeStructure);
-      console.log('Canvas exists:', !!window.canvas);
-      console.log('Context exists:', !!window.ctx);
-      console.log('CanvasRenderer exists:', !!window.CanvasRenderer);
-      console.log('Maze size:', window.mazeSize);
-      console.log('Cell size:', window.cellSize);
-      console.log('Player position:', window.playerX, window.playerY);
-      
-      if (window.CanvasRenderer) {
-        window.CanvasRenderer.renderFrame();
-      }
-    }, 100);
-    */
-
-    // Auto-hide controls hint after 5 seconds
-    setTimeout(() => {
-      const controlsHint = document.getElementById('controls-hint');
-      if (controlsHint && !controlsHint.classList.contains('hidden')) {
-        controlsHint.classList.add('hidden');
-      }
-    }, 5000);
-
-    // Player position update function - delegates to PlayerController
-    function updatePlayerPosition() {
-      if (window.PlayerController && window.PlayerController.updatePlayerPosition) {
-        window.PlayerController.updatePlayerPosition();
-      } else {
-        console.warn('PlayerController not available for position update');
-      }
+    // FORCE CLEAR all browser storage to prevent any data persistence between sessions
+    try {
+      sessionStorage.clear();
+      // Don't clear localStorage as it contains best times
+    } catch (e) {
+      // Silently handle storage errors
     }
 
-    // Make this function globally available
-    window.updatePlayerPosition = updatePlayerPosition;
+    // Setup canvas using CanvasRenderer module
+    if (window.CanvasRenderer && window.CanvasRenderer.setupCanvas) {
+      window.CanvasRenderer.setupCanvas(mazeSize, cellSize);
+    }
+    
+    // Initialize player position using PlayerController
+    if (window.PlayerController && window.PlayerController.initializePlayerPosition) {
+      window.PlayerController.initializePlayerPosition();
+    } else {
+      // Fallback position initialization
+      window.playerX = startCol * cellSize;
+      window.playerY = startRow * cellSize;
+    }
+    
+    // Create virtual player using PlayerController
+    if (window.PlayerController && window.PlayerController.createVirtualPlayer) {
+      window.PlayerController.createVirtualPlayer();
+    } else {
+      console.warn('PlayerController not available for virtual player creation');
+    }
 
-  // Setup event handling through EventHandler module
-  if (window.EventHandler) {
-    window.EventHandler.setupEventListeners();
-  } else {
-    console.warn('EventHandler module not available - event handling may not work');
-  }
-
-  // Remove old cell-based movement function - replaced with smooth movement
-  // function startContinuousMovement() { ... } - REMOVED
+    // Setup event handling through EventHandler module
+    if (window.EventHandler) {
+      window.EventHandler.setupEventListeners();
+    } else {
+      console.warn('EventHandler module not available - event handling may not work');
+    }
     
     // Event listeners setup moved to GameInitializer module
     if (window.GameInitializer) {
@@ -1282,16 +1080,6 @@
     } else {
       console.warn('GameInitializer module not loaded for event listeners');
     }
-
-    // =================================================================
-    // GAME COORDINATION AND EVENT HANDLING
-    // =================================================================
-    // The following code coordinates the various modules and handles
-    // browser events. Core game logic has been moved to modules.
-    
-    // Event handlers are now managed by EventHandler module
-    
-    // Resize handling moved to GameInitializer module
   </script>
 </body>
 </html>

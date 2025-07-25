@@ -384,10 +384,10 @@ const GameInitializer = {
   },
 
   /**
-   * Initialize the complete game system
+   * Initialize the complete game system (combined high-level and low-level logic)
    */
   initializeGame: function() {
-    // FORCE RESET all state variables
+    // Low-level resets
     if (window.PlayerController) {
       window.PlayerController.playerIsMoving = false;
     }
@@ -416,6 +416,12 @@ const GameInitializer = {
       if (window.CanvasRenderer) {
         window.CanvasRenderer.renderFrame();
       }
+
+      // Ensure virtual player is created
+      const virtualPlayer = GameInitializer.createVirtualPlayer();
+      if (virtualPlayer) {
+        window.player = virtualPlayer;
+      }
       
       // Start lazy audio loading AFTER maze is fully initialized
       /* DISABLED: Audio loading commented out for performance
@@ -424,6 +430,20 @@ const GameInitializer = {
       }, 100); // Additional delay to ensure smooth maze startup
       */
     }, 50); // Small delay to ensure reset is complete
+    // Start the smooth movement system
+    if (window.PlayerController && window.PlayerController.startSmoothMovement) {
+      window.PlayerController.startSmoothMovement();
+    }
+      
+    // Initialize performance monitoring
+    if (window.CanvasRenderer && window.CanvasRenderer.monitorPerformance) {
+      window.CanvasRenderer.monitorPerformance();
+    }
+      
+    // Prepare animation system
+    if (window.CanvasRenderer && window.CanvasRenderer.prepareAnimationSystem) {
+      window.CanvasRenderer.prepareAnimationSystem();
+    }
   },
 
   /**

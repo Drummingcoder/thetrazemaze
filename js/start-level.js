@@ -137,8 +137,8 @@ const startLevel = {
         
         // Initialize the actual game
         setTimeout(() => {
-            if (window.initializeGame) {
-                window.initializeGame();
+            if (window.GameInitializer.initializeGame) {
+                window.GameInitializer.initializeGame();
             }
             
             // Hide loading overlay after game is initialized
