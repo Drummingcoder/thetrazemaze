@@ -39,6 +39,8 @@ remove), better guns, and faster shooting.
 - Resizing the window breaks the maze
 - Collision detection is still funky and not the best
 - Spike detection is too wide
+- Cell size is inconsistent from level to level
+- Player can start running even if sprite isn't loaded in
 
 ### Future features to add (beyond Aug 31st):
 - Leaderboard (if not done yet)

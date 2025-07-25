@@ -1,6 +1,23 @@
 /**
  * Camera System Module
  * Handles camera positioning, zooming, and player following
+ * 
+ * ---
+ * CameraSystem.js Function Reference
+ * ---
+ *
+ * 1. initializeNewCamera: Initializes camera with zoom, centers on player, starts the camera loop, and sets resize handler.
+ * 2. calculateOptimalZoom: Calculates zoom so ~12 cells fit in smaller window dimension (between 1.5 and 4.0).
+ * 3. centerOnPlayer: Centers camera so that player is at screen center, and updates position
+ * 4. applyCamera: Applies changes to canvas, batches DOM updates for performance.
+ * 5. startCameraLoop: Starts camera loop
+ * 6. stopCameraLoop: Stops camera update loop
+ * 7. resumeCamera: Resumes camera loop if enabled.
+ * 8. updateCamera: Legacy, updates camera position if enabled. (to be removed)
+ * 9. resetCamera: Resets camera state, removes handlers, applies default transform to canvas and player sprite.
+ * 10. setupResizeHandler: Sets up debounced window resize handler, recalculates zoom/position, forces re-render.
+ * 11. debounce: Utility, limits how often a function runs (used for resize).
+ *
  */
 
 console.log('Camera System module loaded');
@@ -9,7 +26,7 @@ const CameraSystem = {
   // Camera state variables
   cameraX: 0,
   cameraY: 0,
-  currentZoom: 1.0,
+  currentZoom: 2.0,
   cameraEnabled: false,
   
   // Performance optimization - cache transform
@@ -52,8 +69,8 @@ const CameraSystem = {
     const viewportW = window.innerWidth;
     const viewportH = window.innerHeight;
     const smallerDimension = Math.min(viewportW, viewportH);
-    
-    // Show about 12-15 cells in the smaller screen dimension
+
+    // Show 12 cells in the smaller screen dimension
     const targetCellsVisible = 12;
     this.currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * window.cellSize)));
   },
@@ -158,20 +175,13 @@ const CameraSystem = {
   },
 
   /**
-   * Stop camera update loop
+   * Stop (or pause) camera update loop
    */
   stopCameraLoop: function() {
     if (this.cameraAnimationId) {
       cancelAnimationFrame(this.cameraAnimationId);
       this.cameraAnimationId = null;
     }
-  },
-
-  /**
-   * Pause camera updates temporarily (for performance)
-   */
-  pauseCamera: function() {
-    this.stopCameraLoop();
   },
 
   /**
@@ -235,14 +245,7 @@ const CameraSystem = {
   },
 
   /**
-   * Start camera animation (now starts the 60 FPS loop)
-   */
-  startCameraAnimation: function() {
-    this.startCameraLoop();
-  },
-
-  /**
-   * Set up window resize handler
+   * Set up window resize handler (not working, will fix later)
    */
   setupResizeHandler: function() {
     // Remove existing handler if any
@@ -295,7 +298,7 @@ const CameraSystem = {
   },
 
   /**
-   * Debounce function to prevent excessive resize calculations
+   * Debounce function to prevent excessive resize calculations, which aren't working
    */
   debounce: function(func, wait) {
     let timeout;
@@ -307,19 +310,6 @@ const CameraSystem = {
       clearTimeout(timeout);
       timeout = setTimeout(later, wait);
     };
-  },
-
-  // Legacy function aliases for backward compatibility
-  zoomInOnPlayer: function() {
-    this.initializeNewCamera();
-  },
-
-  centerCameraOnPlayer: function() {
-    this.centerOnPlayer();
-  },
-
-  updateCameraPosition: function() {
-    this.updateCamera();
   }
 };
 

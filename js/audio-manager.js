@@ -25,8 +25,6 @@ const AudioManager = {
     // Create new Audio object with the music file
     this.preloadedAudio = new Audio('Enaudi Experience.mp3');
     
-    console.log('Audio object created with src:', this.preloadedAudio.src);
-    
     // Set preload strategy to 'auto' (download entire file)
     this.preloadedAudio.preload = 'auto';
     
