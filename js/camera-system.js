@@ -13,7 +13,7 @@
  * 5. startCameraLoop: Starts camera loop
  * 6. stopCameraLoop: Stops camera update loop
  * 7. resumeCamera: Resumes camera loop if enabled.
- * 8. updateCamera: Legacy, updates camera position if enabled. (to be removed)
+ * 8. updateCamera: Updates camera position if enabled.
  * 9. resetCamera: Resets camera state, removes handlers, applies default transform to canvas and player sprite.
  * 10. setupResizeHandler: Sets up debounced window resize handler, recalculates zoom/position, forces re-render.
  * 11. debounce: Utility, limits how often a function runs (used for resize).
@@ -147,6 +147,7 @@ const CameraSystem = {
    * Start optimized camera update loop - only updates when player moves
    */
   startCameraLoop: function() {
+    if (!this.cameraEnabled) return;
     if (this.cameraAnimationId) {
       cancelAnimationFrame(this.cameraAnimationId);
     }
@@ -185,16 +186,7 @@ const CameraSystem = {
   },
 
   /**
-   * Resume camera updates
-   */
-  resumeCamera: function() {
-    if (this.cameraEnabled) {
-      this.startCameraLoop();
-    }
-  },
-
-  /**
-   * Update camera position (legacy - now handled by loop)
+   * Update camera position (for force update)
    */
   updateCamera: function() {
     if (!this.cameraEnabled) return;
@@ -245,7 +237,7 @@ const CameraSystem = {
   },
 
   /**
-   * Set up window resize handler (not working, will fix later)
+   * Set up window resize handler (not working, will fix later once I understand codebase)
    */
   setupResizeHandler: function() {
     // Remove existing handler if any

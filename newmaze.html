@@ -87,6 +87,12 @@
       background-attachment: fixed;
       position: relative;
       overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: relative;
+      min-height: 100vh;
+      min-width: 100vw;
       /* Removed expensive animation for better performance */
     }
     
@@ -346,26 +352,33 @@
     }
 
     #maze-container {
-      position: relative;
-      overflow: hidden;
       background: transparent; /* Removed white background */
       border: none; /* Removed border that created white square effect */
       border-radius: 0;
       box-shadow: none; /* Removed shadow */
-      /* Performance optimizations */
       will-change: transform;
       transform: translateZ(0);
       backface-visibility: hidden;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: visible;
       /* Dynamic sizing will be applied via JavaScript */
     }
 
     #maze-canvas {
       display: block;
-      image-rendering: pixelated; /* Keep crisp edges */
+      image-rendering: pixelated; /* crisp edges */
       /* Performance optimizations for canvas */
       will-change: transform;
       transform: translateZ(0); /* Force GPU acceleration */
       backface-visibility: hidden;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1; /* Behind player */
       /* Dynamic sizing and positioning will be applied via JavaScript */
     }
     
@@ -699,6 +712,18 @@
       transform: translateY(-2px);
       box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
     }
+
+    #player-canvas {
+      display: block;
+      image-rendering: auto; /* Smooth rendering for player sprite */
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 3; /* Well above maze */
+      pointer-events: none; /* Allow clicks to pass through to maze */
+    }
   </style>
 </head>
 <body>
@@ -835,402 +860,106 @@
   <script src="./js/event-handler.js"></script>
   <script src="./js/game-initializer.js"></script>
   <script src="./js/game-actions.js"></script>
+  <script src="./js/start-screen-manager.js"></script>
+  <script src="./js/start-level.js"></script>
   <script src="./js/main-library.js"></script>
 
   <script>
     // =================================================================
-    // START SCREEN MANAGEMENT
+    // GLOBAL VARIABLES DECLARATION
     // =================================================================
     
     // Start screen state
     let isGameStarted = false;
     
-    // Initialize start screen
+    // Make isGameStarted globally available
+    window.isGameStarted = isGameStarted;
+    
+    // Maze and game variables
+    var mazeStructure, startRow, startCol, endRow, endCol; // Make global for library.js
+    let time = 0;
+    let interval = false, startTime, startMaze;
+    let first = 0;
+    var mazecount = 0; // Make global for library.js
+    var easy; // Make global for library.js
+    
+    // Canvas rendering system - smooth pixel-based movement system
+    // FORCE RESET to 0 to prevent any persistence across reloads
+    let playerX = 0, playerY = 0; // Player position in pixels - EXPLICITLY RESET TO 0
+    
+    // Smooth movement system variables (keep some references for compatibility)
+    let playerIsMoving = false;
+    let movementSpeed = 6; // Increased from 3 to 6 pixels per frame for faster movement
+    let smoothMovementKeys = {};
+    let animationFrameId = null;
+    
+    // Camera system variables
+    let cameraX = 0;
+    let cameraY = 0;
+    let currentZoom = 1.0;
+    let cameraEnabled = false;
+    let cameraUpdatePending = false;
+    
+    // Canvas rendering system variables
+    let renderPending = false;
+    let lastRenderTime = 0;
+    const RENDER_THROTTLE = 16; // 60 FPS max for smoother movement
+    let renderQueued = false;
+    
+    // Size variables
+    let mazeSize, cellSize;
+
+    // HTML element references
+    const startScreen = document.getElementById('start-screen');
+    const startGameBtn = document.getElementById('start-game-btn');
+    const settingsGear = document.getElementById('settings-gear');
+    const upgradesBtn = document.getElementById('upgrades-btn');
+    const aboutCorner = document.getElementById('about-corner');
+    // Apply dynamic styling
+    const mazeContainer = document.getElementById("maze-container");
+    const canvas = document.getElementById("maze-canvas");
+    const ctx = canvas.getContext("2d");
+    const playerCanvas = document.getElementById("player-canvas");
+    const playerCtx = playerCanvas.getContext("2d");
+    const timerElement = document.getElementById("timer");
+    const endScreen = document.getElementById("end-screen");
+    const restartButton = document.getElementById("restart-button");
+    const backButton = document.getElementById("back-button");
+    const endText = document.getElementById("end-content");
+    const endContent = document.getElementById("end-time-taken");
+    const personalbest = document.getElementById("personal-best");
+    const newpersonalbest = document.getElementById("new-personal-best");
+
+    // Make all variables global for module access
+    window.mazeContainer = mazeContainer;
+    window.timerElement = timerElement;
+    window.endScreen = endScreen;
+    window.restartButton = restartButton;
+    window.backButton = backButton;
+    window.endContent = endContent;
+    window.endText = endText;
+    window.personalbest = personalbest;
+    window.newpersonalbest = newpersonalbest;
+    window.mazeContainer = mazeContainer;
+    window.canvas = canvas;
+    window.ctx = ctx;
+    window.playerCanvas = playerCanvas;
+    window.playerCtx = playerCtx;
+    
+    // =================================================================
+    // START SCREEN MANAGEMENT
+    // =================================================================
+
+    // Initialize start screen using StartScreenManager module
     function initializeStartScreen() {
-      const startScreen = document.getElementById('start-screen');
-      const startGameBtn = document.getElementById('start-game-btn');
-      const settingsGear = document.getElementById('settings-gear');
-      const upgradesBtn = document.getElementById('upgrades-btn');
-      const aboutCorner = document.getElementById('about-corner');
-      
-      // Hide game elements initially
-      const gameElements = [
-        document.getElementById('timer'),
-        document.getElementById('dash-indicator'),
-        document.getElementById('ground-pound-indicator'),
-        document.getElementById('controls-hint'),
-        document.getElementById('maze-container')
-      ];
-      
-      // Also hide the controls hint specifically
-      const controlsHint = document.getElementById('controls-hint');
-      if (controlsHint) {
-        controlsHint.classList.add('hidden');
-      }
-      
-      // Hide heart overlay if it exists
-      if (typeof setHeartOverlayVisible === 'function') {
-        setHeartOverlayVisible(false);
+      if (window.StartScreenManager) {
+        window.StartScreenManager.initializeStartScreen();
       } else {
-        // Fallback: hide heart overlay directly
-        const heartOverlay = document.getElementById('heart-overlay');
-        if (heartOverlay) {
-          heartOverlay.style.display = 'none';
-        }
+        console.error('StartScreenManager module not loaded');
       }
-      
-      gameElements.forEach(element => {
-        if (element) {
-          element.style.display = 'none';
-        }
-      });
-      
-      // Start game button handler - now goes to level select
-      if (startGameBtn) {
-        startGameBtn.addEventListener('click', function() {
-          console.log('Start Game clicked - showing level select');
-          showLevelSelect();
-        });
-      }
-      // Settings gear icon handler (placeholder for now)
-      if (settingsGear) {
-        settingsGear.addEventListener('click', function() {
-          console.log('Settings gear clicked');
-          alert('Settings feature coming soon!');
-        });
-      }
-      
-      // Upgrades button handler (placeholder for now)
-      if (upgradesBtn) {
-        upgradesBtn.addEventListener('click', function() {
-          console.log('Upgrades clicked');
-          alert('Upgrades feature coming soon! 🚀\n\nUpgrade your player with:\n• Faster movement speed\n• Longer dash distance\n• Reduced cooldowns\n• Special abilities');
-        });
-      }
-      
-      // About corner button handler (placeholder for now)
-      if (aboutCorner) {
-        aboutCorner.addEventListener('click', function() {
-          console.log('About corner clicked');
-          alert('The Traze Maze v2.0\n\nNavigate through the maze as fast as you can!\n\nControls:\n• Arrow Keys/WASD: Move\n• Shift/Space: Dash\n• Hold Up/W: Charge Jump\n• Down/S (in air): Ground Pound\n\nCreated by Drummingcoder');
-        });
-      }
-    }
-    
-    // Show level select screen
-    function showLevelSelect() {
-      console.log('Showing level select screen...');
-      
-      // Hide start screen
-      const startScreen = document.getElementById('start-screen');
-      if (startScreen) {
-        startScreen.classList.add('hidden');
-        setTimeout(() => {
-          startScreen.style.display = 'none';
-        }, 500);
-      }
-      
-      // Show level select screen
-      const levelSelectScreen = document.getElementById('level-select-screen');
-      if (levelSelectScreen) {
-        setTimeout(() => {
-          levelSelectScreen.style.display = 'flex';
-          setTimeout(() => {
-            levelSelectScreen.classList.remove('hidden');
-            // Always load personal best times when screen is shown
-            loadLevelBestTimes();
-          }, 50);
-        }, 300);
-      }
-      
-      // Setup level select event listeners
-      setupLevelSelectListeners();
-    }
-    
-    // Setup level select event listeners
-    function setupLevelSelectListeners() {
-      // Level 1 card (unlocked)
-      const level1Card = document.getElementById('level-1-card');
-      if (level1Card && !level1Card.dataset.listenerAdded) {
-        level1Card.addEventListener('click', function() {
-          console.log('Level 1 selected');
-          startGameWithLevel(1);
-        });
-        level1Card.dataset.listenerAdded = 'true';
-      }
-      
-      // Level 2 card (unlocked)
-      const level2Card = document.getElementById('level-2-card');
-      if (level2Card && !level2Card.dataset.listenerAdded) {
-        level2Card.addEventListener('click', function() {
-          console.log('Level 2 selected');
-          startGameWithLevel(2);
-        });
-        level2Card.dataset.listenerAdded = 'true';
-      }
-      
-      // Locked level cards (levels 3-10, show coming soon message)
-      const lockedCards = document.querySelectorAll('.level-card.locked');
-      lockedCards.forEach(card => {
-        if (!card.dataset.listenerAdded) {
-          card.addEventListener('click', function() {
-            const levelNum = card.getAttribute('data-level');
-            console.log(`Locked level ${levelNum} clicked`);
-            alert(`Level ${levelNum} is coming soon! 🚧\n\nStay tuned for more challenging mazes!`);
-          });
-          card.dataset.listenerAdded = 'true';
-        }
-      });
-      
-      // Back to menu button
-      const backToMenuBtn = document.getElementById('back-to-menu-btn');
-      if (backToMenuBtn && !backToMenuBtn.dataset.listenerAdded) {
-        backToMenuBtn.addEventListener('click', function() {
-          console.log('Back to menu clicked');
-          showStartScreen();
-        });
-        backToMenuBtn.dataset.listenerAdded = 'true';
-      }
-    }
-    
-    // Show start screen (back from level select)
-    function showStartScreen() {
-      console.log('Returning to start screen...');
-      
-      // Cleanup game systems to stop timers and movement
-      if (window.GameInitializer && window.GameInitializer.cleanupGameSystems) {
-        window.GameInitializer.cleanupGameSystems();
-      }
-      
-      // Hide end screen if it's showing
-      const gameEndScreen = document.getElementById('end-screen');
-      if (gameEndScreen && !gameEndScreen.classList.contains('hidden')) {
-        gameEndScreen.classList.add('hidden');
-      }
-      
-      // Hide game elements
-      const gameElements = [
-        document.getElementById('timer'),
-        document.getElementById('dash-indicator'),
-        document.getElementById('ground-pound-indicator'),
-        document.getElementById('controls-hint'),
-        document.getElementById('maze-container')
-      ];
-      
-      gameElements.forEach(element => {
-        if (element) {
-          element.style.display = 'none';
-        }
-      });
-      
-      // Reset game started flag
-      isGameStarted = false;
-      
-      // Hide level select screen
-      const levelSelectScreen = document.getElementById('level-select-screen');
-      if (levelSelectScreen) {
-        levelSelectScreen.classList.add('hidden');
-        setTimeout(() => {
-          levelSelectScreen.style.display = 'none';
-        }, 500);
-      }
-      
-      // Show start screen
-      const startScreen = document.getElementById('start-screen');
-      if (startScreen) {
-        setTimeout(() => {
-          startScreen.style.display = 'flex';
-          setTimeout(() => {
-            startScreen.classList.remove('hidden');
-          }, 50);
-        }, 300);
-      }
-    }
-    
-    // Make functions globally available
-    window.showStartScreen = showStartScreen;
-    window.showLevelSelect = showLevelSelect;
-    
-    // Load personal best times for all levels
-    function loadLevelBestTimes() {
-      console.log('Loading personal best times for level select...');
-      
-      // Update Level 1 (unlocked) using unified PersonalBestManager
-      if (window.PersonalBestManager) {
-        window.PersonalBestManager.updateLevelDisplay(1);
-        window.PersonalBestManager.updateLevelDisplay(2);
-      } else {
-        console.warn('PersonalBestManager not available when loading level best times');
-      }
-    }
-    
-    // Update personal best time for a specific level
-    function updateLevelBestTime(levelNumber) {
-      console.log('Updating best time for level', levelNumber);
-      
-      // Update using unified PersonalBestManager
-      if (window.PersonalBestManager) {
-        window.PersonalBestManager.updateLevelDisplay(levelNumber);
-      } else {
-        console.warn('PersonalBestManager not available when updating level best time');
-      }
-    }
-    
-    // Make functions globally available
-    window.loadLevelBestTimes = loadLevelBestTimes;
-    window.updateLevelBestTime = updateLevelBestTime;
-    
-    // Start game with specific leveltScreen;
-    
-    // Start game with specific level
-    function startGameWithLevel(levelNumber) {
-      console.log(`Starting game with level ${levelNumber}...`);
-      
-      // Set the selected level globally
-      window.selectedLevel = levelNumber;
-      
-      // CRITICAL: Use existing GameInitializer reset functions
-      if (window.GameInitializer) {
-        console.log('Calling GameInitializer.restartForNewLevel() for level', levelNumber);
-        window.GameInitializer.restartForNewLevel();
-      }
-      
-      // Re-initialize maze data for the selected level AFTER reset
-      const mazeData = window.MazeGenerator.getMazeData(levelNumber);
-      console.log('Loading maze data for level', levelNumber, ':', mazeData);
-      
-      // Update global maze variables
-      window.mazeStructure = mazeData.mazeStructure;
-      window.mazeSize = mazeData.mazeSize;
-      window.startRow = mazeData.startRow;
-      window.startCol = mazeData.startCol;
-      window.endRow = mazeData.endRow;
-      window.endCol = mazeData.endCol;
-      
-      // Recalculate cell size for the new maze size
-      const availableWidth = window.innerWidth;
-      const availableHeight = window.innerHeight;
-      const maxCellSizeWidth = Math.floor(availableWidth / window.mazeSize);
-      const maxCellSizeHeight = Math.floor(availableHeight / window.mazeSize);
-      window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
-      
-      // Ensure minimum cell size
-      if (window.cellSize < 3) {
-        window.cellSize = 3;
-      }
-      
-      // Update canvas sizes
-      const mazeWidthPx = window.mazeSize * window.cellSize;
-      const mazeHeightPx = window.mazeSize * window.cellSize;
-      
-      if (window.canvas) {
-        window.canvas.width = mazeWidthPx;
-        window.canvas.height = mazeHeightPx;
-        console.log('Canvas resized to:', mazeWidthPx, 'x', mazeHeightPx);
-      }
-      
-      if (window.playerCanvas) {
-        window.playerCanvas.width = mazeWidthPx;
-        window.playerCanvas.height = mazeHeightPx;
-        console.log('Player canvas resized to:', mazeWidthPx, 'x', mazeHeightPx);
-      }
-      
-      // Force reset player position after maze data is updated
-      window.playerX = window.startCol * window.cellSize;
-      window.playerY = window.startRow * window.cellSize;
-      console.log('Player position force-reset to:', window.playerX, window.playerY);
-      
-      // Force render to ensure maze displays
-      if (window.CanvasRenderer) {
-        setTimeout(() => {
-          console.log('Force rendering maze after level change...');
-          window.CanvasRenderer.renderFrame();
-        }, 100);
-      }
-      
-      // Start the actual game
-      startGame(levelNumber);
-    }
-    
-    // Start the actual game (modified to accept level parameter)
-    function startGame(levelNumber = 1) {
-      console.log(`Starting game... Level: ${levelNumber}`);
-      isGameStarted = true;
-      
-      // Show loading overlay during game initialization
-      const loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'block';
-        loadingOverlay.style.opacity = '1';
-      }
-      
-      // Hide level select screen (or start screen if coming directly)
-      const levelSelectScreen = document.getElementById('level-select-screen');
-      const startScreen = document.getElementById('start-screen');
-      
-      if (levelSelectScreen && levelSelectScreen.style.display === 'flex') {
-        levelSelectScreen.classList.add('hidden');
-        setTimeout(() => {
-          levelSelectScreen.style.display = 'none';
-        }, 500);
-      } else if (startScreen && startScreen.style.display !== 'none') {
-        startScreen.classList.add('hidden');
-        setTimeout(() => {
-          startScreen.style.display = 'none';
-        }, 500);
-      }
-      
-      // Show game elements
-      const gameElements = [
-        document.getElementById('timer'),
-        document.getElementById('dash-indicator'),
-        document.getElementById('ground-pound-indicator'),
-        document.getElementById('controls-hint'),
-        document.getElementById('maze-container')
-      ];
-      
-      gameElements.forEach(element => {
-        if (element) {
-          element.style.display = 'block';
-        }
-      });
-      
-      // Also remove the hidden class from controls hint
-      const controlsHint = document.getElementById('controls-hint');
-      if (controlsHint) {
-        controlsHint.classList.remove('hidden');
-      }
-      
-      // Show heart overlay when game starts
-      if (typeof setHeartOverlayVisible === 'function') {
-        setHeartOverlayVisible(true);
-      } else {
-        // Fallback: show heart overlay directly
-        const heartOverlay = document.getElementById('heart-overlay');
-        if (heartOverlay) {
-          heartOverlay.style.display = 'block';
-        }
-      }
-      
-      // Initialize the actual game
-      setTimeout(() => {
-        initializeGame();
-        
-        // Hide loading overlay after game is initialized
-        const loadingOverlay = document.getElementById('loading-overlay');
-        if (loadingOverlay) {
-          setTimeout(() => {
-            loadingOverlay.style.opacity = '0';
-            setTimeout(() => {
-              loadingOverlay.style.display = 'none';
-            }, 400);
-          }, 500); // Give the game time to fully initialize
-        }
-      }, 100);
     }
 
-    // Show black loading overlay and fade out after 0.75s
-    window.addEventListener('DOMContentLoaded', function() {
+    function showOverlay() {
       var loadingOverlay = document.getElementById('loading-overlay');
       if (loadingOverlay) {
         setTimeout(function() {
@@ -1242,7 +971,12 @@
           }, 400);
         }, 750);
       }
-    });
+    }
+
+
+
+    // Show black loading overlay and fade out after 0.75s
+    window.addEventListener('DOMContentLoaded', showOverlay());
     // =================================================================
     // MAIN GAME INITIALIZATION AND COORDINATION
     // =================================================================
@@ -1263,31 +997,6 @@
     }
     
     // Audio loading moved to AudioManager module
-
-    // Preload assets immediately when script loads
-    window.addEventListener('DOMContentLoaded', function() {
-      // Only preload images immediately - audio will be loaded later
-      const preloadImages = ['stickman-running-spritesheet.png', 'waving-stickman-spritesheet.png'];
-      preloadImages.forEach(src => {
-        const img = new Image();
-        img.src = src;
-        img.style.display = 'none';
-        document.body.appendChild(img);
-      });
-    });
- 
-  // Initialize URL parameters using module
-  if (window.URLParameters) {
-    window.URLParameters.init();
-  } else {
-    console.error('URLParameters module not loaded');
-    // Fallback values
-    window.type = null;
-    window.multiple = null;
-    window.difficulty = 'medium';
-    window.mode = 'hard';
-    window.easy = false;
-  }
   
   // Get maze data from MazeGenerator module
   console.log('MazeGenerator available:', !!window.MazeGenerator);
@@ -1305,13 +1014,9 @@
   mazeSize = mazeData.mazeSize;
   console.log('Maze size:', mazeSize);
   
-  // Calculate the maximum possible cell size to fill the screen
-  const availableWidth = window.innerWidth;
-  const availableHeight = window.innerHeight;
-  
   // Calculate cell size based on screen dimensions and maze size
-  const maxCellSizeWidth = Math.floor(availableWidth / mazeSize);
-  const maxCellSizeHeight = Math.floor(availableHeight / mazeSize);
+  const maxCellSizeWidth = Math.floor(window.innerWidth / mazeSize);
+  const maxCellSizeHeight = Math.floor(window.innerHeight / mazeSize);
   
   // Use the smaller of the two to ensure the maze fits in both dimensions
   cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
@@ -1320,120 +1025,16 @@
   if (cellSize < 3) {
     cellSize = 3; // Minimum viable cell size
   }
-  
-  // Calculate actual maze dimensions in pixels
-  const mazeWidthPx = mazeSize * cellSize;
-  const mazeHeightPx = mazeSize * cellSize;
-  
-  // Set easy flag based on mode
-  var easy = (mode === 'easy'); // Make global for library.js
-  
-  // Apply dynamic styling
-  const mazeContainer = document.getElementById("maze-container");
-  const canvas = document.getElementById("maze-canvas");
-  const ctx = canvas.getContext("2d");
-  const playerCanvas = document.getElementById("player-canvas");
-  const playerCtx = playerCanvas.getContext("2d");
-  
-  // Set canvas sizes to the actual maze size
-  canvas.width = mazeWidthPx;
-  canvas.height = mazeHeightPx;
-  playerCanvas.width = mazeWidthPx;
-  playerCanvas.height = mazeHeightPx;
-  
-  // Configure maze canvas for crisp geometric rendering
-  ctx.imageSmoothingEnabled = false; // Pixelated for crisp maze edges
-  
-  // Configure player canvas for smooth sprite rendering
-  playerCtx.imageSmoothingEnabled = true;
-  playerCtx.imageSmoothingQuality = 'high';
-  if (playerCtx.webkitImageSmoothingEnabled !== undefined) playerCtx.webkitImageSmoothingEnabled = true;
-  if (playerCtx.mozImageSmoothingEnabled !== undefined) playerCtx.mozImageSmoothingEnabled = true;
-  if (playerCtx.msImageSmoothingEnabled !== undefined) playerCtx.msImageSmoothingEnabled = true;
-  if (playerCtx.oImageSmoothingEnabled !== undefined) playerCtx.oImageSmoothingEnabled = true;
-  
-  // Set canvas size to the actual maze size
-  canvas.width = mazeWidthPx;
-  canvas.height = mazeHeightPx;
-  
-  // Make the container fill the screen and center the maze
-  const style = document.createElement('style');
-  style.textContent = `
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      position: relative;
-      min-height: 100vh;
-      min-width: 100vw;
-    }
-    #maze-container {
-      width: ${mazeWidthPx}px;
-      height: ${mazeHeightPx}px;
-      position: absolute;
-      top: 0;
-      left: 0;
-      overflow: visible;
-    }
-    #maze-canvas {
-      display: block;
-      image-rendering: pixelated; /* Crisp edges for maze geometry */
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1; /* Behind player */
-    }
-    #player-canvas {
-      display: block;
-      image-rendering: auto; /* Smooth rendering for player sprite */
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 3; /* Well above maze */
-      pointer-events: none; /* Allow clicks to pass through to maze */
-    }
-  `;
-  document.head.appendChild(style);
 
-    var maze = document.getElementById("maze-container"); // Make global for library.js
-    const timerElement = document.getElementById("timer");
-    const endScreen = document.getElementById("end-screen");
-    const restartButton = document.getElementById("restart-button");
-    const backButton = document.getElementById("back-button");
-    const endText = document.getElementById("end-content");
-    const endContent = document.getElementById("end-time-taken");
-    const personalbest = document.getElementById("personal-best");
-    const newpersonalbest = document.getElementById("new-personal-best");
-
-    // Make all variables global for module access
-    window.maze = maze;
-    window.timerElement = timerElement;
-    window.endScreen = endScreen;
-    window.restartButton = restartButton;
-    window.backButton = backButton;
-    window.endContent = endContent;
-    window.endText = endText;
-    window.personalbest = personalbest;
-    window.newpersonalbest = newpersonalbest;
-    window.mazeContainer = mazeContainer;
-    window.canvas = canvas;
-    window.ctx = ctx;
-    window.playerCanvas = playerCanvas;
-    window.playerCtx = playerCtx;
-
-    var mazeStructure, startRow, startCol, endRow, endCol; // Make global for library.js
-    let time = 0;
-    let interval = false, startTime, startMaze;
-    let first = 0;
-    var mazecount = 0; // Make global for library.js
-    
-    // Canvas rendering system - smooth pixel-based movement system
+  
+  
+  // Setup canvas using CanvasRenderer module
+  if (window.CanvasRenderer && window.CanvasRenderer.setupCanvas) {
+    window.CanvasRenderer.setupCanvas(mazeSize, cellSize);
+  }
     // FORCE RESET to 0 to prevent any persistence across reloads
-    let playerX = 0, playerY = 0; // Player position in pixels - EXPLICITLY RESET TO 0
+    playerX = 0;
+    playerY = 0; // Player position in pixels - EXPLICITLY RESET TO 0
     
     // Make all maze and player variables global for module access
     window.mazeStructure = mazeStructure;
@@ -1454,10 +1055,10 @@
     window.easy = easy;
     
     // Smooth movement system variables (keep some references for compatibility)
-    let playerIsMoving = false;
-    let movementSpeed = 6; // Increased from 3 to 6 pixels per frame for faster movement
-    let smoothMovementKeys = {};
-    let animationFrameId = null;
+    playerIsMoving = false;
+    movementSpeed = 6; // Increased from 3 to 6 pixels per frame for faster movement
+    smoothMovementKeys = {};
+    animationFrameId = null;
     
     // Bridge functions to connect modules with remaining inline code
     function updateCameraAndRender() {
@@ -1482,23 +1083,22 @@
     // Cleanup functions moved to GameInitializer module
     
     // Camera system moved to CameraSystem module
-    let cameraX = 0;
-    let cameraY = 0;
-    let currentZoom = 1.0;
-    let cameraEnabled = false;
+    cameraX = 0;
+    cameraY = 0;
+    currentZoom = 1.0;
+    cameraEnabled = false;
     
     // Canvas rendering system moved to CanvasRenderer module
-    let renderPending = false;
-    let lastRenderTime = 0;
-    const RENDER_THROTTLE = 16; // 60 FPS max for smoother movement
-    let renderQueued = false;
+    renderPending = false;
+    lastRenderTime = 0;
+    renderQueued = false;
     
     // drawMaze and drawPlayer functions moved to CanvasRenderer module
 
     // renderFrame and related functions moved to CanvasRenderer module
     
     // Camera functions moved to CameraSystem module
-    let cameraUpdatePending = false;
+    cameraUpdatePending = false;
 
     // Setup predefined maze
     mazeStructure = predefinedMaze;
@@ -1584,6 +1184,9 @@
         window.CanvasRenderer.prepareAnimationSystem();
       }
     }
+    
+    // Make initializeGame globally available
+    window.initializeGame = initializeGame;
     
     // Force complete reset on page load but don't start game yet
     window.addEventListener('load', function() {
