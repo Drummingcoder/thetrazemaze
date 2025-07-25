@@ -44,3 +44,6 @@ remove), better guns, and faster shooting.
 - Leaderboard (if not done yet)
 - Hub world (with shop and levels)
 - More levels
+
+Timeline:
+Organize code and comments, fix as many bugs as possible, add enemies and guns, add level 2 and 3, add Settings menu, add Upgrades menu, etc.
