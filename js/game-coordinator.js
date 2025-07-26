@@ -126,8 +126,6 @@ const GameCoordinator = {
     window.startTime = null;
     window.first = 0;
     window.mazecount = 0;
-    window.type = null; // No URL parameters in this version
-    window.easy = false; // Hard mode by default
     
     console.log('Global variables setup complete');
   },

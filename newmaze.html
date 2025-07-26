@@ -847,7 +847,6 @@
   
   <!-- Modular JavaScript Files - Load in dependency order -->
   <script src="./js/debug-console.js"></script>
-  <script src="./js/url-parameters.js"></script>
   <script src="./js/audio-manager.js"></script>
   <script src="./js/game-timer.js"></script>
   <script src="./js/personal-best-manager.js"></script>
@@ -875,36 +874,16 @@
     // Make isGameStarted globally available
     window.isGameStarted = isGameStarted;
     
-    // Maze and game variables
+    // Maze and game variables, going to work on optimizing
     var mazeStructure, startRow = 2, startCol = 2, endRow = 46, endCol = 46; // Make global for library.js
     let time = 0;
     let interval = false, startTime, startMaze;
     let first = 0;
     var mazecount = 0; // Make global for library.js
-    var easy; // Make global for library.js
     
     // Canvas rendering system - smooth pixel-based movement system
     // FORCE RESET to 0 to prevent any persistence across reloads
     let playerX = 0, playerY = 0; // Player position in pixels - EXPLICITLY RESET TO 0
-    
-    // Smooth movement system variables (keep some references for compatibility)
-    let playerIsMoving = false;
-    let movementSpeed = 6; // Increased from 3 to 6 pixels per frame for faster movement
-    let smoothMovementKeys = {};
-    let animationFrameId = null;
-    
-    // Camera system variables
-    let cameraX = 0;
-    let cameraY = 0;
-    let currentZoom = 2.0;
-    let cameraEnabled = false;
-    let cameraUpdatePending = false;
-    
-    // Canvas rendering system variables
-    let renderPending = false;
-    let lastRenderTime = 0;
-    const RENDER_THROTTLE = 16; // 60 FPS max for smoother movement
-    let renderQueued = false;
 
     // Get the selected level (default to 1 if not set)
     const selectedLevel = window.selectedLevel || 1;
@@ -970,74 +949,7 @@
     window.startTime = startTime;
     window.first = first;
     window.mazecount = mazecount;
-    window.type = type;
-    window.easy = easy;
     
-    // Start Screen
-
-    // Initialize start screen using StartScreenManager module
-    function initializeStartScreen() {
-      showOverlay();
-      if (window.StartScreenManager) {
-        window.StartScreenManager.initializeStartScreen();
-      } else {
-        console.error('StartScreenManager module not loaded');
-      }
-    }
-
-    function showOverlay() {
-      var loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) {
-        setTimeout(function() {
-          loadingOverlay.style.opacity = '0';
-          setTimeout(function() {
-            loadingOverlay.style.display = 'none';
-
-          }, 400);
-        }, 750);
-      }
-    }
-
-    // Show black loading overlay and fade out after 0.75s
-    window.addEventListener('DOMContentLoaded', initializeStartScreen());
-
-    // Force complete reset on page load but don't start game yet
-    window.addEventListener('load', function() {
-      // Only initialize if game has been started
-      if (isGameStarted) {
-        if (window.CameraSystem) {
-          window.CameraSystem.resetCamera();
-        }
-        window.GameInitializer.initializeGame();
-        
-        // Start audio loading after page is fully loaded and maze is initialized
-        setTimeout(() => {
-          console.log('Starting audio preload via AudioManager...');
-          if (window.AudioManager) {
-            console.log('AudioManager available:', !!window.AudioManager);
-            console.log('AudioManager.isAudioPreloaded():', window.AudioManager.isAudioPreloaded());
-            console.log('AudioManager.isAudioLoading():', window.AudioManager.isAudioLoading());
-            
-            if (!window.AudioManager.isAudioPreloaded() && !window.AudioManager.isAudioLoading()) {
-              console.log('Starting audio preload via AudioManager...');
-              window.AudioManager.preloadAudioAsync();
-            } else {
-              console.log('Audio already preloaded or loading - skipping preload');
-            }
-          } else {
-            console.warn('AudioManager not available - audio preload skipped');
-          }
-        }, 200); // Ensure maze has time to fully initialize
-      }
-    });
-    
-    // Add missing resize handler
-    window.addEventListener('resize', function() {
-      if (window.GameInitializer && window.GameInitializer.resizeMaze) {
-        window.GameInitializer.resizeMaze();
-      }
-    });
-
     // FORCE CLEAR all browser storage to prevent any data persistence between sessions
     try {
       sessionStorage.clear();

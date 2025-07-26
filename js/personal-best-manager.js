@@ -76,11 +76,10 @@ const PersonalBestManager = {
   /**
    * Displays the personal best time and updates it if a new record was set
    * @param {number} currentTime - The current completion time in milliseconds
-   * @param {string} type - Game type (deprecated, kept for compatibility)
    * @param {HTMLElement} personalbest - Element to display personal best
    * @param {HTMLElement} newpersonalbest - Element to show for new records
    */
-  displayPersonalBestTime: function(currentTime, type, personalbest, newpersonalbest) {
+  displayPersonalBestTime: function(currentTime, personalbest, newpersonalbest) {
     const levelNumber = window.selectedLevel || 1;
     const storedBestTime = this.getBestTime(levelNumber);
     

@@ -32,6 +32,7 @@ remove), better guns, and faster shooting.
 - Guns
 - Better organization and commenting of code
 - Functioning music and a better soundtrack
+- Pause menu
 
 ### Bugs:
 - Timer doesn't immediately stop upon touching the end square
@@ -49,4 +50,4 @@ remove), better guns, and faster shooting.
 - More levels
 
 Timeline:
-Organize code and comments, fix as many bugs as possible, add enemies and guns, add level 2 and 3, add Settings menu, add Upgrades menu, etc.
+Organize code and comments, fix as many bugs as possible, add enemies and guns, add level 2 and 3, add Settings menu, add Upgrades menu, add Pause menu, etc.

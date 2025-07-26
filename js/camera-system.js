@@ -237,7 +237,7 @@ const CameraSystem = {
   },
 
   /**
-   * Set up window resize handler (not working, will fix later once I understand codebase)
+   * Set up window resize handler - consolidated from game-initializer, not working
    */
   setupResizeHandler: function() {
     // Remove existing handler if any
@@ -247,46 +247,87 @@ const CameraSystem = {
     
     // Create debounced resize handler to avoid excessive recalculations
     this.resizeHandler = this.debounce(() => {
+      // First handle game/canvas resizing (from game-initializer logic)
+      this.handleGameResize();
+      
+      // Then handle camera-specific resizing if camera is enabled
       if (this.cameraEnabled) {
-        // Store current state before any calculations
-        this.playerPositionBeforeResize.x = window.playerX;
-        this.playerPositionBeforeResize.y = window.playerY;
-        this.windowSizeBeforeResize.width = window.innerWidth;
-        this.windowSizeBeforeResize.height = window.innerHeight;
-        
-        // Calculate screen center offset due to window resize
-        const oldCenterX = this.windowSizeBeforeResize.width / 2;
-        const oldCenterY = this.windowSizeBeforeResize.height / 2;
-        const newCenterX = window.innerWidth / 2;
-        const newCenterY = window.innerHeight / 2;
-        
-        const centerOffsetX = newCenterX - oldCenterX;
-        const centerOffsetY = newCenterY - oldCenterY;
-        
-        // Store old zoom for offset calculations
-        const oldZoom = this.currentZoom;
-        
-        // Recalculate zoom for new window size
-        this.calculateOptimalZoom();
-        
-        // Calculate zoom scale factor
-        const zoomScaleFactor = this.currentZoom / oldZoom;
-        
-        // Adjust camera position to account for both center shift and zoom change
-        this.cameraX = this.cameraX + (centerOffsetX / this.currentZoom);
-        this.cameraY = this.cameraY + (centerOffsetY / this.currentZoom);
-        
-        // Apply the updated camera transform
-        this.applyCamera();
-        
-        // Force a re-render
-        if (window.CanvasRenderer) {
-          window.CanvasRenderer.renderFrame();
-        }
+        this.handleCameraResize();
       }
     }, 100); // Debounce by 100ms
     
     window.addEventListener('resize', this.resizeHandler);
+  },
+
+  /**
+   * Handle game/canvas resizing (consolidated from game-initializer)
+   */
+  handleGameResize: function() {
+    // Recalculate the maximum possible cell size to fill the screen
+    const availableWidth = window.innerWidth;
+    const availableHeight = window.innerHeight;
+    
+    // Calculate cell size based on screen dimensions and maze size
+    const maxCellSizeWidth = Math.floor(availableWidth / window.mazeSize);
+    const maxCellSizeHeight = Math.floor(availableHeight / window.mazeSize);
+    
+    // Use the smaller of the two to ensure the maze fits in both dimensions
+    window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
+    
+    // Ensure minimum cell size for playability
+    if (window.cellSize < 3) {
+      window.cellSize = 3;
+    }
+    
+    // Calculate actual maze dimensions in pixels
+    const mazeWidthPx = window.mazeSize * window.cellSize;
+    const mazeHeightPx = window.mazeSize * window.cellSize;
+    
+    // Update canvas size
+    if (window.canvas) {
+      window.canvas.width = mazeWidthPx;
+      window.canvas.height = mazeHeightPx;
+    }
+    
+    // Update player canvas size
+    if (window.playerCanvas) {
+      window.playerCanvas.width = mazeWidthPx;
+      window.playerCanvas.height = mazeHeightPx;
+    }
+    
+    // Update container size
+    if (window.mazeContainer) {
+      window.mazeContainer.style.width = mazeWidthPx + 'px';
+      window.mazeContainer.style.height = mazeHeightPx + 'px';
+    }
+    
+    // Update player position to match new cell size
+    const currentCol = Math.round(window.playerX / (window.canvas.width / window.mazeSize));
+    const currentRow = Math.round(window.playerY / (window.canvas.height / window.mazeSize));
+    window.playerX = currentCol * window.cellSize;
+    window.playerY = currentRow * window.cellSize;
+  },
+
+  /**
+   * Handle camera-specific resizing
+   */
+  handleCameraResize: function() {
+    // Store old zoom for calculations
+    const oldZoom = this.currentZoom;
+    
+    // Recalculate zoom for new window size
+    this.calculateOptimalZoom();
+    
+    // Re-center camera on player with new zoom
+    this.centerOnPlayer();
+    
+    // Apply the updated camera transform
+    this.applyCamera();
+    
+    // Force a re-render
+    if (window.CanvasRenderer) {
+      window.CanvasRenderer.renderFrame();
+    }
   },
 
   /**

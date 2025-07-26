@@ -797,7 +797,7 @@ const PlayerController = {
       // Trigger end game
       setTimeout(() => {
         if (typeof window.myLibrary !== 'undefined' && typeof window.endScreen !== 'undefined') {
-          window.myLibrary.endGame(window.endScreen, window.startTime, window.endContent, window.type, window.personalbest, window.newpersonalbest, window.interval);
+          window.myLibrary.endGame(window.endScreen, window.startTime, window.endContent, window.personalbest, window.newpersonalbest, window.interval);
         }
       }, 100);
       return; // Exit early to prevent further processing
@@ -1053,83 +1053,11 @@ const PlayerController = {
       }
     }
 
-    // Handle multiple goals mode
-    if (multiple === "true") {
-      this.handleMultipleGoalsMode(topPos, leftPos);
-    } else {
-      // Handle single goal mode - check for completion
-      this.handleSingleGoalMode(topPos, leftPos, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
-    }
+    // Handle single goal mode - check for completion
+    this.handleSingleGoalMode(topPos, leftPos, endScreen, startTime, endContent, personalbest, newpersonalbest, interval);
 
     // Prevent default browser behavior for movement keys
     event.preventDefault();
-  },
-
-  /**
-   * Handles logic for multiple goals mode
-   * @param {number} topPos - Current player row position
-   * @param {number} leftPos - Current player column position
-   */
-  handleMultipleGoalsMode: function(topPos, leftPos) {
-    // Check if player reached the current goal
-    if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
-      setTimeout(() => {
-        // Move start position to current end position
-        mazeStructure[startRow][startCol] = 0; // Clear old start
-        startRow = endRow;
-        startCol = endCol;
-
-        // Generate new random end position
-        let newEndRow, newEndCol;
-        do {
-          // Pick random position within maze bounds (avoiding borders)
-          newEndRow = Math.floor(Math.random() * (mazeSize - 2)) + 1;
-          newEndCol = Math.floor(Math.random() * (mazeSize - 2)) + 1;
-        } while (
-          mazeStructure[newEndRow][newEndCol] === 1 ||           // Avoid walls
-          (newEndRow === endRow && newEndCol === endCol)         // Avoid current position
-        );
-
-        // Update end position
-        mazeStructure[newEndRow][newEndCol] = 0;
-        endRow = newEndRow;
-        endCol = newEndCol;
-
-        // Invalidate rendering caches due to structure change
-        MazeRenderer.invalidateCache();
-
-        // Update maze visual representation
-        MazeRenderer.createMaze();
-        
-        // Force re-render for canvas mode
-        MazeRenderer.forceRerenderMaze();
-
-        // Increment goal counter
-        mazecount++;
-
-        // Position player at new start location
-        const playerSize = Math.max(6, cellSize * 3);
-        const offsetX = (playerSize - cellSize) / 2;
-        const offsetY = (playerSize - cellSize) / 2;
-        
-        player.style.top = (startRow * cellSize - offsetY) + "px";
-        player.style.left = (startCol * cellSize - offsetX) + "px";
-        maze.appendChild(player);
-        
-        // Update viewport for new position
-        MazeRenderer.updateViewport(startRow, startCol, true);
-        
-        // Update camera position if zoom is enabled
-        if (typeof updateCamera === 'function') {
-          updateCamera();
-        }
-      }, 200);
-    }
-
-    // Check if time limit reached (30 seconds for multiple goals mode)
-    if (GameTimer.timeElapsed >= 30000) {
-      this.endMultipleGoalsGame();
-    }
   },
 
   /**
@@ -1139,12 +1067,11 @@ const PlayerController = {
    * @param {HTMLElement} endScreen - The end screen element
    * @param {Date} startTime - When the game timer started
    * @param {HTMLElement} endContent - Element to display completion time
-   * @param {string} type - Game type ("black" for hidden mode)
    * @param {HTMLElement} personalbest - Element showing personal best time
    * @param {HTMLElement} newpersonalbest - Element shown for new records
    * @param {boolean} interval - Whether timer is running
    */
-  handleSingleGoalMode: function(topPos, leftPos, endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval) {
+  handleSingleGoalMode: function(topPos, leftPos, endScreen, startTime, endContent, personalbest, newpersonalbest, interval) {
     // Check if player reached the goal
     if (Math.floor(topPos) === endRow && Math.floor(leftPos) === endCol) {
       // Stop the timer
@@ -1163,9 +1090,8 @@ const PlayerController = {
       setTimeout(() => {
         endContent.textContent = "Time taken: " + formattedTime;
         
-        // Calculate and display personal best (now level-aware)
-        const bestTime = PersonalBestManager.calculatePersonalBestTime(timeTaken, type);
-        PersonalBestManager.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
+        // Display personal best (now level-aware)
+        PersonalBestManager.displayPersonalBestTime(timeTaken, personalbest, newpersonalbest);
         
         // Update level selector display if we're in level mode
         if (window.LevelBestTimeManager && window.selectedLevel) {
@@ -1181,43 +1107,6 @@ const PlayerController = {
         }
       }, 200);
     }
-  },
-
-  /**
-   * Ends the multiple goals game when time limit is reached
-   */
-  endMultipleGoalsGame: function() {
-    // Stop the timer
-    if (typeof GameTimer.stopTimer === 'function') {
-        GameTimer.stopTimer();
-    } else {
-      window.clearInterval(GameTimer.interval);
-    }
-    
-    // Calculate final score (number of goals reached)
-    const finalScore = mazecount;
-    const formattedScore = GameTimer.formatTime(finalScore);
-
-    setTimeout(() => {
-      // Display final score
-      const endContent = document.getElementById("end-time-taken");
-      endContent.textContent = "Number of Goals Reached: " + mazecount;
-      
-      // Calculate and display personal best for multiple goals mode (now level-aware)
-      const bestScore = PersonalBestManager.calculatePersonalBestTime(finalScore, type);
-      const personalbest = document.getElementById("personal-best");
-      const newpersonalbest = document.getElementById("new-personal-best");
-      PersonalBestManager.displayPersonalBestTime(bestScore, type, personalbest, newpersonalbest);
-      
-      // Update level selector display if we're in level mode
-      if (window.LevelBestTimeManager && window.selectedLevel) {
-        window.LevelBestTimeManager.updateLevelDisplay(window.selectedLevel);
-      }
-      
-      // Show end screen
-      const endScreen = document.getElementById("end-screen");
-      endScreen.classList.remove("hidden");
-    }, 200);
   },
 
   /**

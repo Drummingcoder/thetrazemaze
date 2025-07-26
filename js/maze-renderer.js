@@ -70,38 +70,21 @@ const MazeRenderer = {
           ctx.fillStyle = gradient;
         } else if (mazeStructure[i][j] === 1) {
           // Interior walls: Create subtle gradient effect
-          if (type === "black") {
-            // Hidden mode - very dark subtle gradient
-            const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
-            gradient.addColorStop(0, 'rgba(15, 20, 35, 0.98)');
-            gradient.addColorStop(0.5, 'rgba(35, 40, 55, 0.92)');
-            gradient.addColorStop(1, 'rgba(55, 60, 75, 0.98)');
-            ctx.fillStyle = gradient;
-          } else {
-            // Normal mode - subtle dark gradient
-            const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
-            gradient.addColorStop(0, 'rgba(55, 55, 75, 0.92)');
-            gradient.addColorStop(0.5, 'rgba(65, 65, 85, 0.90)');
-            gradient.addColorStop(1, 'rgba(75, 75, 95, 0.92)');
-            ctx.fillStyle = gradient;
-          }
+          // Normal mode - subtle dark gradient
+          const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
+          gradient.addColorStop(0, 'rgba(55, 55, 75, 0.92)');
+          gradient.addColorStop(0.5, 'rgba(65, 65, 85, 0.90)');
+          gradient.addColorStop(1, 'rgba(75, 75, 95, 0.92)');
+          ctx.fillStyle = gradient;
         } else {
           // Paths: Create subtle light gradient
-          if (type === "black") {
-            // Hidden mode - keep it dark but slightly different
-            const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
-            gradient.addColorStop(0, 'rgba(25, 30, 40, 0.85)');
-            gradient.addColorStop(1, 'rgba(35, 40, 50, 0.90)');
-            ctx.fillStyle = gradient;
-          } else {
-            // Normal mode - flowing purple-white pattern
-            const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
-            gradient.addColorStop(0, 'rgba(245, 240, 255, 0.90)');
-            gradient.addColorStop(0.3, 'rgba(220, 200, 240, 0.85)');
-            gradient.addColorStop(0.6, 'rgba(180, 160, 200, 0.85)');
-            gradient.addColorStop(1, 'rgba(200, 180, 220, 0.80)');
-            ctx.fillStyle = gradient;
-          }
+          // Normal mode - flowing purple-white pattern
+          const gradient = ctx.createLinearGradient(j, i, j + 1, i + 1);
+          gradient.addColorStop(0, 'rgba(245, 240, 255, 0.90)');
+          gradient.addColorStop(0.3, 'rgba(220, 200, 240, 0.85)');
+          gradient.addColorStop(0.6, 'rgba(180, 160, 200, 0.85)');
+          gradient.addColorStop(1, 'rgba(200, 180, 220, 0.80)');
+          ctx.fillStyle = gradient;
         }
         
         // Draw single pixel for this cell
@@ -239,12 +222,8 @@ const MazeRenderer = {
       // Interior wall cells
       cell.classList.add("wall");
     } else if (mazeStructure[i][j] === 0) {
-      // Path cells - different styling based on maze type
-      if (type === "black") {
-        cell.classList.add("black"); // Hidden maze mode
-      } else {
-        cell.classList.add("path"); // Normal maze mode
-      }
+      // Path cells - normal maze mode
+      cell.classList.add("path");
     }
 
     // Position the cell in the maze
