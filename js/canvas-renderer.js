@@ -1,123 +1,4 @@
 /**
- * Detect collision with enemies and spikes in a square around the player sprite
- * Checks for spikes (cell value 4) and enemies (cell value 5 or custom logic)
- * @param {number} playerRow
- * @param {number} playerCol
- * @param {number} radius
- * @returns {boolean} true if collision detected
- */
-function detectCollisionWithEnemiesAndSpikes(playerRow, playerCol, radius = 1) {
-  if (!window.mazeStructure) return false;
-  const mazeSize = window.mazeSize;
-  for (let dr = -radius; dr <= radius; dr++) {
-    for (let dc = -radius; dc <= radius; dc++) {
-      const r = playerRow + dr;
-      const c = playerCol + dc;
-      if (r >= 0 && r < mazeSize && c >= 0 && c < mazeSize) {
-        const cell = window.mazeStructure[r][c];
-        if (cell === 4) {
-          // Spike collision
-          return true;
-        }
-        // Example: enemies could be cell value 5, or you can add custom logic here
-        if (cell === 5) {
-          // Enemy collision
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-/**
- * Draw a spike decoration on the maze
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} x
- * @param {number} y
- * @param {number} cellSize
- */
-function drawSpike(ctx, x, y, cellSize) {
-  ctx.save();
-  // Position at bottom center of cell
-  ctx.translate(x + cellSize/2, y + cellSize);
-  // Draw spike base (triangle fills cell vertically)
-  ctx.beginPath();
-  ctx.moveTo(-cellSize*0.4, 0); // left base
-  ctx.lineTo(0, -cellSize);    // tip at top of cell
-  ctx.lineTo(cellSize*0.4, 0); // right base
-  ctx.closePath();
-  ctx.fillStyle = '#B0BEC5'; // Light gray for spike
-  ctx.fill();
-  // Spike highlight
-  ctx.beginPath();
-  ctx.moveTo(0, -cellSize);
-  ctx.lineTo(0, 0);
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.restore();
-}
-/**
- * Draw a torch decoration on the maze
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} x
- * @param {number} y
- * @param {number} cellSize
- */
-function drawTorch(ctx, x, y, cellSize) {
-  ctx.save();
-  ctx.translate(x + cellSize/2, y + cellSize*0.65);
-  // Torch stick
-  ctx.beginPath();
-  ctx.rect(-2, 0, 4, cellSize*0.22);
-  ctx.fillStyle = '#8D5524';
-  ctx.fill();
-  // Flame (yellow)
-  ctx.beginPath();
-  ctx.arc(0, -4, 7, 0, Math.PI, true);
-  ctx.fillStyle = '#FFD600';
-  ctx.fill();
-  // Flame (orange)
-  ctx.beginPath();
-  ctx.arc(0, -7, 4, 0, 2*Math.PI);
-  ctx.fillStyle = '#FF6F00';
-  ctx.fill();
-  ctx.restore();
-}
-
-/**
- * Draw a crystal decoration on the maze
- * @param {CanvasRenderingContext2D} ctx
- * @param {number} x
- * @param {number} y
- * @param {number} cellSize
- */
-function drawCrystal(ctx, x, y, cellSize) {
-  ctx.save();
-  ctx.translate(x + cellSize/2, y + cellSize/2);
-  // Crystal shape (diamond)
-  ctx.beginPath();
-  ctx.moveTo(0, -cellSize*0.28);
-  ctx.lineTo(cellSize*0.18, 0);
-  ctx.lineTo(0, cellSize*0.28);
-  ctx.lineTo(-cellSize*0.18, 0);
-  ctx.closePath();
-  ctx.fillStyle = '#4FC3F7';
-  ctx.shadowColor = '#B3E5FC';
-  ctx.shadowBlur = 6;
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  // Crystal highlight
-  ctx.beginPath();
-  ctx.moveTo(0, -cellSize*0.28);
-  ctx.lineTo(0, cellSize*0.28);
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.restore();
-}
-
-/**
  * Canvas Renderer Module - Clean and Simple
  * Renders maze clearly and player sprite without modifications, then scales down
  */
@@ -132,24 +13,29 @@ const CanvasRenderer = {
 
   // Sprite system - DOM-based instead of canvas
   playerSprite: null,
-  spriteLoaded: false,
+  spriteLoaded: false, // need to use more robust loading checks
   playerElement: null, // DOM element for the player sprite
   
   // Performance optimization - cache last known positions
   lastPlayerX: -1,
   lastPlayerY: -1,
   lastRenderTime: 0,
-  renderThrottle: 33, // Limit renders to ~30 FPS for better performance
 
   /**
    * Setup and configure canvas elements with proper sizing and rendering contexts
+   * Returns the canvas data
+   * Need to initialize maze dimensions first (WIP)
    */
   setupCanvas: function(mazeSize, cellSize) {
-    console.log('Setting up canvas with maze size:', mazeSize, 'cell size:', cellSize);
+    // Initialize maze dimensions first
+    const dimensions = window.initializeMazeDimensions(mazeSize);
+    const mazeWidth = dimensions.width; // need to work on actual dimensions
+    const mazeHeight = dimensions.height;
     
+    console.log('Setting up canvas with maze width:', mazeWidth, 'height:', mazeHeight, 'cell size:', cellSize);
     // Calculate actual maze dimensions in pixels
-    const mazeWidthPx = mazeSize * cellSize;
-    const mazeHeightPx = mazeSize * cellSize;
+    const mazeWidthPx = mazeWidth * cellSize;
+    const mazeHeightPx = mazeHeight * cellSize;
     
     // Get canvas elements
     const mazeContainer = document.getElementById("maze-container");
@@ -157,7 +43,7 @@ const CanvasRenderer = {
     const ctx = canvas.getContext("2d");
     const playerCanvas = document.getElementById("player-canvas");
     const playerCtx = playerCanvas.getContext("2d");
-    
+
     // Set canvas sizes to the actual maze size
     canvas.width = mazeWidthPx;
     canvas.height = mazeHeightPx;
@@ -175,48 +61,9 @@ const CanvasRenderer = {
     if (playerCtx.msImageSmoothingEnabled !== undefined) playerCtx.msImageSmoothingEnabled = true;
     if (playerCtx.oImageSmoothingEnabled !== undefined) playerCtx.oImageSmoothingEnabled = true;
     
-    // Create dynamic styles for responsive sizing
-    const style = document.createElement('style');
-    style.textContent = `
-      body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        position: relative;
-        min-height: 100vh;
-        min-width: 100vw;
-      }
-      #maze-container {
-        width: ${mazeWidthPx}px;
-        height: ${mazeHeightPx}px;
-        position: absolute;
-        top: 0;
-        left: 0;
-        overflow: visible;
-      }
-      #maze-canvas {
-        display: block;
-        image-rendering: pixelated; /* Crisp edges for maze geometry */
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1; /* Behind player */
-      }
-      #player-canvas {
-        display: block;
-        image-rendering: auto; /* Smooth rendering for player sprite */
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 3; /* Well above maze */
-        pointer-events: none; /* Allow clicks to pass through to maze */
-      }
-    `;
-    document.head.appendChild(style);
+    // Responsive sizing
+    mazeContainer.style.width = mazeWidthPx + 'px';
+    mazeContainer.style.height = mazeHeightPx + 'px';
     
     // Store references globally for module access
     window.mazeContainer = mazeContainer;
@@ -227,7 +74,8 @@ const CanvasRenderer = {
     
     console.log('Canvas setup complete:', {
       canvasSize: [mazeWidthPx, mazeHeightPx],
-      mazeSize: mazeSize,
+      mazeWidth: mazeWidth,
+      mazeHeight: mazeHeight,
       cellSize: cellSize
     });
     
@@ -238,7 +86,9 @@ const CanvasRenderer = {
       playerCanvas,
       playerCtx,
       mazeWidthPx,
-      mazeHeightPx
+      mazeHeightPx,
+      mazeWidth,
+      mazeHeight
     };
   },
 
@@ -399,6 +249,24 @@ const CanvasRenderer = {
   },
 
   /**
+   * Get maze dimensions with fallback logic
+   * @returns {object} {width, height} object with maze dimensions
+   */
+  getMazeDimensions: function() {
+    // If dimensions aren't set, try to initialize them
+    if (!window.mazeWidth || !window.mazeHeight) {
+      if (window.initializeMazeDimensions) {
+        window.initializeMazeDimensions(null); // Auto-detect from mazeStructure
+      }
+    }
+    
+    return {
+      width: window.mazeWidth || window.mazeSize || 48,
+      height: window.mazeHeight || window.mazeSize || 48
+    };
+  },
+
+  /**
    * Draw the maze - SIMPLIFIED high-performance approach
    */
   drawMaze: function() {
@@ -408,7 +276,9 @@ const CanvasRenderer = {
     // This is actually faster than complex viewport culling for our 48x48 maze
     
     const cellSize = window.cellSize;
-    const mazeSize = window.mazeSize;
+    const dimensions = this.getMazeDimensions(); // Use safer dimension getter
+    const mazeWidth = dimensions.width;
+    const mazeHeight = dimensions.height;
     const startRow = window.startRow;
     const startCol = window.startCol;
     const endRow = window.endRow;
@@ -420,11 +290,11 @@ const CanvasRenderer = {
     // Pre-set context properties for maximum performance
     window.ctx.imageSmoothingEnabled = false;
     
-    for (let row = 0; row < mazeSize; row++) {
+    for (let row = 0; row < mazeHeight; row++) {
       const rowData = window.mazeStructure[row];
       if (!rowData) continue;
       const y = row * cellSize;
-      for (let col = 0; col < mazeSize; col++) {
+      for (let col = 0; col < mazeWidth; col++) {
         const x = col * cellSize;
         const cell = rowData[col];
         // Start tile
@@ -568,13 +438,6 @@ const CanvasRenderer = {
    * Main rendering function - OPTIMIZED with dirty checking
    */
   renderFrame: function() {
-    // Frame rate throttling - don't render more than ~60 FPS
-    const now = performance.now();
-    if (now - this.lastRenderTime < this.renderThrottle) {
-      return; // Skip this frame
-    }
-    this.lastRenderTime = now;
-    
     // CRITICAL PERFORMANCE FIX: Only draw maze ONCE at startup, never again
     // The maze doesn't change, so redrawing it is pure waste
     if (!this.mazeDrawn) {
@@ -677,6 +540,47 @@ const CanvasRenderer = {
 // Make CanvasRenderer available globally
 window.CanvasRenderer = CanvasRenderer;
 
+/**
+ * Initialize maze dimensions globally
+ * This ensures mazeWidth and mazeHeight are available throughout the application
+ * @param {number|object} mazeSize - Either a number (for square mazes) or {width, height} object
+ */
+function initializeMazeDimensions(mazeSize) {
+  if (typeof mazeSize === 'object' && mazeSize !== null) {
+    // Handle {width, height} object
+    window.mazeWidth = mazeSize.width;
+    window.mazeHeight = mazeSize.height;
+  } else if (typeof mazeSize === 'number') {
+    // Handle square maze (single number)
+    window.mazeWidth = mazeSize;
+    window.mazeHeight = mazeSize;
+  } else {
+    // Fallback: try to detect from mazeStructure
+    if (window.mazeStructure && Array.isArray(window.mazeStructure)) {
+      window.mazeHeight = window.mazeStructure.length;
+      window.mazeWidth = window.mazeStructure[0] ? window.mazeStructure[0].length : 0;
+    } else {
+      // Last resort: use legacy mazeSize if available
+      const legacySize = window.mazeSize || 48; // Default to 48x48
+      window.mazeWidth = legacySize;
+      window.mazeHeight = legacySize;
+    }
+  }
+  
+  console.log('Maze dimensions initialized:', {
+    width: window.mazeWidth,
+    height: window.mazeHeight
+  });
+  
+  return {
+    width: window.mazeWidth,
+    height: window.mazeHeight
+  };
+}
+
+// Make the function globally available
+window.initializeMazeDimensions = initializeMazeDimensions;
+
 // Heart system: player starts with 3 hearts
 window.playerHearts = 3;
 window.playerInvincible = false;
@@ -758,6 +662,8 @@ window.loseHeart = function() {
         var personalBestElem = document.getElementById('personal-best');
         var newPersonalBestElem = document.getElementById('new-personal-best');
         var endContentElem = document.getElementById('end-content');
+        var endTimeTakenElem = document.getElementById('end-time-taken');
+        
         if (endContentElem) {
           endContentElem.textContent = 'Level Failed...';
         }
@@ -766,6 +672,10 @@ window.loseHeart = function() {
         }
         if (newPersonalBestElem) {
           newPersonalBestElem.style.display = 'none';
+        }
+        // Hide the time taken display since the level wasn't completed
+        if (endTimeTakenElem) {
+          endTimeTakenElem.style.display = 'none';
         }
       }
       setHeartOverlayVisible(false);
@@ -825,3 +735,130 @@ CanvasRenderer.forceRedraw = function() {
   if (typeof updateHeartOverlay === 'function') updateHeartOverlay();
   origForceRedraw.call(this);
 };
+
+/**
+ * Detect collision with enemies and spikes in a square around the player sprite
+ * Checks for spikes (cell value 4) and enemies (cell value 5 or custom logic)
+ * @param {number} playerRow
+ * @param {number} playerCol
+ * @param {number} radius
+ * @returns {boolean} true if collision detected
+ */
+function detectCollisionWithEnemiesAndSpikes(playerRow, playerCol, radius = 1) {
+  if (!window.mazeStructure) return false;
+  
+  // Use safer dimension getter
+  const dimensions = window.CanvasRenderer ? window.CanvasRenderer.getMazeDimensions() : {
+    width: window.mazeWidth || window.mazeSize || 48,
+    height: window.mazeHeight || window.mazeSize || 48
+  };
+  const mazeWidth = dimensions.width;
+  const mazeHeight = dimensions.height;
+  
+  for (let dr = -radius; dr <= radius; dr++) {
+    for (let dc = -radius; dc <= radius; dc++) {
+      const r = playerRow + dr;
+      const c = playerCol + dc;
+      if (r >= 0 && r < mazeHeight && c >= 0 && c < mazeWidth) {
+        const cell = window.mazeStructure[r][c];
+        if (cell === 4) {
+          // Spike collision
+          return true;
+        }
+        // Example: enemies could be cell value 5, or you can add custom logic here
+        if (cell === 5) {
+          // Enemy collision
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+/**
+ * Draw a spike decoration on the maze
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cellSize
+ */
+function drawSpike(ctx, x, y, cellSize) {
+  ctx.save();
+  // Position at bottom center of cell
+  ctx.translate(x + cellSize/2, y + cellSize);
+  // Draw spike base (triangle fills cell vertically)
+  ctx.beginPath();
+  ctx.moveTo(-cellSize*0.4, 0); // left base
+  ctx.lineTo(0, -cellSize);    // tip at top of cell
+  ctx.lineTo(cellSize*0.4, 0); // right base
+  ctx.closePath();
+  ctx.fillStyle = '#B0BEC5'; // Light gray for spike
+  ctx.fill();
+  // Spike highlight
+  ctx.beginPath();
+  ctx.moveTo(0, -cellSize);
+  ctx.lineTo(0, 0);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+/**
+ * Draw a torch decoration on the maze
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cellSize
+ */
+function drawTorch(ctx, x, y, cellSize) {
+  ctx.save();
+  ctx.translate(x + cellSize/2, y + cellSize*0.65);
+  // Torch stick
+  ctx.beginPath();
+  ctx.rect(-2, 0, 4, cellSize*0.22);
+  ctx.fillStyle = '#8D5524';
+  ctx.fill();
+  // Flame (yellow)
+  ctx.beginPath();
+  ctx.arc(0, -4, 7, 0, Math.PI, true);
+  ctx.fillStyle = '#FFD600';
+  ctx.fill();
+  // Flame (orange)
+  ctx.beginPath();
+  ctx.arc(0, -7, 4, 0, 2*Math.PI);
+  ctx.fillStyle = '#FF6F00';
+  ctx.fill();
+  ctx.restore();
+}
+
+/**
+ * Draw a crystal decoration on the maze
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cellSize
+ */
+function drawCrystal(ctx, x, y, cellSize) {
+  ctx.save();
+  ctx.translate(x + cellSize/2, y + cellSize/2);
+  // Crystal shape (diamond)
+  ctx.beginPath();
+  ctx.moveTo(0, -cellSize*0.28);
+  ctx.lineTo(cellSize*0.18, 0);
+  ctx.lineTo(0, cellSize*0.28);
+  ctx.lineTo(-cellSize*0.18, 0);
+  ctx.closePath();
+  ctx.fillStyle = '#4FC3F7';
+  ctx.shadowColor = '#B3E5FC';
+  ctx.shadowBlur = 6;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  // Crystal highlight
+  ctx.beginPath();
+  ctx.moveTo(0, -cellSize*0.28);
+  ctx.lineTo(0, cellSize*0.28);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}

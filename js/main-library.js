@@ -61,14 +61,6 @@ var myLibrary = {
     return MazeGenerator.generateClearPath();
   },
 
-  /**
-   * Generates an easy maze with additional openings
-   * @see MazeGenerator.generateEasyPath
-   */
-  generateEasyPath: function() {
-    return MazeGenerator.generateEasyPath();
-  },
-
   // === MAZE RENDERING METHODS ===
   /**
    * Creates the maze visual representation
@@ -200,7 +192,7 @@ var myLibrary = {
   },
 
   /**
-   * Copies maze and time (hard mode)
+   * Copies maze and time to clipboard
    * @see GameActions.copyMazeAndTime
    */
   copyMazeAndTime: function() {
@@ -208,19 +200,11 @@ var myLibrary = {
   },
 
   /**
-   * Copies maze and time (easy mode)
-   * @see GameActions.copyEasyMazeAndTime
-   */
-  copyEasyMazeAndTime: function() {
-    return GameActions.copyEasyMazeAndTime();
-  },
-
-  /**
-   * Ends the game
+   * End game functionality
    * @see GameActions.endGame
    */
-  endGame: function(endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval) {
-    return GameActions.endGame(endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval);
+  endGame: function(endScreen, startTime, endContent, personalbest, newpersonalbest, interval) {
+    return GameActions.endGame(endScreen, startTime, endContent, personalbest, newpersonalbest, interval);
   },
 
   // === TIMER METHODS ===

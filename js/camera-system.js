@@ -1,6 +1,23 @@
 /**
  * Camera System Module
  * Handles camera positioning, zooming, and player following
+ * 
+ * ---
+ * CameraSystem.js Function Reference
+ * ---
+ *
+ * 1. initializeNewCamera: Initializes camera with zoom, centers on player, starts the camera loop, and sets resize handler.
+ * 2. calculateOptimalZoom: Calculates zoom so ~12 cells fit in smaller window dimension (between 1.5 and 4.0).
+ * 3. centerOnPlayer: Centers camera so that player is at screen center, and updates position
+ * 4. applyCamera: Applies changes to canvas, batches DOM updates for performance.
+ * 5. startCameraLoop: Starts camera loop
+ * 6. stopCameraLoop: Stops camera update loop
+ * 7. resumeCamera: Resumes camera loop if enabled.
+ * 8. updateCamera: Updates camera position if enabled.
+ * 9. resetCamera: Resets camera state, removes handlers, applies default transform to canvas and player sprite.
+ * 10. setupResizeHandler: Sets up debounced window resize handler, recalculates zoom/position, forces re-render.
+ * 11. debounce: Utility, limits how often a function runs (used for resize).
+ *
  */
 
 console.log('Camera System module loaded');
@@ -9,7 +26,7 @@ const CameraSystem = {
   // Camera state variables
   cameraX: 0,
   cameraY: 0,
-  currentZoom: 1.0,
+  currentZoom: 2.0,
   cameraEnabled: false,
   
   // Performance optimization - cache transform
@@ -52,8 +69,8 @@ const CameraSystem = {
     const viewportW = window.innerWidth;
     const viewportH = window.innerHeight;
     const smallerDimension = Math.min(viewportW, viewportH);
-    
-    // Show about 12-15 cells in the smaller screen dimension
+
+    // Show 12 cells in the smaller screen dimension
     const targetCellsVisible = 12;
     this.currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * window.cellSize)));
   },
@@ -130,6 +147,7 @@ const CameraSystem = {
    * Start optimized camera update loop - only updates when player moves
    */
   startCameraLoop: function() {
+    if (!this.cameraEnabled) return;
     if (this.cameraAnimationId) {
       cancelAnimationFrame(this.cameraAnimationId);
     }
@@ -158,7 +176,7 @@ const CameraSystem = {
   },
 
   /**
-   * Stop camera update loop
+   * Stop (or pause) camera update loop
    */
   stopCameraLoop: function() {
     if (this.cameraAnimationId) {
@@ -168,23 +186,7 @@ const CameraSystem = {
   },
 
   /**
-   * Pause camera updates temporarily (for performance)
-   */
-  pauseCamera: function() {
-    this.stopCameraLoop();
-  },
-
-  /**
-   * Resume camera updates
-   */
-  resumeCamera: function() {
-    if (this.cameraEnabled) {
-      this.startCameraLoop();
-    }
-  },
-
-  /**
-   * Update camera position (legacy - now handled by loop)
+   * Update camera position (for force update)
    */
   updateCamera: function() {
     if (!this.cameraEnabled) return;
@@ -235,14 +237,7 @@ const CameraSystem = {
   },
 
   /**
-   * Start camera animation (now starts the 60 FPS loop)
-   */
-  startCameraAnimation: function() {
-    this.startCameraLoop();
-  },
-
-  /**
-   * Set up window resize handler
+   * Set up window resize handler - consolidated from game-initializer, not working
    */
   setupResizeHandler: function() {
     // Remove existing handler if any
@@ -252,42 +247,12 @@ const CameraSystem = {
     
     // Create debounced resize handler to avoid excessive recalculations
     this.resizeHandler = this.debounce(() => {
+      // First handle game/canvas resizing (from game-initializer logic)
+      this.handleGameResize();
+      
+      // Then handle camera-specific resizing if camera is enabled
       if (this.cameraEnabled) {
-        // Store current state before any calculations
-        this.playerPositionBeforeResize.x = window.playerX;
-        this.playerPositionBeforeResize.y = window.playerY;
-        this.windowSizeBeforeResize.width = window.innerWidth;
-        this.windowSizeBeforeResize.height = window.innerHeight;
-        
-        // Calculate screen center offset due to window resize
-        const oldCenterX = this.windowSizeBeforeResize.width / 2;
-        const oldCenterY = this.windowSizeBeforeResize.height / 2;
-        const newCenterX = window.innerWidth / 2;
-        const newCenterY = window.innerHeight / 2;
-        
-        const centerOffsetX = newCenterX - oldCenterX;
-        const centerOffsetY = newCenterY - oldCenterY;
-        
-        // Store old zoom for offset calculations
-        const oldZoom = this.currentZoom;
-        
-        // Recalculate zoom for new window size
-        this.calculateOptimalZoom();
-        
-        // Calculate zoom scale factor
-        const zoomScaleFactor = this.currentZoom / oldZoom;
-        
-        // Adjust camera position to account for both center shift and zoom change
-        this.cameraX = this.cameraX + (centerOffsetX / this.currentZoom);
-        this.cameraY = this.cameraY + (centerOffsetY / this.currentZoom);
-        
-        // Apply the updated camera transform
-        this.applyCamera();
-        
-        // Force a re-render
-        if (window.CanvasRenderer) {
-          window.CanvasRenderer.renderFrame();
-        }
+        this.handleCameraResize();
       }
     }, 100); // Debounce by 100ms
     
@@ -295,7 +260,78 @@ const CameraSystem = {
   },
 
   /**
-   * Debounce function to prevent excessive resize calculations
+   * Handle game/canvas resizing (consolidated from game-initializer)
+   */
+  handleGameResize: function() {
+    // Recalculate the maximum possible cell size to fill the screen
+    const availableWidth = window.innerWidth;
+    const availableHeight = window.innerHeight;
+    
+    // Calculate cell size based on screen dimensions and maze size
+    const maxCellSizeWidth = Math.floor(availableWidth / window.mazeSize);
+    const maxCellSizeHeight = Math.floor(availableHeight / window.mazeSize);
+    
+    // Use the smaller of the two to ensure the maze fits in both dimensions
+    window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
+    
+    // Ensure minimum cell size for playability
+    if (window.cellSize < 3) {
+      window.cellSize = 3;
+    }
+    
+    // Calculate actual maze dimensions in pixels
+    const mazeWidthPx = window.mazeSize * window.cellSize;
+    const mazeHeightPx = window.mazeSize * window.cellSize;
+    
+    // Update canvas size
+    if (window.canvas) {
+      window.canvas.width = mazeWidthPx;
+      window.canvas.height = mazeHeightPx;
+    }
+    
+    // Update player canvas size
+    if (window.playerCanvas) {
+      window.playerCanvas.width = mazeWidthPx;
+      window.playerCanvas.height = mazeHeightPx;
+    }
+    
+    // Update container size
+    if (window.mazeContainer) {
+      window.mazeContainer.style.width = mazeWidthPx + 'px';
+      window.mazeContainer.style.height = mazeHeightPx + 'px';
+    }
+    
+    // Update player position to match new cell size
+    const currentCol = Math.round(window.playerX / (window.canvas.width / window.mazeSize));
+    const currentRow = Math.round(window.playerY / (window.canvas.height / window.mazeSize));
+    window.playerX = currentCol * window.cellSize;
+    window.playerY = currentRow * window.cellSize;
+  },
+
+  /**
+   * Handle camera-specific resizing
+   */
+  handleCameraResize: function() {
+    // Store old zoom for calculations
+    const oldZoom = this.currentZoom;
+    
+    // Recalculate zoom for new window size
+    this.calculateOptimalZoom();
+    
+    // Re-center camera on player with new zoom
+    this.centerOnPlayer();
+    
+    // Apply the updated camera transform
+    this.applyCamera();
+    
+    // Force a re-render
+    if (window.CanvasRenderer) {
+      window.CanvasRenderer.renderFrame();
+    }
+  },
+
+  /**
+   * Debounce function to prevent excessive resize calculations, which aren't working
    */
   debounce: function(func, wait) {
     let timeout;
@@ -307,19 +343,6 @@ const CameraSystem = {
       clearTimeout(timeout);
       timeout = setTimeout(later, wait);
     };
-  },
-
-  // Legacy function aliases for backward compatibility
-  zoomInOnPlayer: function() {
-    this.initializeNewCamera();
-  },
-
-  centerCameraOnPlayer: function() {
-    this.centerOnPlayer();
-  },
-
-  updateCameraPosition: function() {
-    this.updateCamera();
   }
 };
 

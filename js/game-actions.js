@@ -8,11 +8,28 @@ console.log('Game Actions module loaded');
 const GameActions = {
 
   /**
-   * Navigates back to the main game selection screen
+   * Show loading overlay and fade it out after a delay
+   */
+  showOverlay: function() {
+    var loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+      setTimeout(function() {
+        loadingOverlay.style.opacity = '0';
+        setTimeout(function() {
+          loadingOverlay.style.display = 'none';
+        }, 400);
+      }, 750);
+    }
+  },
+
+  /**
+   * Navigates back to the level selection screen
    */
   goBack: function() {
-    // Show the start screen instead of redirecting
-    if (typeof window.showStartScreen === 'function') {
+    // Show the level select screen to see updated best times
+    if (typeof window.showLevelSelect === 'function') {
+      window.showLevelSelect();
+    } else if (typeof window.showStartScreen === 'function') {
       window.showStartScreen();
     } else {
       // Fallback to redirect if function not available
@@ -31,7 +48,7 @@ const GameActions = {
   },
 
   /**
-   * Copies the maze structure and completion time to clipboard (hard mode)
+   * Copies the maze structure and completion time to clipboard
    * Creates a shareable text representation of the maze and results
    */
   copyMazeAndTime: function() {
@@ -45,81 +62,10 @@ const GameActions = {
     // Get the completion time from the end screen
     const timeTaken = document.getElementById("end-time-taken").textContent;
 
-    let textToCopy;
-
-    // Create appropriate sharing text based on game mode
-    if (multiple === "true") {
-      // Multiple goals mode text
-      if (type === "black") {
-        textToCopy = "Mode: Hidden One-way Speedrun (Multiple Goals)\n" + 
-                    "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                    "Try The Traze Maze here: drummingcoder.github.io";
-      } else {
-        textToCopy = "Mode: One-way Speedrun (Multiple Goals)\n" + 
-                    "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                    "Try The Traze Maze here: drummingcoder.github.io";
-      }
-    } else {
-      // Single goal mode text
-      if (type === "black") {
-        textToCopy = "Mode: Hidden One-way Speedrun\n" + 
-                    "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                    "Try The Traze Maze here: drummingcoder.github.io";
-      } else {
-        textToCopy = "Mode: One-way Speedrun\n" + 
-                    "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                    "Try The Traze Maze here: drummingcoder.github.io";
-      }
-    }
-
-    // Copy to clipboard using temporary textarea method
-    this.copyToClipboard(textToCopy);
-    
-    // Show confirmation to user
-    alert("Maze and time have been copied to the clipboard!");
-  },
-
-  /**
-   * Copies the maze structure and completion time to clipboard (easy mode)
-   * Creates a shareable text representation with "Explorer" branding
-   */
-  copyEasyMazeAndTime: function() {
-    // Convert maze structure to emoji representation (same as hard mode)
-    const mazeString = JSON.stringify(mazeStructure)
-      .replace(/1/g, "⬛️")
-      .replace(/0/g, "⬜️")
-      .replace(/],\[/g, "\n")
-      .replace(/\[|\]|,/g, "");
-
-    // Get the completion time from the end screen
-    const timeTaken = document.getElementById("end-time-taken").textContent;
-
-    let textToCopy;
-
-    // Create appropriate sharing text for easy mode
-    if (multiple === "true") {
-      // Multiple goals mode text
-      if (type === "black") {
-        textToCopy = "Mode: Hidden Multi-way Explorer (Multiple Goals)\n" + 
-                    "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                    "Try The Traze Maze here: drummingcoder.github.io";
-      } else {
-        textToCopy = "Mode: Multi-way Explorer (Multiple Goals)\n" + 
-                    "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                    "Try The Traze Maze here: drummingcoder.github.io";
-      }
-    } else {
-      // Single goal mode text
-      if (type === "black") {
-        textToCopy = "Mode: Hidden Multi-way Explorer\n" + 
-                    "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                    "Try The Traze Maze here: drummingcoder.github.io";
-      } else {
-        textToCopy = "Mode: Multi-way Explorer\n" + 
-                    "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                    "Try The Traze Maze here: drummingcoder.github.io";
-      }
-    }
+    // Create sharing text
+    const textToCopy = "The Traze Maze Challenge\n" + 
+                      "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
+                      "Try The Traze Maze here: drummingcoder.github.io";
 
     // Copy to clipboard using temporary textarea method
     this.copyToClipboard(textToCopy);
@@ -180,12 +126,11 @@ const GameActions = {
    * @param {HTMLElement} endScreen - The end screen element
    * @param {Date} startTime - When the game started
    * @param {HTMLElement} endContent - Element to show completion info
-   * @param {string} type - Game type ("black" for hidden mode)
    * @param {HTMLElement} personalbest - Personal best display element
    * @param {HTMLElement} newpersonalbest - New record notification element
    * @param {boolean} interval - Whether timer is running
    */
-  endGame: function(endScreen, startTime, endContent, type, personalbest, newpersonalbest, interval) {
+  endGame: function(endScreen, startTime, endContent, personalbest, newpersonalbest, interval) {
     // Stop the game timer
     GameTimer.stopTimer();
     
@@ -205,9 +150,13 @@ const GameActions = {
       // Keep the h2 title as "Congratulations!" - don't overwrite it
       // endContent should remain "Congratulations!" from initialization
       
-      // Handle personal best tracking
-      const bestTime = PersonalBestManager.calculatePersonalBestTime(timeTaken, type);
-      PersonalBestManager.displayPersonalBestTime(bestTime, type, personalbest, newpersonalbest);
+      // Handle personal best tracking (now level-aware)
+      PersonalBestManager.displayPersonalBestTime(timeTaken, personalbest, newpersonalbest);
+      
+      // Update level selector display if we're in level mode
+      if (window.PersonalBestManager && window.selectedLevel) {
+        window.PersonalBestManager.updateLevelDisplay(window.selectedLevel);
+      }
       
       // Show end screen
       endScreen.classList.remove("hidden");

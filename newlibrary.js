@@ -687,8 +687,8 @@ var myLibrary = {
       this.updateViewport(Math.floor(topPos), Math.floor(leftPos));
       
       // Update player position variables and camera position if zoom is enabled
-      if (typeof updatePlayerPosition === 'function') {
-        updatePlayerPosition();
+      if (window.CanvasRenderer && typeof window.CanvasRenderer.updatePlayerPosition === 'function') {
+        window.CanvasRenderer.updatePlayerPosition();
       }
       if (typeof updateCamera === 'function') {
         updateCamera();

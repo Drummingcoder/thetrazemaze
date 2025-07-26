@@ -8,6 +8,22 @@ console.log('Game Initializer module loaded');
 const GameInitializer = {
   
   /**
+   * Initialize start screen using StartScreenManager module
+   */
+  initializeStartScreen: function() {
+    // Call showOverlay from GameActions
+    if (window.GameActions && window.GameActions.showOverlay) {
+      window.GameActions.showOverlay();
+    }
+    
+    if (window.StartScreenManager) {
+      window.StartScreenManager.initializeStartScreen();
+    } else {
+      console.error('StartScreenManager module not loaded');
+    }
+  },
+
+  /**
    * Complete game restart function - equivalent to page reload
    * Resets all game state and reinitializes everything from scratch
    */
@@ -81,8 +97,6 @@ const GameInitializer = {
    * Stop all running systems and intervals
    */
   stopAllSystems: function() {
-    console.log('GameInitializer: Stopping all systems...');
-    
     // Stop PlayerController systems
     if (window.PlayerController && window.PlayerController.cleanupMovementSystems) {
       window.PlayerController.cleanupMovementSystems();
@@ -207,8 +221,10 @@ const GameInitializer = {
     // Reset personal best display
     const personalBestElem = document.getElementById('personal-best');
     const newPersonalBestElem = document.getElementById('new-personal-best');
+    const endTimeTakenElem = document.getElementById('end-time-taken');
     if (personalBestElem) personalBestElem.style.display = '';
     if (newPersonalBestElem) newPersonalBestElem.style.display = 'none';
+    if (endTimeTakenElem) endTimeTakenElem.style.display = ''; // Ensure time display is visible for new games
     
     // Reset heart system
     window.playerHearts = 3;
@@ -384,10 +400,10 @@ const GameInitializer = {
   },
 
   /**
-   * Initialize the complete game system
+   * Initialize the complete game system (combined high-level and low-level logic)
    */
   initializeGame: function() {
-    // FORCE RESET all state variables
+    // Low-level resets
     if (window.PlayerController) {
       window.PlayerController.playerIsMoving = false;
     }
@@ -416,6 +432,12 @@ const GameInitializer = {
       if (window.CanvasRenderer) {
         window.CanvasRenderer.renderFrame();
       }
+
+      // Ensure virtual player is created
+      const virtualPlayer = GameInitializer.createVirtualPlayer();
+      if (virtualPlayer) {
+        window.player = virtualPlayer;
+      }
       
       // Start lazy audio loading AFTER maze is fully initialized
       /* DISABLED: Audio loading commented out for performance
@@ -424,62 +446,19 @@ const GameInitializer = {
       }, 100); // Additional delay to ensure smooth maze startup
       */
     }, 50); // Small delay to ensure reset is complete
-  },
-
-  /**
-   * Handle window resize to recalculate maze size
-   */
-  resizeMaze: function() {
-    // Recalculate the maximum possible cell size to fill the screen
-    const availableWidth = window.innerWidth;
-    const availableHeight = window.innerHeight;
-    
-    // Calculate cell size based on screen dimensions and maze size
-    const maxCellSizeWidth = Math.floor(availableWidth / mazeSize);
-    const maxCellSizeHeight = Math.floor(availableHeight / mazeSize);
-    
-    // Use the smaller of the two to ensure the maze fits in both dimensions
-    cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
-    
-    // Ensure minimum cell size for playability
-    if (cellSize < 3) {
-      cellSize = 3;
+    // Start the smooth movement system
+    if (window.PlayerController && window.PlayerController.startSmoothMovement) {
+      window.PlayerController.startSmoothMovement();
     }
-    
-    // Calculate actual maze dimensions in pixels
-    const mazeWidthPx = mazeSize * cellSize;
-    const mazeHeightPx = mazeSize * cellSize;
-    
-    // Update canvas size
-    canvas.width = mazeWidthPx;
-    canvas.height = mazeHeightPx;
-    
-    // Update container size
-    mazeContainer.style.width = mazeWidthPx + 'px';
-    mazeContainer.style.height = mazeHeightPx + 'px';
-    
-    // Update player position to match new cell size
-    const currentCol = Math.round(playerX / (canvas.width / mazeSize));
-    const currentRow = Math.round(playerY / (canvas.height / mazeSize));
-    playerX = currentCol * cellSize;
-    playerY = currentRow * cellSize;
-    
-    // Re-calculate zoom and camera position for new dimensions
-    if (window.CameraSystem && window.CameraSystem.cameraEnabled) {
-      // Recalculate zoom scale for new screen size
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const smallerDimension = Math.min(viewportWidth, viewportHeight);
-      const targetCellsVisible = 12;
-      window.CameraSystem.currentZoom = Math.max(1.5, Math.min(4.0, smallerDimension / (targetCellsVisible * cellSize)));
       
-      // Re-center camera on player
-      window.CameraSystem.centerOnPlayer();
+    // Initialize performance monitoring
+    if (window.CanvasRenderer && window.CanvasRenderer.monitorPerformance) {
+      window.CanvasRenderer.monitorPerformance();
     }
-    
-    // Re-render the maze
-    if (window.CanvasRenderer) {
-      window.CanvasRenderer.renderFrame();
+      
+    // Prepare animation system
+    if (window.CanvasRenderer && window.CanvasRenderer.prepareAnimationSystem) {
+      window.CanvasRenderer.prepareAnimationSystem();
     }
   },
 
@@ -526,7 +505,7 @@ const GameInitializer = {
   },
 
   /**
-   * Setup event listeners for game controls
+   * Setup event listeners for game controls and page lifecycle
    */
   setupEventListeners: function() {
     // Prevent duplicate event listeners
@@ -549,15 +528,55 @@ const GameInitializer = {
       backButton.setAttribute('data-initialized', 'true');
     }
 
-    // Add resize event listener with debouncing (prevent duplicates)
-    let resizeTimeout;
-    if (!window.resizeHandlerInitialized) {
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => this.resizeMaze(), 100);
+    // Setup page lifecycle event listeners
+    this.setupPageLifecycleListeners();
+
+    // Note: Resize handler is now managed by CameraSystem module
+  },
+
+  /**
+   * Setup page lifecycle event listeners (window load only)
+   */
+  setupPageLifecycleListeners: function() {
+    // Setup DOMContentLoaded listener to initialize start screen
+    if (!window.domContentLoadedInitialized) {
+      window.addEventListener('DOMContentLoaded', function() {
+        window.GameInitializer.initializeStartScreen();
       });
-      // Mark as initialized
-      window.resizeHandlerInitialized = true;
+      window.domContentLoadedInitialized = true;
+    }
+
+    // Window load listener - initialize game if started
+    if (!window.windowLoadInitialized) {
+      window.addEventListener('load', function() {
+        // Only initialize if game has been started
+        if (window.isGameStarted) {
+          if (window.CameraSystem) {
+            window.CameraSystem.resetCamera();
+          }
+          window.GameInitializer.initializeGame();
+          
+          // Start audio loading after page is fully loaded and maze is initialized
+          setTimeout(() => {
+            console.log('Starting audio preload via AudioManager...');
+            if (window.AudioManager) {
+              console.log('AudioManager available:', !!window.AudioManager);
+              console.log('AudioManager.isAudioPreloaded():', window.AudioManager.isAudioPreloaded());
+              console.log('AudioManager.isAudioLoading():', window.AudioManager.isAudioLoading());
+              
+              if (!window.AudioManager.isAudioPreloaded() && !window.AudioManager.isAudioLoading()) {
+                console.log('Starting audio preload via AudioManager...');
+                window.AudioManager.preloadAudioAsync();
+              } else {
+                console.log('Audio already preloaded or loading - skipping preload');
+              }
+            } else {
+              console.warn('AudioManager not available - audio preload skipped');
+            }
+          }, 200); // Ensure maze has time to fully initialize
+        }
+      });
+      window.windowLoadInitialized = true;
     }
   }
 };

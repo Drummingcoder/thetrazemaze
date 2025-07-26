@@ -102,7 +102,9 @@ This document explains the modular structure of the Traze Maze game's JavaScript
 **Key Functions**:
 - `generateRandomMaze()` - Creates challenging maze
 - `generateClearPath()` - Creates standard difficulty maze
-- `generateEasyPath()` - Creates easier maze with shortcuts
+- Maze generation and pathfinding
+- Rendering and visual effects
+- Player movement and physics
 - `carveWideCorridor(row, col)` - Creates 3-wide pathways
 
 ### 5. Maze Renderer (`js/maze-renderer.js`)
@@ -139,8 +141,7 @@ This document explains the modular structure of the Traze Maze game's JavaScript
 **Key Functions**:
 - `restartMaze()` - Reloads game
 - `goBack()` - Returns to main menu
-- `copyMazeAndTime()` - Shares results (hard mode)
-- `copyEasyMazeAndTime()` - Shares results (easy mode)
+- `copyMazeAndTime()` - Shares completion results
 
 ### 8. Main Library (`js/main-library.js`)
 **Purpose**: Backwards compatibility layer
