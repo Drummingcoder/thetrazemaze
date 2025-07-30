@@ -21,21 +21,20 @@ const GameCoordinator = {
       let mazeData;
       if (window.MazeGenerator) {
         mazeData = window.MazeGenerator.setupPredefinedMaze();
-        window.mazeSize = mazeData.mazeSize;
+        window.mazeWidth = mazeData.mazeWidth;
+        window.mazeHeight = mazeData.mazeHeight;
         console.log('✅ Maze data setup complete');
       } else {
         console.error('❌ MazeGenerator module not loaded');
         return false;
       }
-      
       // Step 2: Calculate optimal cell size
-      const cellSize = this.calculateOptimalCellSize(mazeData.mazeSize);
+      const cellSize = this.calculateOptimalCellSize(mazeData.mazeWidth, mazeData.mazeHeight);
       window.cellSize = cellSize;
-      
       // Step 3: Setup canvas rendering
       let canvasData;
       if (window.CanvasRenderer) {
-        canvasData = window.CanvasRenderer.setupCanvas(mazeData.mazeSize, cellSize);
+        canvasData = window.CanvasRenderer.setupCanvas({width: mazeData.mazeWidth, height: mazeData.mazeHeight}, cellSize);
         console.log('✅ Canvas setup complete');
       } else {
         console.error('❌ CanvasRenderer module not loaded');
@@ -73,20 +72,16 @@ const GameCoordinator = {
   calculateOptimalCellSize: function(mazeSize) {
     const availableWidth = window.innerWidth;
     const availableHeight = window.innerHeight;
-    
-    // Calculate cell size based on screen dimensions and maze size
-    const maxCellSizeWidth = Math.floor(availableWidth / mazeSize);
-    const maxCellSizeHeight = Math.floor(availableHeight / mazeSize);
-    
+    // Calculate cell size based on screen dimensions and maze dimensions
+    const maxCellSizeWidth = Math.floor(availableWidth / (mazeSize.width || mazeSize));
+    const maxCellSizeHeight = Math.floor(availableHeight / (mazeSize.height || mazeSize));
     // Use the smaller of the two to ensure the maze fits in both dimensions
     let cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
-    
     // Ensure minimum cell size for playability
     if (cellSize < 3) {
       cellSize = 3; // Minimum viable cell size
     }
-    
-    console.log('Calculated cell size:', cellSize, 'for maze size:', mazeSize);
+    console.log('Calculated cell size:', cellSize, 'for maze dimensions:', mazeSize);
     return cellSize;
   },
   

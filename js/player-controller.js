@@ -88,7 +88,7 @@ const PlayerController = {
    */
   checkCollision: function(newX, newY) {
     // Safety check: ensure we have valid window globals
-    if (!window.cellSize || !window.mazeSize || !window.mazeStructure) {
+    if (!window.cellSize || !window.mazeWidth || !window.mazeHeight || !window.mazeStructure) {
       console.warn('Missing maze globals in checkCollision');
       return true; // Assume collision if globals are missing
     }
@@ -109,7 +109,7 @@ const PlayerController = {
     const bottomRow = Math.floor((bounds.bottom - 1) / window.cellSize); // -1 to handle exact edge cases
     
     // Check bounds first
-    if (leftCol < 0 || rightCol >= window.mazeSize || topRow < 0 || bottomRow >= window.mazeSize) {
+    if (leftCol < 0 || rightCol >= window.mazeWidth || topRow < 0 || bottomRow >= window.mazeHeight) {
       return true; // Collision with maze boundary
     }
     
@@ -162,10 +162,10 @@ const PlayerController = {
     let checkRow = Math.floor(spriteBottom / window.cellSize);
     
     // Look for solid ground below current position
-    while (checkRow < window.mazeSize) {
+    while (checkRow < window.mazeHeight) {
       let foundGround = false;
       for (let col = leftCol; col <= rightCol; col++) {
-        if (col >= 0 && col < window.mazeSize && 
+        if (col >= 0 && col < window.mazeWidth && 
             window.mazeStructure[checkRow] && window.mazeStructure[checkRow][col] === 1) {
           foundGround = true;
           break;
@@ -196,12 +196,12 @@ const PlayerController = {
     const rightCol = Math.floor((bounds.right - 1) / window.cellSize);
     
     // Check bounds - maze edges act as solid ground
-    if (bottomRow >= window.mazeSize) return true;
-    if (leftCol < 0 || rightCol >= window.mazeSize) return false;
+    if (bottomRow >= window.mazeHeight) return true;
+    if (leftCol < 0 || rightCol >= window.mazeWidth) return false;
     
     // Check if there's solid ground under any part of the player
     for (let col = leftCol; col <= rightCol; col++) {
-      if (col >= 0 && col < window.mazeSize) {
+      if (col >= 0 && col < window.mazeWidth) {
         if (window.mazeStructure[bottomRow] && window.mazeStructure[bottomRow][col] === 1) {
           return true; // Standing on a wall (solid ground)
         }
@@ -344,7 +344,7 @@ const PlayerController = {
     const bottomRow = Math.floor((bounds.bottom - 1) / window.cellSize);
     
     // Check if we're going out of bounds
-    if (leftCol < 0 || rightCol >= window.mazeSize || topRow < 0 || bottomRow >= window.mazeSize) {
+    if (leftCol < 0 || rightCol >= window.mazeWidth || topRow < 0 || bottomRow >= window.mazeHeight) {
       return { landed: false, landingY: targetY, groundRow: null };
     }
     
@@ -379,7 +379,7 @@ const PlayerController = {
       let testHasCollision = false;
       for (let row = Math.floor(testBounds.top / window.cellSize); row <= testBottomRow; row++) {
         for (let col = leftCol; col <= rightCol; col++) {
-          if (row >= 0 && row < window.mazeSize && col >= 0 && col < window.mazeSize) {
+          if (row >= 0 && row < window.mazeHeight && col >= 0 && col < window.mazeWidth) {
             if (window.mazeStructure[row][col] === 1) { // Wall
               testHasCollision = true;
               break;
@@ -491,7 +491,7 @@ const PlayerController = {
       
       // Safety check: ensure player doesn't go out of bounds
       const minY = 0;
-      const maxY = (window.mazeSize - 1) * window.cellSize;
+      const maxY = (window.mazeHeight - 1) * window.cellSize;
       const safeNewY = Math.max(minY, Math.min(maxY, newY));
       
       // Special handling for ground pound collision
@@ -974,11 +974,11 @@ const PlayerController = {
       // Try to recover by ensuring player position is valid
       if (window.playerX < 0) window.playerX = 0;
       if (window.playerY < 0) window.playerY = 0;
-      if (window.playerX > (window.mazeSize - 1) * window.cellSize) {
-        window.playerX = (window.mazeSize - 1) * window.cellSize;
+      if (window.playerX > (window.mazeWidth - 1) * window.cellSize) {
+        window.playerX = (window.mazeWidth - 1) * window.cellSize;
       }
-      if (window.playerY > (window.mazeSize - 1) * window.cellSize) {
-        window.playerY = (window.mazeSize - 1) * window.cellSize;
+      if (window.playerY > (window.mazeHeight - 1) * window.cellSize) {
+        window.playerY = (window.mazeHeight - 1) * window.cellSize;
       }
     }
   },
@@ -1030,9 +1030,9 @@ const PlayerController = {
     // Enhanced boundary and collision checking
     if (
       topPos >= 1 &&                    // Keep player away from top border (row 0)
-      topPos < mazeSize - 1 &&          // Keep player away from bottom border
+      topPos < window.mazeHeight - 1 && // Keep player away from bottom border
       leftPos >= 1 &&                   // Keep player away from left border (col 0)
-      leftPos < mazeSize - 1 &&         // Keep player away from right border
+      leftPos < window.mazeWidth - 1 && // Keep player away from right border
       mazeStructure[Math.floor(topPos)] &&                              // Ensure row exists
       mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== undefined && // Ensure cell exists
       mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== 1      // Ensure it's not a wall

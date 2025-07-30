@@ -167,12 +167,12 @@
     // Get the selected level (default to 1 if not set)
     const selectedLevel = window.selectedLevel || 1;
     const mazeData = MazeGenerator.getMazeData(selectedLevel);
-    console.log('Maze data for level', selectedLevel, ':', mazeData);
+    console.log('DEBUG: Maze data for level', selectedLevel, ':', mazeData);
     const predefinedMaze = mazeData.mazeStructure;
     mazeStructure = predefinedMaze;
 
     // Size variables
-    let mazeSize = mazeData.mazeSize, cellSize;
+    let mazeWidth = mazeData.mazeWidth, mazeHeight = mazeData.mazeHeight, cellSize;
 
     // Calculate cell size based only on screen dimensions (not maze size)
     cellSize = Math.floor(Math.min(window.innerWidth, window.innerHeight) / 48);
@@ -219,7 +219,8 @@
     window.startCol = startCol;
     window.endRow = endRow;
     window.endCol = endCol;
-    window.mazeSize = mazeSize;
+    window.mazeWidth = mazeWidth;
+    window.mazeHeight = mazeHeight;
     window.cellSize = cellSize;
     window.playerX = playerX;
     window.playerY = playerY;
@@ -238,8 +239,10 @@
     }
 
     // Setup canvas using CanvasRenderer module
+    console.log('DEBUG: mazeWidth =', mazeWidth, 'mazeHeight =', mazeHeight, 'cellSize =', cellSize);
     if (window.CanvasRenderer && window.CanvasRenderer.setupCanvas) {
-      window.CanvasRenderer.setupCanvas(mazeSize, cellSize);
+      const canvasResult = window.CanvasRenderer.setupCanvas({width: mazeWidth, height: mazeHeight}, cellSize);
+      console.log('DEBUG: Canvas setup result:', canvasResult);
     }
     
     // Initialize player position using PlayerController

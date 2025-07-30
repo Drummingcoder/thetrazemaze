@@ -68,25 +68,24 @@ const MazeGenerator = {
   setupPredefinedMaze: function() {
     // Use the predefined maze structure
     window.mazeStructure = this.predefinedMaze;
-    
-    // Set maze size based on predefined maze
-    window.mazeSize = this.predefinedMaze.length;
-    
+    // Set maze dimensions based on predefined maze
+    window.mazeHeight = this.predefinedMaze.length;
+    window.mazeWidth = this.predefinedMaze[0].length;
     // Set start and end positions for the predefined maze
     window.startRow = 2;  // In the expanded wide path area (top-left)
     window.startCol = 2;
-    window.endRow = 46;   // Bottom right corner (last row - 1)
-    window.endCol = 46;   // Bottom right corner (last column - 1)
-    
+    window.endRow = window.mazeHeight - 2;   // Bottom right corner (last row - 1)
+    window.endCol = window.mazeWidth - 2;   // Bottom right corner (last column - 1)
     console.log('Predefined maze setup complete:', {
-      mazeSize: window.mazeSize,
+      mazeWidth: window.mazeWidth,
+      mazeHeight: window.mazeHeight,
       startPos: [window.startRow, window.startCol],
       endPos: [window.endRow, window.endCol]
     });
-    
     return {
       mazeStructure: window.mazeStructure,
-      mazeSize: window.mazeSize,
+      mazeWidth: window.mazeWidth,
+      mazeHeight: window.mazeHeight,
       startRow: window.startRow,
       startCol: window.startCol,
       endRow: window.endRow,
@@ -102,10 +101,9 @@ const MazeGenerator = {
     // Start position: top-left area in a clear path
     startRow = 2; // Row 2 provides clearance from border walls
     startCol = 2; // Column 2 provides clearance from border walls
-    
     // End position: bottom-right area in a clear path
-    endRow = mazeSize - 3; // 3 cells from bottom to avoid border walls
-    endCol = mazeSize - 3; // 3 cells from right to avoid border walls
+    endRow = mazeHeight - 3; // 3 cells from bottom to avoid border walls
+    endCol = mazeWidth - 3; // 3 cells from right to avoid border walls
   },
 
   /**
@@ -115,23 +113,23 @@ const MazeGenerator = {
   generateRandomMaze: function() {
     // Initialize entire maze as walls (1 = wall, 0 = path)
     mazeStructure = [];
-    for (let i = 0; i < mazeSize; i++) {
+    for (let i = 0; i < mazeHeight; i++) {
       const row = [];
-      for (let j = 0; j < mazeSize; j++) {
+      for (let j = 0; j < mazeWidth; j++) {
         row.push(1); // Start with all walls
       }
       mazeStructure.push(row);
     }
-
     // Calculate grid size for corridor placement
     // Each "grid cell" represents a 4x4 block (3 corridor cells + 1 wall)
-    const gridSize = Math.floor(mazeSize / 4);
+    const gridRows = Math.floor(mazeHeight / 4);
+    const gridCols = Math.floor(mazeWidth / 4);
     
     // Track which grid cells have been visited during generation
     const visited = [];
-    for (let i = 0; i < gridSize; i++) {
+    for (let i = 0; i < gridRows; i++) {
       visited[i] = [];
-      for (let j = 0; j < gridSize; j++) {
+      for (let j = 0; j < gridCols; j++) {
         visited[i][j] = false;
       }
     }
@@ -140,8 +138,8 @@ const MazeGenerator = {
     const stack = [];
     
     // Choose random starting position in the grid
-    let currentRow = Math.floor(Math.random() * gridSize);
-    let currentCol = Math.floor(Math.random() * gridSize);
+    let currentRow = Math.floor(Math.random() * gridRows);
+    let currentCol = Math.floor(Math.random() * gridCols);
     
     // Mark starting cell as visited and create corridor
     visited[currentRow][currentCol] = true;
@@ -153,20 +151,16 @@ const MazeGenerator = {
     // Main maze generation loop using recursive backtracking
     while (stack.length > 0) {
       // Get unvisited neighbors of current cell
-      const neighbors = this.getUnvisitedNeighbors(currentRow, currentCol, gridSize, visited);
-      
+      const neighbors = this.getUnvisitedNeighbors(currentRow, currentCol, gridRows, gridCols, visited);
       if (neighbors.length > 0) {
         // Choose random unvisited neighbor
         const nextCell = neighbors[Math.floor(Math.random() * neighbors.length)];
         const [nextRow, nextCol] = nextCell;
-        
         // Mark neighbor as visited and create corridor
         visited[nextRow][nextCol] = true;
         this.carveWideCorridor(nextRow, nextCol);
-        
         // Create connection between current cell and neighbor
         this.carveConnection(currentRow, currentCol, nextRow, nextCol);
-        
         // Push current position to stack and move to neighbor
         stack.push([currentRow, currentCol]);
         currentRow = nextRow;
@@ -190,15 +184,13 @@ const MazeGenerator = {
     // Add 1 to skip border and provide wall spacing
     const startRow = gridRow * 4 + 1;
     const startCol = gridCol * 4 + 1;
-    
     // Carve out 3x3 area for wide corridor
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) {
         const row = startRow + r;
         const col = startCol + c;
-        
         // Ensure we stay within maze boundaries
-        if (row >= 0 && row < mazeSize && col >= 0 && col < mazeSize) {
+        if (row >= 0 && row < mazeHeight && col >= 0 && col < mazeWidth) {
           mazeStructure[row][col] = 0; // 0 = open path
         }
       }
@@ -218,18 +210,16 @@ const MazeGenerator = {
     const fromCenterCol = fromCol * 4 + 2;
     const toCenterRow = toRow * 4 + 2;
     const toCenterCol = toCol * 4 + 2;
-    
     // Determine connection direction and carve appropriate corridor
     if (fromRow === toRow) {
       // Horizontal connection (same row)
       const minCol = Math.min(fromCenterCol, toCenterCol);
       const maxCol = Math.max(fromCenterCol, toCenterCol);
       const row = fromCenterRow;
-      
       // Carve 3-wide horizontal corridor
       for (let c = minCol; c <= maxCol; c++) {
         for (let r = row - 1; r <= row + 1; r++) {
-          if (r >= 0 && r < mazeSize && c >= 0 && c < mazeSize) {
+          if (r >= 0 && r < mazeHeight && c >= 0 && c < mazeWidth) {
             mazeStructure[r][c] = 0;
           }
         }
@@ -239,11 +229,10 @@ const MazeGenerator = {
       const minRow = Math.min(fromCenterRow, toCenterRow);
       const maxRow = Math.max(fromCenterRow, toCenterRow);
       const col = fromCenterCol;
-      
       // Carve 3-wide vertical corridor
       for (let r = minRow; r <= maxRow; r++) {
         for (let c = col - 1; c <= col + 1; c++) {
-          if (r >= 0 && r < mazeSize && c >= 0 && c < mazeSize) {
+          if (r >= 0 && r < mazeHeight && c >= 0 && c < mazeWidth) {
             mazeStructure[r][c] = 0;
           }
         }
@@ -263,19 +252,16 @@ const MazeGenerator = {
     const neighbors = [];
     // Check all four directions: up, down, left, right
     const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-    
     for (const [dr, dc] of directions) {
       const newRow = row + dr;
       const newCol = col + dc;
-      
       // Check if neighbor is within grid bounds and unvisited
-      if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize) {
+      if (newRow >= 0 && newRow < arguments[2] && newCol >= 0 && newCol < arguments[3]) {
         if (!visited[newRow][newCol]) {
           neighbors.push([newRow, newCol]);
         }
       }
     }
-    
     return neighbors;
   },
 
@@ -287,11 +273,9 @@ const MazeGenerator = {
     // Ensure start and end positions are clear
     mazeStructure[startRow][startCol] = 0;
     mazeStructure[endRow][endCol] = 0;
-
     // Initialize tracking structures
     const stack = []; // For backtracking algorithm
     const visited = {}; // Track visited positions using string keys
-
     /**
      * Gets valid unvisited neighbors for maze generation
      * @param {number} row - Current row position
@@ -301,7 +285,6 @@ const MazeGenerator = {
     function getNeighbor(row, col) {
       const neighbors = [];
       // Use 4-cell spacing to create 3-wide corridors with 1-cell walls
-      
       // Check up neighbor
       if (row >= 4 && !visited[`${row - 4}-${col}`]) {
         neighbors.push([row - 4, col]);
@@ -311,16 +294,15 @@ const MazeGenerator = {
         neighbors.push([row, col - 4]);
       }
       // Check down neighbor
-      if (row < mazeSize - 4 && !visited[`${row + 4}-${col}`]) {
+      if (row < mazeHeight - 4 && !visited[`${row + 4}-${col}`]) {
         neighbors.push([row + 4, col]);
       }
       // Check right neighbor
-      if (col < mazeSize - 4 && !visited[`${row}-${col + 4}`]) {
+      if (col < mazeWidth - 4 && !visited[`${row}-${col + 4}`]) {
         neighbors.push([row, col + 4]);
       }
       return neighbors;
     }
-
     /**
      * Creates a 3x3 pathway at the specified position
      * @param {number} row - Center row of the pathway
@@ -333,13 +315,12 @@ const MazeGenerator = {
           const newRow = row + i;
           const newCol = col + j;
           // Ensure we stay within maze boundaries
-          if (newRow >= 0 && newRow < mazeSize && newCol >= 0 && newCol < mazeSize) {
+          if (newRow >= 0 && newRow < mazeHeight && newCol >= 0 && newCol < mazeWidth) {
             mazeStructure[newRow][newCol] = 0;
           }
         }
       }
     }
-
     /**
      * Creates a connection corridor between two positions
      * @param {number} row - Current row
@@ -354,7 +335,7 @@ const MazeGenerator = {
         const endCol = Math.max(col, nextCol);
         for (let c = startCol; c <= endCol; c++) {
           for (let r = row - 1; r <= row + 1; r++) {
-            if (r >= 0 && r < mazeSize && c >= 0 && c < mazeSize) {
+            if (r >= 0 && r < mazeHeight && c >= 0 && c < mazeWidth) {
               mazeStructure[r][c] = 0;
             }
           }
@@ -365,7 +346,7 @@ const MazeGenerator = {
         const endRow = Math.max(row, nextRow);
         for (let r = startRow; r <= endRow; r++) {
           for (let c = col - 1; c <= col + 1; c++) {
-            if (r >= 0 && r < mazeSize && c >= 0 && c < mazeSize) {
+            if (r >= 0 && r < mazeHeight && c >= 0 && c < mazeWidth) {
               mazeStructure[r][c] = 0;
             }
           }
@@ -519,41 +500,40 @@ const MazeGenerator = {
    */
   getMazeData: function(level = 1) {
     let mazeData;
-    
     switch(level) {
       case 1:
         mazeData = {
           mazeStructure: this.predefinedMaze,
-          mazeSize: this.predefinedMaze.length,
+          mazeWidth: 48,
+          mazeHeight: 48,
           startRow: 2,
           startCol: 2,
           endRow: 46,
           endCol: 46
         };
         break;
-        
       case 2:
         mazeData = {
           mazeStructure: this.level2Maze,
-          mazeSize: this.level2Maze.length,
+          mazeWidth: 99,
+          mazeHeight: 96,
           startRow: 1,
           startCol: 1,
-          endRow: this.level2Maze.length - 2,
-          endCol: this.level2Maze[0].length - 2
+          endRow: 94,
+          endCol: 97
         };
         break;
-        
       default:
         mazeData = {
           mazeStructure: this.predefinedMaze,
-          mazeSize: this.predefinedMaze.length,
+          mazeWidth: 48,
+          mazeHeight: 48,
           startRow: 2,
           startCol: 2,
           endRow: 46,
           endCol: 46
         };
     }
-    
     return mazeData;
   },
   
@@ -680,51 +660,6 @@ const MazeGenerator = {
         }
       }
     }
-  },
-
-  /**
-   * Returns the predefined maze structure for the game
-   * @returns {Object} Object containing maze data and configuration
-   */
-  getMazeData: function(level = 1) {
-    let mazeData;
-    
-    switch(level) {
-      case 1:
-        mazeData = {
-          mazeStructure: this.predefinedMaze,
-          mazeSize: this.predefinedMaze.length,
-          startRow: 2,
-          startCol: 2,
-          endRow: 46,
-          endCol: 46
-        };
-        break;
-        
-      case 2:
-        mazeData = {
-          mazeStructure: this.level2Maze,
-          mazeSize: this.level2Maze.length,
-          startRow: 1,
-          startCol: 1,
-          endRow: this.level2Maze.length - 2,
-          endCol: this.level2Maze[0].length - 2
-        };
-        break;
-        
-      default:
-        // Default to level 1
-        mazeData = {
-          mazeStructure: this.predefinedMaze,
-          mazeSize: this.predefinedMaze.length,
-          startRow: 2,
-          startCol: 2,
-          endRow: 46,
-          endCol: 46
-        };
-    }
-    
-    return mazeData;
   }
 };
 

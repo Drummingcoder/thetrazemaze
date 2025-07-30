@@ -108,12 +108,12 @@ const EventHandler = {
     // Calculate player's grid position for debugging
     const playerGridRow = Math.round(window.playerY / window.cellSize);
     const playerGridCol = Math.round(window.playerX / window.cellSize);
-    const mazeCenter = Math.round(window.mazeSize / 2);
+    const mazeCenterRow = Math.round((window.mazeHeight || 48) / 2);
+    const mazeCenterCol = Math.round((window.mazeWidth || 48) / 2);
     const distanceFromCenter = Math.sqrt(
-      Math.pow(playerGridRow - mazeCenter, 2) + 
-      Math.pow(playerGridCol - mazeCenter, 2)
+      Math.pow(playerGridRow - mazeCenterRow, 2) + 
+      Math.pow(playerGridCol - mazeCenterCol, 2)
     );
-    
     console.log(`Player Position: Row ${playerGridRow}, Col ${playerGridCol} ` +
                `(Pixel: ${window.playerX}, ${window.playerY}) ` +
                `(distance from center: ${distanceFromCenter.toFixed(2)})`);

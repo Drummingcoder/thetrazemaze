@@ -1,6 +1,37 @@
 /**
  * Canvas Renderer Module - Clean and Simple
  * Renders maze clearly and player sprite without modifications, then scales down
+ *
+ * ---
+ * CanvasRenderer.js Function Reference
+ * ---
+ * 1. setupCanvas: Setup and configure canvas elements with proper sizing and rendering contexts
+ * 2. initSprites: Initialize sprite loading and DOM-based player sprite
+ * 3. getInitialDirectionForLevel: Get initial facing direction for the current level
+ * 4. updateAnimation: (Deprecated) Kept for backward compatibility, does nothing
+ * 5. updateDirection: Update player sprite direction without resetting animation
+ * 6. getMazeDimensions: Get maze dimensions with fallback logic
+ * 7. drawMaze: Draw the maze on the canvas
+ * 8. drawPlayer: Draw the player using DOM-based positioning and animation
+ * 9. updatePlayerPosition: Force update player position (called by movement system)
+ * 10. updateSpritePosition: Update sprite position, always center on screen
+ * 11. renderFrame: Main rendering function with dirty checking
+ * 12. forceRedraw: Force a complete redraw (when maze structure changes)
+ * 13. resetCache: Reset cached positions (call when player teleports or resets)
+ * 14. init: Initialize the renderer
+ * 15. prepareAnimationSystem: Pre-warm animation system to reduce first-run lag
+ * 16. monitorPerformance: Monitor performance (compatibility function)
+ * 17. configureCanvasForSprites: Configure canvases for optimal rendering
+ * 18. setPlayerOpacity: Set player sprite opacity (for blinking)
+ * 19. initializeMazeDimensions: Initialize maze dimensions globally
+ * 20. updateHeartOverlay: Create/fix heart overlay in top-left of viewport
+ * 21. setHeartOverlayVisible: Utility to show/hide heart overlay
+ * 22. loseHeart: Lose a heart and trigger invincibility/blink
+ * 23. setupEndScreenHeartOverlayObserver: Hide hearts when end screen is shown
+ * 24. detectCollisionWithEnemiesAndSpikes: Detect collision with enemies and spikes
+ * 25. drawSpike: Draw a spike decoration on the maze
+ * 26. drawTorch: Draw a torch decoration on the maze
+ * 27. drawCrystal: Draw a crystal decoration on the maze
  */
 
 console.log('Canvas Renderer module loaded');
@@ -13,8 +44,8 @@ const CanvasRenderer = {
 
   // Sprite system - DOM-based instead of canvas
   playerSprite: null,
-  spriteLoaded: false, // need to use more robust loading checks
-  playerElement: null, // DOM element for the player sprite
+  spriteLoaded: false,
+  playerElement: null,
   
   // Performance optimization - cache last known positions
   lastPlayerX: -1,
@@ -27,9 +58,21 @@ const CanvasRenderer = {
    * Need to initialize maze dimensions first (WIP)
    */
   setupCanvas: function(mazeSize, cellSize) {
-    // Initialize maze dimensions first
-    const dimensions = window.initializeMazeDimensions(mazeSize);
-    const mazeWidth = dimensions.width; // need to work on actual dimensions
+    // Initialize maze dimensions first - but preserve existing global values if available
+    let dimensions;
+    if (window.mazeWidth && window.mazeHeight) {
+      // Use existing global dimensions if they're already set
+      dimensions = {
+        width: window.mazeWidth,
+        height: window.mazeHeight
+      };
+      console.log('✅ Using existing maze dimensions:', dimensions);
+    } else {
+      // Initialize maze dimensions from parameter
+      dimensions = window.initializeMazeDimensions(mazeSize);
+    }
+    
+    const mazeWidth = dimensions.width;
     const mazeHeight = dimensions.height;
     
     console.log('Setting up canvas with maze width:', mazeWidth, 'height:', mazeHeight, 'cell size:', cellSize);
@@ -38,20 +81,17 @@ const CanvasRenderer = {
     const mazeHeightPx = mazeHeight * cellSize;
     
     // Get canvas elements
-    const mazeContainer = document.getElementById("maze-container");
-    const canvas = document.getElementById("maze-canvas");
-    const ctx = canvas.getContext("2d");
-    const playerCanvas = document.getElementById("player-canvas");
-    const playerCtx = playerCanvas.getContext("2d");
+    const ctx = window.canvas.getContext("2d");
+    const playerCtx = window.playerCanvas.getContext("2d");
 
     // Set canvas sizes to the actual maze size
-    canvas.width = mazeWidthPx;
-    canvas.height = mazeHeightPx;
-    playerCanvas.width = mazeWidthPx;
-    playerCanvas.height = mazeHeightPx;
+    window.canvas.width = mazeWidthPx;
+    window.canvas.height = mazeHeightPx;
+    window.playerCanvas.width = mazeWidthPx;
+    window.playerCanvas.height = mazeHeightPx;
     
     // Configure maze canvas for crisp geometric rendering
-    ctx.imageSmoothingEnabled = false; // Pixelated for crisp maze edges
+    ctx.imageSmoothingEnabled = false;
     
     // Configure player canvas for smooth sprite rendering
     playerCtx.imageSmoothingEnabled = true;
@@ -62,14 +102,11 @@ const CanvasRenderer = {
     if (playerCtx.oImageSmoothingEnabled !== undefined) playerCtx.oImageSmoothingEnabled = true;
     
     // Responsive sizing
-    mazeContainer.style.width = mazeWidthPx + 'px';
-    mazeContainer.style.height = mazeHeightPx + 'px';
+    window.mazeContainer.style.width = mazeWidthPx + 'px';
+    window.mazeContainer.style.height = mazeHeightPx + 'px';
     
     // Store references globally for module access
-    window.mazeContainer = mazeContainer;
-    window.canvas = canvas;
     window.ctx = ctx;
-    window.playerCanvas = playerCanvas;
     window.playerCtx = playerCtx;
     
     console.log('Canvas setup complete:', {
@@ -114,7 +151,7 @@ const CanvasRenderer = {
     // Create the player DOM element
     this.playerElement = document.createElement('div');
     this.playerElement.id = 'player-sprite';
-    this.playerElement.style.position = 'fixed'; // Use 'fixed' to position relative to viewport
+    this.playerElement.style.position = 'fixed';
     this.playerElement.style.zIndex = '1000'; // Much higher z-index to ensure visibility
     this.playerElement.style.pointerEvents = 'none';
     this.playerElement.style.imageRendering = 'pixelated'; // Crisp scaling
@@ -122,12 +159,14 @@ const CanvasRenderer = {
     this.playerElement.style.backgroundRepeat = 'no-repeat';
     // this.playerElement.style.border = '2px solid red'; // DEBUG: Removed red border
     
-    // Set size based on a fixed size for better visibility (not dependent on cell size)
-    const spriteSize = 48; // Fixed size for better visibility when centered
+    // Set size based on cell size for better scaling with maze
+    const cellSize = window.cellSize || 32;
+    // Clamp sprite size to a larger range (e.g., 1.5x to 2.0x cell size)
+    const spriteSize = Math.max(2.5 * cellSize, Math.min(3.5 * cellSize, 128));
     this.playerElement.style.width = spriteSize + 'px';
     this.playerElement.style.height = spriteSize + 'px';
     
-    console.log(`🎯 Sprite size set to: ${spriteSize}px x ${spriteSize}px`);
+    console.log(`🎯 Sprite size set to: ${spriteSize}px x ${spriteSize}px (cell size: ${cellSize})`);
     
     // Set background size to scale the spritesheet properly
     const frameWidth = 256; // Each frame is 256x256 pixels
@@ -142,20 +181,16 @@ const CanvasRenderer = {
     const scaledSheetHeight = sheetHeight * scaleFactor; // 2560 * 0.1875 = 480px
     
     this.playerElement.style.backgroundSize = `${scaledSheetWidth}px ${scaledSheetHeight}px`;
-    console.log(`📐 Background size set to: ${scaledSheetWidth}px x ${scaledSheetHeight}px (scale factor: ${scaleFactor})`);
+    console.log(`📐 Spritesheet size set to: ${scaledSheetWidth}px x ${scaledSheetHeight}px (scale factor: ${scaleFactor})`);
     
-    // Store original dimensions for position calculations
-    this.originalFrameWidth = frameWidth;
-    this.originalFrameHeight = frameHeight;
     this.scaleFactor = scaleFactor; // Store scale factor for background position calculations
     
-    // Add to the maze container FIRST before positioning
-    const mazeContainer = document.getElementById('maze-container');
-    if (mazeContainer) {
-      console.log('✅ Maze container found, appending sprite');
-      mazeContainer.appendChild(this.playerElement);
+    // Add to the maze container
+    if (window.mazeContainer) {
+      console.log('Maze container found, appending sprite');
+      window.mazeContainer.appendChild(this.playerElement);
     } else {
-      console.error('❌ Maze container not found! Appending to body as fallback');
+      console.error('Maze container not found! Appending to body as fallback');
       document.body.appendChild(this.playerElement);
     }
     
@@ -163,7 +198,7 @@ const CanvasRenderer = {
     this.updateSpritePosition();
     
     // Initialize the PlayerAnimation system with sprite element
-    // TODO: Make initial direction configurable based on level system
+    // TODO: Make initial direction based on level system
     const initialDirection = this.getInitialDirectionForLevel();
     if (window.PlayerAnimation) {
       window.PlayerAnimation.init(this.playerElement, scaleFactor, initialDirection);
@@ -172,7 +207,6 @@ const CanvasRenderer = {
     }
     
     this.spriteLoaded = true;
-    console.log('✅ Sprite initialization complete');
     
     // Force initial render
     this.renderFrame();
@@ -184,17 +218,7 @@ const CanvasRenderer = {
    */
   getInitialDirectionForLevel: function() {
     // For now, always face right
-    // In the future, this could check window.currentLevel or similar
     return 'right';
-  },
-
-  /**
-   * Update animation - DEPRECATED: PlayerAnimation now runs its own loop
-   * This method is kept for backward compatibility but does nothing
-   */
-  updateAnimation: function() {
-    // PlayerAnimation now runs its own independent loop
-    // No need to call updateAnimation manually anymore
   },
 
   /**
@@ -224,22 +248,17 @@ const CanvasRenderer = {
       currentDirection = 'right';
     }
     
-    // Only reset animation frame if we ACTUALLY change from left to right or vice versa
+    // Only reset animation frame if we change direction
     const previousRow = this.currentRow;
     
-    // Map directions to sprite rows (your spritesheet layout: row 0=left, row 1=right)
-    // For up/down movement, use the last horizontal direction the player was facing
-    if (currentDirection === 'up' || currentDirection === 'down') {
-      // Keep using the last horizontal direction for up/down movement
-    } else {
-      // Update the facing direction for left/right movement
+    if (currentDirection === 'left' || currentDirection === 'right') {
       this.lastDirection = currentDirection;
     }
     
     // Update sprite row based on facing direction (row 0=left, row 1=right)
     this.currentRow = this.lastDirection === 'left' ? 0 : 1; // left=0, right=1
     
-    // DON'T reset animation frame when changing directions - let it continue smoothly
+    // Will either keep or delete this code, but later
     // if (this.currentRow !== previousRow) {
     //   this.animationFrame = 0;
     //   if (window.debugLog) {
@@ -249,7 +268,7 @@ const CanvasRenderer = {
   },
 
   /**
-   * Get maze dimensions with fallback logic
+   * Safe maze dimensions getter
    * @returns {object} {width, height} object with maze dimensions
    */
   getMazeDimensions: function() {
@@ -270,19 +289,10 @@ const CanvasRenderer = {
    * Draw the maze - SIMPLIFIED high-performance approach
    */
   drawMaze: function() {
-    if (!window.ctx || !window.mazeStructure) return;
-    
-    // SIMPLE AND FAST: Draw entire maze once and cache it
-    // This is actually faster than complex viewport culling for our 48x48 maze
-    
-    const cellSize = window.cellSize;
-    const dimensions = this.getMazeDimensions(); // Use safer dimension getter
-    const mazeWidth = dimensions.width;
-    const mazeHeight = dimensions.height;
-    const startRow = window.startRow;
-    const startCol = window.startCol;
-    const endRow = window.endRow;
-    const endCol = window.endCol;
+    if (!window.ctx || !window.mazeStructure) {
+      console.error('❌ DrawMaze: Missing ctx or mazeStructure');
+      return;
+    }
     
     // Clear entire canvas efficiently
     window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height);
@@ -290,91 +300,74 @@ const CanvasRenderer = {
     // Pre-set context properties for maximum performance
     window.ctx.imageSmoothingEnabled = false;
     
-    for (let row = 0; row < mazeHeight; row++) {
+    for (let row = 0; row < window.mazeHeight; row++) {
       const rowData = window.mazeStructure[row];
       if (!rowData) continue;
-      const y = row * cellSize;
-      for (let col = 0; col < mazeWidth; col++) {
-        const x = col * cellSize;
+      const y = row * window.cellSize;
+      for (let col = 0; col < window.mazeWidth; col++) {
+        const x = col * window.cellSize;
         const cell = rowData[col];
         // Start tile
-        if (row === startRow && col === startCol) {
-          ctx.fillStyle = '#C0C0C0';
-          ctx.fillRect(x, y, cellSize, cellSize);
-          ctx.strokeStyle = '#A0A4AA';
-          ctx.lineWidth = Math.max(1, cellSize * 0.07);
-          ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+        if (row === window.startRow && col === window.startCol) {
+          window.ctx.fillStyle = '#C0C0C0';
+          window.ctx.fillRect(x, y, window.cellSize, window.cellSize);
+          window.ctx.strokeStyle = '#A0A4AA';
+          window.ctx.lineWidth = Math.max(1, window.cellSize * 0.07);
+          window.ctx.strokeRect(x + 1, y + 1, window.cellSize - 2, window.cellSize - 2);
           continue;
         }
         // End tile
-        if (row === endRow && col === endCol) {
-          const endGradient = ctx.createRadialGradient(
-            x + cellSize/2, y + cellSize/2, cellSize * 0.1,
-            x + cellSize/2, y + cellSize/2, cellSize * 0.5
+        if (row === window.endRow && col === window.endCol) {
+          const endGradient = window.ctx.createRadialGradient(
+            x + window.cellSize/2, y + window.cellSize/2, window.cellSize * 0.1,
+            x + window.cellSize/2, y + window.cellSize/2, window.cellSize * 0.5
           );
           endGradient.addColorStop(0, '#FF1744');
           endGradient.addColorStop(0.5, '#FF5252');
           endGradient.addColorStop(1, '#B71C1C');
-          ctx.fillStyle = endGradient;
-          ctx.fillRect(x, y, cellSize, cellSize);
+          window.ctx.fillStyle = endGradient;
+          window.ctx.fillRect(x, y, window.cellSize, window.cellSize);
           continue;
         }
         // Wall tile
         if (cell === 1) {
-          ctx.fillStyle = '#E5E7EB';
-          ctx.fillRect(x, y, cellSize, cellSize);
+          window.ctx.fillStyle = '#E5E7EB';
+          window.ctx.fillRect(x, y, window.cellSize, window.cellSize);
           continue;
         }
         // Path tile
         if (cell === 0) {
-          ctx.fillStyle = '#7B7F85';
-          ctx.fillRect(x, y, cellSize, cellSize);
+          window.ctx.fillStyle = '#7B7F85';
+          window.ctx.fillRect(x, y, window.cellSize, window.cellSize);
           continue;
         }
         // Torch tile
         if (cell === 3) {
-          ctx.fillStyle = '#7B7F85';
-          ctx.fillRect(x, y, cellSize, cellSize);
-          if (typeof drawTorch === 'function') drawTorch(ctx, x, y, cellSize); // Draw torch
+          window.ctx.fillStyle = '#7B7F85';
+          window.ctx.fillRect(x, y, window.cellSize, window.cellSize);
+          if (typeof drawTorch === 'function') drawTorch(window.ctx, x, y, window.cellSize); // Draw torch
           continue;
         }
         // Crystal tile
         if (cell === 2) {
-          ctx.fillStyle = '#7B7F85';
-          ctx.fillRect(x, y, cellSize, cellSize);
-          if (typeof drawCrystal === 'function') drawCrystal(ctx, x, y, cellSize); // Draw crystal
+          window.ctx.fillStyle = '#7B7F85';
+          window.ctx.fillRect(x, y, window.cellSize, window.cellSize);
+          if (typeof drawCrystal === 'function') drawCrystal(window.ctx, x, y, window.cellSize); // Draw crystal
           continue;
         }
         // Spike tile
         if (cell === 4) {
-          ctx.fillStyle = '#7B7F85';
-          ctx.fillRect(x, y, cellSize, cellSize);
-          if (typeof drawSpike === 'function') drawSpike(ctx, x, y, cellSize); // Draw spike
+          window.ctx.fillStyle = '#7B7F85';
+          window.ctx.fillRect(x, y, window.cellSize, window.cellSize);
+          if (typeof drawSpike === 'function') drawSpike(window.ctx, x, y, window.cellSize); // Draw spike
           continue;
         }
       }
     }
-    // Removed drawHearts(window.ctx); from drawMaze (hearts now use overlay)
-    
-    
-    // Removed debug logging for performance
   },
 
   /**
-   * Draw the player - DOM-based positioning with animation (optimized)
-   */
-  drawPlayer: function() {
-    if (!this.playerElement) return;
-    
-    // Only update sprite position when actually needed
-    this.updateSpritePosition();
-    
-    // Animation is handled by PlayerAnimation's independent loop
-    // No need to call updateAnimation here anymore
-  },
-
-  /**
-   * Force update player position (called directly by movement system)
+   * Update player position (called by movement system)
    */
   updatePlayerPosition: function() {
     if (!this.playerElement) return;
@@ -382,15 +375,13 @@ const CanvasRenderer = {
     // Use the dedicated positioning function for consistency
     this.updateSpritePosition();
 
-    // Detect collision with spikes/enemies in a square around the player
-    // Get player position in maze coordinates
+    // Detect collision with spikes/enemies in a square around the player using maze coordinates
     if (window.player) {
       // Calculate player position in maze grid
       const top = parseInt(window.player.style.top);
       const left = parseInt(window.player.style.left);
-      const cellSize = window.cellSize;
-      const playerRow = Math.round(top / cellSize);
-      const playerCol = Math.round(left / cellSize);
+      const playerRow = Math.round(top / window.cellSize);
+      const playerCol = Math.round(left / window.cellSize);
       if (detectCollisionWithEnemiesAndSpikes(playerRow, playerCol, 1)) {
         // Collision detected: lose a heart or trigger game logic
         if (typeof window.loseHeart === 'function') {
@@ -401,8 +392,7 @@ const CanvasRenderer = {
   },
 
   /**
-   * Update sprite position - SIMPLE: Always center on screen (window viewport)
-   * Optimized to avoid unnecessary DOM updates
+   * Update sprite position by always centering on screen
    */
   updateSpritePosition: function() {
     if (!this.playerElement) {
@@ -410,7 +400,7 @@ const CanvasRenderer = {
       return;
     }
     
-    // Get the WINDOW dimensions (viewport), not just the maze container
+    // Get the viewport dimensions
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     
@@ -451,7 +441,7 @@ const CanvasRenderer = {
     
     if (currentPlayerX !== this.lastPlayerX || currentPlayerY !== this.lastPlayerY) {
       // Player position changed - update sprite
-      this.drawPlayer();
+      this.updateSpritePosition();
       this.lastPlayerX = currentPlayerX;
       this.lastPlayerY = currentPlayerY;
     }
@@ -546,32 +536,34 @@ window.CanvasRenderer = CanvasRenderer;
  * @param {number|object} mazeSize - Either a number (for square mazes) or {width, height} object
  */
 function initializeMazeDimensions(mazeSize) {
+  console.log('DEBUG: initializeMazeDimensions called with:', mazeSize);
   if (typeof mazeSize === 'object' && mazeSize !== null) {
     // Handle {width, height} object
     window.mazeWidth = mazeSize.width;
     window.mazeHeight = mazeSize.height;
+    console.log('DEBUG: Set from object - width:', window.mazeWidth, 'height:', window.mazeHeight);
   } else if (typeof mazeSize === 'number') {
     // Handle square maze (single number)
     window.mazeWidth = mazeSize;
     window.mazeHeight = mazeSize;
+    console.log('DEBUG: Set from number - width:', window.mazeWidth, 'height:', window.mazeHeight);
   } else {
     // Fallback: try to detect from mazeStructure
     if (window.mazeStructure && Array.isArray(window.mazeStructure)) {
       window.mazeHeight = window.mazeStructure.length;
       window.mazeWidth = window.mazeStructure[0] ? window.mazeStructure[0].length : 0;
+      console.log('DEBUG: Set from mazeStructure - width:', window.mazeWidth, 'height:', window.mazeHeight);
     } else {
-      // Last resort: use legacy mazeSize if available
-      const legacySize = window.mazeSize || 48; // Default to 48x48
-      window.mazeWidth = legacySize;
-      window.mazeHeight = legacySize;
+      // Last resort: use legacy mazeWidth/mazeHeight if available
+      window.mazeWidth = window.mazeWidth || 48;
+      window.mazeHeight = window.mazeHeight || 48;
+      console.log('DEBUG: Set from fallback - width:', window.mazeWidth, 'height:', window.mazeHeight);
     }
   }
-  
   console.log('Maze dimensions initialized:', {
     width: window.mazeWidth,
     height: window.mazeHeight
   });
-  
   return {
     width: window.mazeWidth,
     height: window.mazeHeight
@@ -586,7 +578,7 @@ window.playerHearts = 3;
 window.playerInvincible = false;
 window.playerInvincibleTimeout = null;
 
-// Create/fix heart overlay in top-left of viewport
+// Create heart overlay in top-left of viewport
 function updateHeartOverlay() {
   let heartDiv = document.getElementById('heart-overlay');
   if (!heartDiv) {

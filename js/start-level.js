@@ -24,17 +24,18 @@ const startLevel = {
         
         // Update global maze variables
         window.mazeStructure = mazeData.mazeStructure;
-        window.mazeSize = mazeData.mazeSize;
+        window.mazeWidth = mazeData.mazeWidth;
+        window.mazeHeight = mazeData.mazeHeight;
         window.startRow = mazeData.startRow;
         window.startCol = mazeData.startCol;
         window.endRow = mazeData.endRow;
         window.endCol = mazeData.endCol;
         
-        // Recalculate cell size for the new maze size
+        // Recalculate cell size for the new maze dimensions
         const availableWidth = window.innerWidth;
         const availableHeight = window.innerHeight;
-        const maxCellSizeWidth = Math.floor(availableWidth / window.mazeSize);
-        const maxCellSizeHeight = Math.floor(availableHeight / window.mazeSize);
+        const maxCellSizeWidth = Math.floor(availableWidth / window.mazeWidth);
+        const maxCellSizeHeight = Math.floor(availableHeight / window.mazeHeight);
         window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
         
         // Ensure minimum cell size
@@ -43,15 +44,15 @@ const startLevel = {
         }
         
         // Update canvas sizes
-        const mazeWidthPx = window.mazeSize * window.cellSize;
-        const mazeHeightPx = window.mazeSize * window.cellSize;
-        
+        const mazeWidthPx = window.mazeWidth * window.cellSize;
+        const mazeHeightPx = window.mazeHeight * window.cellSize;
+
         if (window.canvas) {
             window.canvas.width = mazeWidthPx;
             window.canvas.height = mazeHeightPx;
             console.log('Canvas resized to:', mazeWidthPx, 'x', mazeHeightPx);
         }
-        
+
         if (window.playerCanvas) {
             window.playerCanvas.width = mazeWidthPx;
             window.playerCanvas.height = mazeHeightPx;
