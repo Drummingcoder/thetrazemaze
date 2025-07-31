@@ -1,5 +1,5 @@
 /**
- * Canvas Renderer Module - Clean and Simple
+ * Canvas Renderer Module
  * Renders maze clearly and player sprite without modifications, then scales down
  *
  * ---
@@ -8,30 +8,26 @@
  * 1. setupCanvas: Setup and configure canvas elements with proper sizing and rendering contexts
  * 2. initSprites: Initialize sprite loading and DOM-based player sprite
  * 3. getInitialDirectionForLevel: Get initial facing direction for the current level
- * 4. updateAnimation: (Deprecated) Kept for backward compatibility, does nothing
- * 5. updateDirection: Update player sprite direction without resetting animation
- * 6. getMazeDimensions: Get maze dimensions with fallback logic
- * 7. drawMaze: Draw the maze on the canvas
- * 8. drawPlayer: Draw the player using DOM-based positioning and animation
- * 9. updatePlayerPosition: Force update player position (called by movement system)
- * 10. updateSpritePosition: Update sprite position, always center on screen
- * 11. renderFrame: Main rendering function with dirty checking
- * 12. forceRedraw: Force a complete redraw (when maze structure changes)
- * 13. resetCache: Reset cached positions (call when player teleports or resets)
- * 14. init: Initialize the renderer
- * 15. prepareAnimationSystem: Pre-warm animation system to reduce first-run lag
- * 16. monitorPerformance: Monitor performance (compatibility function)
- * 17. configureCanvasForSprites: Configure canvases for optimal rendering
+ * 4. updateDirection: Update player sprite direction without resetting animation
+ * 5. getMazeDimensions: Get maze dimensions with fallback logic
+ * 6. drawMaze: Draw the maze on the canvas
+ * 7. drawPlayer: Draw the player using DOM-based positioning and animation
+ * 8. updatePlayerPosition: Update player position (called by movement system)
+ * 9. updateSpritePosition: Update sprite position, always center on screen
+ * 10. renderFrame: Main rendering function with dirty checking
+ * 11. forceRedraw: Force a complete redraw (when maze structure changes)
+ * 12. resetCache: Reset cached positions (call when player teleports or resets)
+ * 13. prepareAnimationSystem: Pre-warm animation system to reduce first-run lag
+ * 14. initializeMazeDimensions: Initialize maze dimensions globally
+ * 15. updateHeartOverlay: Create/fix heart overlay in top-left of viewport
+ * 16. setHeartOverlayVisible: Utility to show/hide heart overlay
+ * 17. loseHeart: Lose a heart and trigger invincibility/blink
  * 18. setPlayerOpacity: Set player sprite opacity (for blinking)
- * 19. initializeMazeDimensions: Initialize maze dimensions globally
- * 20. updateHeartOverlay: Create/fix heart overlay in top-left of viewport
- * 21. setHeartOverlayVisible: Utility to show/hide heart overlay
- * 22. loseHeart: Lose a heart and trigger invincibility/blink
- * 23. setupEndScreenHeartOverlayObserver: Hide hearts when end screen is shown
- * 24. detectCollisionWithEnemiesAndSpikes: Detect collision with enemies and spikes
- * 25. drawSpike: Draw a spike decoration on the maze
- * 26. drawTorch: Draw a torch decoration on the maze
- * 27. drawCrystal: Draw a crystal decoration on the maze
+ * 19. setupEndScreenHeartOverlayObserver: Hide hearts when end screen is shown
+ * 20. detectCollisionWithEnemiesAndSpikes: Detect collision with enemies and spikes
+ * 21. drawSpike: Draw a spike decoration on the maze
+ * 22. drawTorch: Draw a torch decoration on the maze
+ * 23. drawCrystal: Draw a crystal decoration on the maze
  */
 
 console.log('Canvas Renderer module loaded');
@@ -184,6 +180,7 @@ const CanvasRenderer = {
     console.log(`📐 Spritesheet size set to: ${scaledSheetWidth}px x ${scaledSheetHeight}px (scale factor: ${scaleFactor})`);
     
     this.scaleFactor = scaleFactor; // Store scale factor for background position calculations
+    window.spriteSize = spriteSize;
     
     // Add to the maze container
     if (window.mazeContainer) {
@@ -400,17 +397,10 @@ const CanvasRenderer = {
       return;
     }
     
-    // Get the viewport dimensions
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    
-    // Calculate sprite size (fixed size for centered sprite)
-    const spriteSize = 48; // Fixed size to match initialization
-    
     // Position sprite at the CENTER of the entire window/viewport
-    const centerX = (windowWidth / 2) - (spriteSize / 2);
-    const centerY = (windowHeight / 2) - (spriteSize / 2);
-    
+    const centerX = (window.innerWidth / 2) - (window.spriteSize / 2);
+    const centerY = (window.innerHeight / 2) - (window.spriteSize / 2);
+
     // Only update DOM if position actually changed (avoid unnecessary reflows)
     const currentLeft = parseInt(this.playerElement.style.left) || 0;
     const currentTop = parseInt(this.playerElement.style.top) || 0;
@@ -420,16 +410,14 @@ const CanvasRenderer = {
       this.playerElement.style.top = centerY + 'px';
     }
     
-    // DON'T force background position here - let the animation system handle it!
-    // The animation system will set the correct frame via updateSpriteFrame()
+    // Animation system will render sprite
   },
 
   /**
-   * Main rendering function - OPTIMIZED with dirty checking
+   * Main rendering function with dirty checking
    */
   renderFrame: function() {
-    // CRITICAL PERFORMANCE FIX: Only draw maze ONCE at startup, never again
-    // The maze doesn't change, so redrawing it is pure waste
+    // Draw maze only ONCE
     if (!this.mazeDrawn) {
       this.drawMaze();
       this.mazeDrawn = true;
@@ -445,11 +433,10 @@ const CanvasRenderer = {
       this.lastPlayerX = currentPlayerX;
       this.lastPlayerY = currentPlayerY;
     }
-    // If player hasn't moved, skip the expensive player update
   },
 
   /**
-   * Force a complete redraw (only when maze structure actually changes)
+   * Complete maze redraw
    */
   forceRedraw: function() {
     this.mazeDrawn = false;
@@ -472,34 +459,9 @@ const CanvasRenderer = {
   },
 
   /**
-   * Initialize the renderer
-   */
-  init: function() {
-    this.configureCanvasForSprites();
-    this.initSprites();
-    this.renderFrame();
-  },
-
-  /**
-   * Pre-warm animation system to reduce first-run lag
+   * Pre-warm animation system
    */
   prepareAnimationSystem: function() {
-    this.configureCanvasForSprites();
-    this.initSprites();
-    this.renderFrame();
-  },
-
-  /**
-   * Monitor performance (compatibility function)
-   */
-  monitorPerformance: function() {
-    // Simple performance monitoring - no complex tracking
-  },
-  
-  /**
-   * Configure canvases for optimal rendering
-   */
-  configureCanvasForSprites: function() {
     // Configure maze canvas for crisp geometric shapes
     if (window.ctx) {
       window.ctx.imageSmoothingEnabled = false; // Pixelated for crisp maze edges
@@ -507,7 +469,6 @@ const CanvasRenderer = {
     
     // Configure player canvas for crisp sprite rendering (try pixelated approach)
     if (window.playerCtx) {
-      // Try disabling smoothing for maximum crispness
       window.playerCtx.imageSmoothingEnabled = false;
       
       // Disable browser-specific smoothing properties for player canvas
@@ -524,7 +485,9 @@ const CanvasRenderer = {
         window.playerCtx.oImageSmoothingEnabled = false;
       }
     }
-  },
+    this.initSprites();
+    this.renderFrame();
+  }
 };
 
 // Make CanvasRenderer available globally
@@ -532,7 +495,6 @@ window.CanvasRenderer = CanvasRenderer;
 
 /**
  * Initialize maze dimensions globally
- * This ensures mazeWidth and mazeHeight are available throughout the application
  * @param {number|object} mazeSize - Either a number (for square mazes) or {width, height} object
  */
 function initializeMazeDimensions(mazeSize) {
@@ -541,23 +503,19 @@ function initializeMazeDimensions(mazeSize) {
     // Handle {width, height} object
     window.mazeWidth = mazeSize.width;
     window.mazeHeight = mazeSize.height;
-    console.log('DEBUG: Set from object - width:', window.mazeWidth, 'height:', window.mazeHeight);
   } else if (typeof mazeSize === 'number') {
     // Handle square maze (single number)
     window.mazeWidth = mazeSize;
     window.mazeHeight = mazeSize;
-    console.log('DEBUG: Set from number - width:', window.mazeWidth, 'height:', window.mazeHeight);
   } else {
     // Fallback: try to detect from mazeStructure
     if (window.mazeStructure && Array.isArray(window.mazeStructure)) {
       window.mazeHeight = window.mazeStructure.length;
       window.mazeWidth = window.mazeStructure[0] ? window.mazeStructure[0].length : 0;
-      console.log('DEBUG: Set from mazeStructure - width:', window.mazeWidth, 'height:', window.mazeHeight);
     } else {
       // Last resort: use legacy mazeWidth/mazeHeight if available
       window.mazeWidth = window.mazeWidth || 48;
       window.mazeHeight = window.mazeHeight || 48;
-      console.log('DEBUG: Set from fallback - width:', window.mazeWidth, 'height:', window.mazeHeight);
     }
   }
   console.log('Maze dimensions initialized:', {
@@ -572,6 +530,8 @@ function initializeMazeDimensions(mazeSize) {
 
 // Make the function globally available
 window.initializeMazeDimensions = initializeMazeDimensions;
+
+/* Heart UI!!! */
 
 // Heart system: player starts with 3 hearts
 window.playerHearts = 3;
@@ -601,24 +561,18 @@ function updateHeartOverlay() {
     hearts += '❤';
   }
   heartDiv.innerHTML = hearts;
+  window.heartDiv = heartDiv;
 }
-
-// Make updateHeartOverlay globally accessible
-window.updateHeartOverlay = updateHeartOverlay;
 
 // Utility to show/hide heart overlay
 function setHeartOverlayVisible(visible) {
-  const heartDiv = document.getElementById('heart-overlay');
-  if (heartDiv) {
-    heartDiv.style.display = visible ? 'block' : 'none';
+  if (window.heartDiv) {
+    window.heartDiv.style.display = visible ? 'block' : 'none';
   }
 }
 
-// Make setHeartOverlayVisible globally accessible
-window.setHeartOverlayVisible = setHeartOverlayVisible;
-
 // Lose a heart and trigger invincibility/blink
-window.loseHeart = function() {
+function loseHeart() {
   if (window.playerInvincible) return; // Can't lose heart while invincible
   if (window.playerHearts > 0) {
     window.playerHearts--;
@@ -651,29 +605,35 @@ window.loseHeart = function() {
       if (window.endScreen) {
         window.endScreen.classList.remove('hidden');
         // Set failure message and hide personal best
-        var personalBestElem = document.getElementById('personal-best');
-        var newPersonalBestElem = document.getElementById('new-personal-best');
-        var endContentElem = document.getElementById('end-content');
-        var endTimeTakenElem = document.getElementById('end-time-taken');
-        
-        if (endContentElem) {
-          endContentElem.textContent = 'Level Failed...';
+        if (window.endText) {
+          window.endText.textContent = 'Level Failed...';
         }
-        if (personalBestElem) {
-          personalBestElem.style.display = 'none';
+        if (window.personalbest) {
+          window.personalbest.style.display = 'none';
         }
-        if (newPersonalBestElem) {
-          newPersonalBestElem.style.display = 'none';
+        if (window.newpersonalbest) {
+          window.newpersonalbest.style.display = 'none';
         }
         // Hide the time taken display since the level wasn't completed
-        if (endTimeTakenElem) {
-          endTimeTakenElem.style.display = 'none';
+        if (window.endContent) {
+          window.endContent.style.display = 'none';
         }
       }
       setHeartOverlayVisible(false);
     }
   }
+}
+
+// Set player sprite opacity (for blinking)
+CanvasRenderer.setPlayerOpacity = function(opacity) {
+  if (this.playerElement) {
+    this.playerElement.style.opacity = opacity;
+  }
 };
+
+window.updateHeartOverlay = updateHeartOverlay;
+window.setHeartOverlayVisible = setHeartOverlayVisible;
+window.loseHeart = loseHeart;
 
 // Hide hearts when end screen is shown (player wins)
 // Robustly hide hearts whenever end screen is visible, even if window.endScreen is defined later
@@ -712,13 +672,6 @@ function setupEndScreenHeartOverlayObserver() {
   }
 }
 setupEndScreenHeartOverlayObserver();
-
-// Set player sprite opacity (for blinking)
-CanvasRenderer.setPlayerOpacity = function(opacity) {
-  if (this.playerElement) {
-    this.playerElement.style.opacity = opacity;
-  }
-};
 
 // Update heart overlay on startup and after maze redraw
 if (typeof updateHeartOverlay === 'function') updateHeartOverlay();
@@ -767,6 +720,9 @@ function detectCollisionWithEnemiesAndSpikes(playerRow, playerCol, radius = 1) {
   }
   return false;
 }
+window.detectCollision = detectCollisionWithEnemiesAndSpikes;
+
+/* Drawing Functions */
 /**
  * Draw a spike decoration on the maze
  * @param {CanvasRenderingContext2D} ctx

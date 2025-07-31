@@ -451,11 +451,6 @@ const GameInitializer = {
       window.PlayerController.startSmoothMovement();
     }
       
-    // Initialize performance monitoring
-    if (window.CanvasRenderer && window.CanvasRenderer.monitorPerformance) {
-      window.CanvasRenderer.monitorPerformance();
-    }
-      
     // Prepare animation system
     if (window.CanvasRenderer && window.CanvasRenderer.prepareAnimationSystem) {
       window.CanvasRenderer.prepareAnimationSystem();
