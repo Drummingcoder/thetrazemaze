@@ -36,7 +36,6 @@ remove), better guns, and faster shooting.
 
 ### Bugs:
 - Timer doesn't immediately stop upon touching the end square
-- Dashing while ground pound recovery is still ongoing allows the player to dash and no dash animation to play
 - Resizing the window breaks the maze
 - Collision detection is still funky and not the best
 - Spike detection is too wide

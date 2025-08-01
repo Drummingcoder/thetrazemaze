@@ -8,26 +8,25 @@
  * 1. setupCanvas: Setup and configure canvas elements with proper sizing and rendering contexts
  * 2. initSprites: Initialize sprite loading and DOM-based player sprite
  * 3. getInitialDirectionForLevel: Get initial facing direction for the current level
- * 4. updateDirection: Update player sprite direction without resetting animation
- * 5. getMazeDimensions: Get maze dimensions with fallback logic
- * 6. drawMaze: Draw the maze on the canvas
- * 7. drawPlayer: Draw the player using DOM-based positioning and animation
- * 8. updatePlayerPosition: Update player position (called by movement system)
- * 9. updateSpritePosition: Update sprite position, always center on screen
- * 10. renderFrame: Main rendering function with dirty checking
- * 11. forceRedraw: Force a complete redraw (when maze structure changes)
- * 12. resetCache: Reset cached positions (call when player teleports or resets)
- * 13. prepareAnimationSystem: Pre-warm animation system to reduce first-run lag
- * 14. initializeMazeDimensions: Initialize maze dimensions globally
- * 15. updateHeartOverlay: Create/fix heart overlay in top-left of viewport
- * 16. setHeartOverlayVisible: Utility to show/hide heart overlay
- * 17. loseHeart: Lose a heart and trigger invincibility/blink
- * 18. setPlayerOpacity: Set player sprite opacity (for blinking)
- * 19. setupEndScreenHeartOverlayObserver: Hide hearts when end screen is shown
- * 20. detectCollisionWithEnemiesAndSpikes: Detect collision with enemies and spikes
- * 21. drawSpike: Draw a spike decoration on the maze
- * 22. drawTorch: Draw a torch decoration on the maze
- * 23. drawCrystal: Draw a crystal decoration on the maze
+ * 4. getMazeDimensions: Get maze dimensions with fallback logic
+ * 5. drawMaze: Draw the maze on the canvas
+ * 6. drawPlayer: Draw the player using DOM-based positioning and animation
+ * 7. updatePlayerPosition: Update player position (called by movement system)
+ * 8. updateSpritePosition: Update sprite position, always center on screen
+ * 9. renderFrame: Main rendering function with dirty checking
+ * 10. forceRedraw: Force a complete redraw (when maze structure changes)
+ * 11. resetCache: Reset cached positions (call when player teleports or resets)
+ * 12. prepareAnimationSystem: Pre-warm animation system to reduce first-run lag
+ * 13. initializeMazeDimensions: Initialize maze dimensions globally
+ * 14. updateHeartOverlay: Create/fix heart overlay in top-left of viewport
+ * 15. setHeartOverlayVisible: Utility to show/hide heart overlay
+ * 16. loseHeart: Lose a heart and trigger invincibility/blink
+ * 17. setPlayerOpacity: Set player sprite opacity (for blinking)
+ * 18. setupEndScreenHeartOverlayObserver: Hide hearts when end screen is shown
+ * 19. detectCollisionWithEnemiesAndSpikes: Detect collision with enemies and spikes
+ * 20. drawSpike: Draw a spike decoration on the maze
+ * 21. drawTorch: Draw a torch decoration on the maze
+ * 22. drawCrystal: Draw a crystal decoration on the maze
  */
 
 console.log('Canvas Renderer module loaded');
@@ -216,52 +215,6 @@ const CanvasRenderer = {
   getInitialDirectionForLevel: function() {
     // For now, always face right
     return 'right';
-  },
-
-  /**
-   * Update direction without resetting animation
-   */
-  updateDirection: function() {
-    if (!window.PlayerController || !window.PlayerController.smoothMovementKeys) return;
-    
-    const keys = window.PlayerController.smoothMovementKeys;
-    let currentDirection = this.lastDirection;
-    
-    // Check for primary movement directions
-    if (keys['ArrowLeft'] || keys['a']) {
-      currentDirection = 'left';
-    } else if (keys['ArrowRight'] || keys['d']) {
-      currentDirection = 'right';
-    } else if (keys['ArrowUp'] || keys['w']) {
-      currentDirection = 'up';
-    } else if (keys['ArrowDown'] || keys['s']) {
-      currentDirection = 'down';
-    }
-    
-    // For diagonal movement, prioritize horizontal direction for sprite facing
-    if ((keys['ArrowLeft'] || keys['a']) && (keys['ArrowUp'] || keys['w'] || keys['ArrowDown'] || keys['s'])) {
-      currentDirection = 'left';
-    } else if ((keys['ArrowRight'] || keys['d']) && (keys['ArrowUp'] || keys['w'] || keys['ArrowDown'] || keys['s'])) {
-      currentDirection = 'right';
-    }
-    
-    // Only reset animation frame if we change direction
-    const previousRow = this.currentRow;
-    
-    if (currentDirection === 'left' || currentDirection === 'right') {
-      this.lastDirection = currentDirection;
-    }
-    
-    // Update sprite row based on facing direction (row 0=left, row 1=right)
-    this.currentRow = this.lastDirection === 'left' ? 0 : 1; // left=0, right=1
-    
-    // Will either keep or delete this code, but later
-    // if (this.currentRow !== previousRow) {
-    //   this.animationFrame = 0;
-    //   if (window.debugLog) {
-    //     window.debugLog(`Direction changed: Row ${previousRow} → ${this.currentRow}, reset to frame 0`, 'warn');
-    //   }
-    // }
   },
 
   /**

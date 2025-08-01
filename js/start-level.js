@@ -18,7 +18,7 @@ const startLevel = {
         }
         
         // Re-initialize maze data for the selected level AFTER reset
-        const mazeData = window.MazeGenerator.getMazeData(levelNumber);
+        const mazeData = window.MazeRenderer.getMazeData(levelNumber);
         console.log('Loading maze data for level', levelNumber, ':', mazeData);
         
         // Update global maze variables

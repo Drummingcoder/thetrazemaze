@@ -66,6 +66,10 @@ const GameTimer = {
    * @returns {string} Formatted time string (e.g., "01:23.456")
    */
   formatTime: function(time) {
+    if (!time || isNaN(time)) {
+      return '--:--';
+    }
+
     // Extract minutes, seconds, and milliseconds from total time
     const minutes = Math.floor(time / 60000);           // 60000ms = 1 minute
     const seconds = Math.floor((time % 60000) / 1000);  // Remaining seconds

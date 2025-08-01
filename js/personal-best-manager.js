@@ -2,6 +2,21 @@
  * Personal Best Manager Module
  * Handles saving, loading, and displaying personal best times for levels
  * Unified level-based storage system
+ *
+ * ---
+ * PersonalBestManager.js Function Reference
+ * ---
+ *
+ * 1. generateLevelKey: Generates a localStorage key for a specific level.
+ * 2. getBestTime: Gets the stored best time for a specific level.
+ * 3. setBestTime: Sets the best time for a specific level (if better).
+ * 4. displayPersonalBestTime: Displays and updates personal best time.
+ * 5. updateLevelDisplay: Updates the best time display for a level card.
+ * 6. updateAllLevelDisplays: Updates all level displays with best times.
+ * 7. clearBestTime: Clears the best time for a specific level.
+ * 8. clearAllBestTimes: Clears all level best times.
+ * 9. wouldBeNewBest: Checks if a time would be a new best for a level.
+ *
  */
 
 console.log('Personal Best Manager module loaded');
@@ -42,35 +57,11 @@ const PersonalBestManager = {
     if (!currentBest || newTime < currentBest) {
       const key = this.generateLevelKey(level);
       localStorage.setItem(key, newTime.toString());
-      console.log(`New best time for Level ${level}: ${this.formatTime(newTime)}`);
+      console.log(`New best time for Level ${level}: ${window.GameTimer.formatTime(newTime)}`);
       return true;
     }
     
     return false;
-  },
-
-  /**
-   * Formats time in milliseconds to MM:SS.mmm format using GameTimer
-   * @param {number} timeMs - Time in milliseconds
-   * @returns {string} Formatted time string
-   */
-  formatTime: function(timeMs) {
-    if (!timeMs || isNaN(timeMs)) {
-      return '--:--';
-    }
-    
-    // Use the same formatting as GameTimer to ensure consistency
-    if (window.GameTimer && window.GameTimer.formatTime) {
-      return window.GameTimer.formatTime(timeMs);
-    }
-    
-    // Fallback formatting if GameTimer not available
-    const totalSeconds = Math.floor(timeMs / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    const milliseconds = Math.floor(timeMs % 1000);
-    
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
   },
 
   /**
@@ -86,7 +77,7 @@ const PersonalBestManager = {
     // Format display text for single goal mode (time-based)
     let bestTimeDisplay = "";
     if (storedBestTime && !isNaN(storedBestTime)) {
-      bestTimeDisplay = this.formatTime(storedBestTime);
+      bestTimeDisplay = window.GameTimer.formatTime(storedBestTime);
     } else {
       bestTimeDisplay = "--:--"; // No previous record
     }
@@ -103,7 +94,7 @@ const PersonalBestManager = {
       newpersonalbest.style.display = isNewBest ? "block" : "none";
     }
     
-    console.log(`Level ${levelNumber} completion: ${this.formatTime(currentTime)}, Best: ${bestTimeDisplay}, New Best: ${isNewBest}`);
+    console.log(`Level ${levelNumber} completion: ${window.GameTimer.formatTime(currentTime)}, Best: ${bestTimeDisplay}, New Best: ${isNewBest}`);
   },
 
   /**
@@ -116,7 +107,7 @@ const PersonalBestManager = {
     
     if (displayElement) {
       if (bestTime) {
-        displayElement.textContent = `Best: ${this.formatTime(bestTime)}`;
+        displayElement.textContent = `Best: ${window.GameTimer.formatTime(bestTime)}`;
         displayElement.classList.remove('no-time');
       } else {
         displayElement.textContent = 'Best: --:--';
@@ -127,36 +118,12 @@ const PersonalBestManager = {
 
   /**
    * Updates all level displays with their best times
+   * Not in use, but kept for future use
    */
   updateAllLevelDisplays: function() {
     for (let i = 1; i <= 10; i++) {
       this.updateLevelDisplay(i);
     }
-  },
-
-  /**
-   * Gets the personal best time for a specific level (formatted for display)
-   * @param {number} levelNumber - The level number (1-10)
-   * @returns {string} Formatted personal best time or "Best: --:--" if none exists
-   */
-  getPersonalBestForLevel: function(levelNumber) {
-    const bestTime = this.getBestTime(levelNumber);
-    
-    if (bestTime && !isNaN(bestTime)) {
-      const formattedTime = this.formatTime(bestTime);
-      return `Best: ${formattedTime}`;
-    } else {
-      return "Best: --:--"; // No previous record
-    }
-  },
-
-  /**
-   * Gets the raw personal best time for a specific level (for comparison)
-   * @param {number} levelNumber - The level number (1-10)
-   * @returns {number|null} The raw time in milliseconds, or null if none exists
-   */
-  getRawPersonalBestForLevel: function(levelNumber) {
-    return this.getBestTime(levelNumber);
   },
 
   /**
@@ -185,54 +152,11 @@ const PersonalBestManager = {
    * @param {number} levelNumber - The level number (1-10)
    * @param {number} newTime - The time to check in milliseconds
    * @returns {boolean} True if this would be a new best time
+   * Not in use, but kept for future use; will probably delete
    */
   wouldBeNewBest: function(levelNumber, newTime) {
     const currentBest = this.getBestTime(levelNumber);
     return !currentBest || newTime < currentBest;
-  },
-
-  /**
-   * Gets formatted best time for display
-   * @param {number} levelNumber - The level number (1-10)
-   * @returns {string} Formatted best time or "--:--"
-   */
-  getFormattedBestTime: function(levelNumber) {
-    const bestTime = this.getBestTime(levelNumber);
-    return bestTime ? this.formatTime(bestTime) : '--:--';
-  },
-
-  // Legacy compatibility methods (deprecated but kept for backward compatibility)
-  
-  /**
-   * @deprecated Use getBestTime() instead
-   */
-  getStoredBest: function(type) {
-    console.warn('getStoredBest() is deprecated, use getBestTime() instead');
-    return this.getBestTime();
-  },
-
-  /**
-   * @deprecated Use setBestTime() instead
-   */
-  setBest: function(type, time) {
-    console.warn('setBest() is deprecated, use setBestTime() instead');
-    return this.setBestTime(null, time);
-  },
-
-  /**
-   * @deprecated Use clearBestTime() or clearAllBestTimes() instead
-   */
-  clearBest: function(type) {
-    console.warn('clearBest() is deprecated, use clearBestTime() or clearAllBestTimes() instead');
-    this.clearBestTime();
-  },
-
-  /**
-   * @deprecated Use clearAllBestTimes() instead
-   */
-  clearAllBests: function() {
-    console.warn('clearAllBests() is deprecated, use clearAllBestTimes() instead');
-    this.clearAllBestTimes();
   }
 };
 

@@ -288,6 +288,11 @@ const PlayerController = {
   startDash: function(dirX, dirY) {
     if (this.isDashing || this.dashCooldownTimer > 0) return;
     
+    // Block dashing during ground pound recovery
+    if (window.PlayerAnimation && window.PlayerAnimation.isInGroundPoundRecovery()) {
+      return;
+    }
+    
     // Normalize direction if diagonal
     const magnitude = Math.sqrt(dirX * dirX + dirY * dirY);
     if (magnitude > 0) {
@@ -299,7 +304,7 @@ const PlayerController = {
       
       // Start dash animation
       if (window.PlayerAnimation) {
-        window.PlayerAnimation.startDash(dirX);
+        window.PlayerAnimation.startDash();
       }
       
       if (window.debugLog) {
@@ -640,15 +645,30 @@ const PlayerController = {
       if (this.gravityEnabled) {
         this.applyGravity();
       }
-      
+
       // Update camera and render
       this.updateCameraAndRender();
-      
+
       // Continue animation loop
       this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
       return;
     }
-    
+
+    // Block movement and dashing during ground pound recovery
+    if (window.PlayerAnimation && window.PlayerAnimation.isInGroundPoundRecovery()) {
+      // During recovery, only apply gravity and continue the loop
+      if (this.gravityEnabled) {
+        this.applyGravity();
+      }
+
+      // Update camera and render
+      this.updateCameraAndRender();
+
+      // Continue animation loop
+      this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
+      return;
+    }
+
     // Track movement direction for dash system
     let currentMovementX = 0;
     let currentMovementY = 0;
@@ -720,7 +740,7 @@ const PlayerController = {
           
           // Start ground pound animation
           if (window.PlayerAnimation) {
-            window.PlayerAnimation.startGroundPound();
+            window.PlayerAnimation.updateGroundPoundAnimationState(true);
           }
           
           window.debugLog(`Ground pound initiated! Hovering for ${this.groundPoundHoverTime} frames`, 'warn');
@@ -1084,7 +1104,7 @@ const PlayerController = {
       // Calculate completion time
       const endTime = new Date();
       const timeTaken = endTime - startTime;
-      const formattedTime = GameTimer.formatTime(timeTaken);
+      const formattedTime = window.GameTimer.formatTime(timeTaken);
 
       // Show completion screen after brief delay
       setTimeout(() => {

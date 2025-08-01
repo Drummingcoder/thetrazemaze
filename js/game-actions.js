@@ -101,23 +101,22 @@ const GameActions = {
    */
   endGame: function(endScreen, startTime, endContent, personalbest, newpersonalbest, interval) {
     // Stop the game timer
-    GameTimer.stopTimer();
+    window.GameTimer.stopTimer();
     
     // Calculate final time
     const endTime = new Date();
     const timeTaken = endTime - startTime;
-    const formattedTime = GameTimer.formatTime(timeTaken);
+    const formattedTime = window.GameTimer.formatTime(timeTaken);
 
     // Show completion information
     setTimeout(() => {
       // Set time in the dedicated time element, not the h2 title
-      const timeElement = document.getElementById('end-time-taken');
-      if (timeElement) {
-        timeElement.textContent = "Time taken: " + formattedTime;
+      if (window.endContent) {
+        window.endContent.textContent = "Time taken: " + formattedTime;
       }
       
       // Handle personal best tracking (now level-aware)
-      PersonalBestManager.displayPersonalBestTime(timeTaken, personalbest, newpersonalbest);
+      window.PersonalBestManager.displayPersonalBestTime(timeTaken, personalbest, newpersonalbest);
       
       // Update level selector display if we're in level mode
       if (window.PersonalBestManager && window.selectedLevel) {

@@ -1,9 +1,19 @@
 /**
  * Maze Renderer Module
  * Handles the visual representation and rendering of the maze
+ *
+ * ---
+ * MazeRenderer.js Function Reference
+ * ---
+ *
+ * 1. createMazePreview: Creates a canvas-based preview of the entire maze.
+ * 2. updateViewport: Updates the viewport rendering based on player position.
+ * 3. createMazeCell: Creates a single maze cell DOM element.
+ * 4. getMazeData: Returns the maze structure and configuration for a given level.
+ *
  */
 
-console.log('Maze Renderer module loaded');
+console.log('Maze Renderer loaded');
 
 const MazeRenderer = {
   // Viewport rendering properties
@@ -13,25 +23,9 @@ const MazeRenderer = {
   lastPlayerCol: undefined,     // Last known player column position
 
   /**
-   * Creates the main maze structure and initializes rendering
-   * Sets up both preview and viewport-based rendering systems
-   */
-  createMaze: function() {
-    // Clear any existing maze elements from the container
-    while (maze.firstChild) {
-      maze.removeChild(maze.firstChild);
-    }
-    
-    // Create a static preview image first for instant visual feedback
-    this.createMazePreview();
-    
-    // Initialize viewport-based rendering for performance
-    this.initializeViewportRendering();
-  },
-
-  /**
    * Creates a canvas-based preview of the entire maze
    * Provides instant visual feedback while detailed rendering loads
+   * Not in use, but kept for potential future use
    */
   createMazePreview: function() {
     // Create canvas element for maze preview
@@ -110,25 +104,6 @@ const MazeRenderer = {
     
     // Add canvas to maze container
     maze.appendChild(canvas);
-  },
-
-  /**
-   * Sets up viewport-based rendering system for performance optimization
-   * Only renders maze cells visible around the player
-   */
-  initializeViewportRendering: function() {
-    // Calculate optimal viewport radius based on maze size and cell size
-    this.viewportRadius = Math.max(25, Math.floor(Math.min(mazeSize, 600) / cellSize / 4));
-    
-    // Initialize rendering cache and player position tracking
-    this.renderedCells = new Map();
-    this.lastPlayerRow = startRow;
-    this.lastPlayerCol = startCol;
-    
-    console.log('Viewport radius set to:', this.viewportRadius);
-    
-    // Perform initial viewport render around starting position
-    this.updateViewport(startRow, startCol, true);
   },
 
   /**
@@ -239,46 +214,48 @@ const MazeRenderer = {
     
     return cell;
   },
-
+  
   /**
-   * Forces a complete re-render of the maze
-   * Used when maze structure changes (like in multiple goals mode)
+   * Returns the predefined maze structure for the game
+   * @returns {Object} Object containing maze data and configuration
    */
-  forceRerenderMaze: function() {
-    // Clear all cached rendered cells
-    this.renderedCells.clear();
-    
-    // Remove all cell elements from DOM
-    const cells = maze.querySelectorAll('.cell');
-    cells.forEach(cell => {
-      if (cell.parentNode) {
-        cell.parentNode.removeChild(cell);
-      }
-    });
-    
-    // Recreate the maze with current player position
-    if (this.lastPlayerRow !== undefined && this.lastPlayerCol !== undefined) {
-      this.updateViewport(this.lastPlayerRow, this.lastPlayerCol, true);
+  getMazeData: function(level = 1) {
+    let mazeData;
+    switch(level) {
+      case 1:
+        mazeData = {
+          mazeStructure: window.level1Maze,
+          mazeWidth: window.level1Maze[0].length,
+          mazeHeight: window.level1Maze.length,
+          startRow: 2,
+          startCol: 2,
+          endRow: window.level1Maze.length - 2,
+          endCol: window.level1Maze[0].length - 2
+        };
+        break;
+      case 2:
+        mazeData = {
+          mazeStructure: window.level2Maze,
+          mazeWidth: window.level2Maze[0].length,
+          mazeHeight: window.level2Maze.length,
+          startRow: 1,
+          startCol: 1,
+          endRow: window.level2Maze.length - 2,
+          endCol: window.level2Maze[0].length - 2
+        };
+        break;
+      default:
+        mazeData = {
+          mazeStructure: window.level1Maze,
+          mazeWidth: window.level1Maze[0].length,
+          mazeHeight: window.level1Maze.length,
+          startRow: 2,
+          startCol: 2,
+          endRow: window.level1Maze.length - 2,
+          endCol: window.level1Maze[0].length - 2
+        };
     }
-    
-    // Call external render function if available (for canvas rendering)
-    if (typeof renderFrame === 'function') {
-      renderFrame();
-    }
-  },
-
-  /**
-   * Invalidates any cached maze rendering data
-   * Used when maze structure changes
-   */
-  invalidateCache: function() {
-    // Call external cache invalidation if available
-    if (typeof invalidateMazeCache === 'function') {
-      invalidateMazeCache();
-    }
-    
-    // Clear local rendering cache
-    this.renderedCells.clear();
+    return mazeData;
   }
 };
 
