@@ -796,8 +796,8 @@ const PlayerController = {
       
       // Trigger end game
       setTimeout(() => {
-        if (typeof window.myLibrary !== 'undefined' && typeof window.endScreen !== 'undefined') {
-          window.myLibrary.endGame(window.endScreen, window.startTime, window.endContent, window.personalbest, window.newpersonalbest, window.interval);
+        if (typeof window.GameActions !== 'undefined' && typeof window.endScreen !== 'undefined') {
+          window.GameActions.endGame(window.endScreen, window.startTime, window.endContent, window.personalbest, window.newpersonalbest, window.interval);
         }
       }, 100);
       return; // Exit early to prevent further processing

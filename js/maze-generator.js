@@ -9,7 +9,7 @@ const MazeGenerator = {
   
   /**
    * Predefined maze data - Complex navigable maze with 4x4 path areas and 2x2 walls
-   * Designed for challenge and fun (1 = wall, 0 = path, 2 = special paths, 3 = checkpoints, 4 = end)
+   * Designed for challenge and fun (1 = wall, 0 = path, 2 = torch, 3 = crystal, 4 = spike)
    */
   predefinedMaze: [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -504,34 +504,34 @@ const MazeGenerator = {
       case 1:
         mazeData = {
           mazeStructure: this.predefinedMaze,
-          mazeWidth: 48,
-          mazeHeight: 48,
+          mazeWidth: this.predefinedMaze[0].length,
+          mazeHeight: this.predefinedMaze.length,
           startRow: 2,
           startCol: 2,
-          endRow: 46,
-          endCol: 46
+          endRow: this.predefinedMaze.length - 2,
+          endCol: this.predefinedMaze[0].length - 2
         };
         break;
       case 2:
         mazeData = {
           mazeStructure: this.level2Maze,
-          mazeWidth: 99,
-          mazeHeight: 96,
+          mazeWidth: this.level2Maze[0].length,
+          mazeHeight: this.level2Maze.length,
           startRow: 1,
           startCol: 1,
-          endRow: 94,
-          endCol: 97
+          endRow: this.level2Maze.length - 2,
+          endCol: this.level2Maze[0].length - 2
         };
         break;
       default:
         mazeData = {
           mazeStructure: this.predefinedMaze,
-          mazeWidth: 48,
-          mazeHeight: 48,
+          mazeWidth: this.predefinedMaze[0].length,
+          mazeHeight: this.predefinedMaze.length,
           startRow: 2,
           startCol: 2,
-          endRow: 46,
-          endCol: 46
+          endRow: this.predefinedMaze.length - 2,
+          endCol: this.predefinedMaze[0].length - 2
         };
     }
     return mazeData;
@@ -660,6 +660,51 @@ const MazeGenerator = {
         }
       }
     }
+  },
+
+  /**
+   * Returns the predefined maze structure for the game
+   * @returns {Object} Object containing maze data and configuration
+   */
+  getMazeData: function(level = 1) {
+    let mazeData;
+    
+    switch(level) {
+      case 1:
+        mazeData = {
+          mazeStructure: this.predefinedMaze,
+          mazeSize: this.predefinedMaze.length,
+          startRow: 2,
+          startCol: 2,
+          endRow: 46,
+          endCol: 46
+        };
+        break;
+        
+      case 2:
+        mazeData = {
+          mazeStructure: this.level2Maze,
+          mazeSize: this.level2Maze.length,
+          startRow: 1,
+          startCol: 1,
+          endRow: this.level2Maze.length - 2,
+          endCol: this.level2Maze[0].length - 2
+        };
+        break;
+        
+      default:
+        // Default to level 1
+        mazeData = {
+          mazeStructure: this.predefinedMaze,
+          mazeSize: this.predefinedMaze.length,
+          startRow: 2,
+          startCol: 2,
+          endRow: 46,
+          endCol: 46
+        };
+    }
+    
+    return mazeData;
   }
 };
 

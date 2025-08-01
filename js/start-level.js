@@ -14,8 +14,7 @@ const startLevel = {
         
         // CRITICAL: Use existing GameInitializer reset functions
         if (window.GameInitializer) {
-            console.log('Calling GameInitializer.restartForNewLevel() for level', levelNumber);
-            window.GameInitializer.restartForNewLevel();
+            window.GameInitializer.restartGame(1);
         }
         
         // Re-initialize maze data for the selected level AFTER reset

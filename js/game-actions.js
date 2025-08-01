@@ -1,6 +1,15 @@
 /**
  * Game Actions Module
  * Handles game control actions like restart, navigation, and sharing
+ *
+ * ---
+ * GameActions.js Function Reference
+ * ---
+ * 1. showOverlay: Show loading overlay and fade it out
+ * 2. goBack: Navigates back to the level selection screen
+ * 3. hideEndScreen: Hides the end screen to allow continued play
+ * 4. copyToClipboard: Copies the current level and time to clipboard (modern API)
+ * 5. endGame: Ends the current game session and shows results
  */
 
 console.log('Game Actions module loaded');
@@ -8,7 +17,7 @@ console.log('Game Actions module loaded');
 const GameActions = {
 
   /**
-   * Show loading overlay and fade it out after a delay
+   * Show loading overlay and fade it out
    */
   showOverlay: function() {
     var loadingOverlay = document.getElementById('loading-overlay');
@@ -41,82 +50,42 @@ const GameActions = {
    * Hides the end screen to allow continued play (if applicable)
    */
   hideEndScreen: function() {
-    const endScreen = document.getElementById("end-screen");
-    if (endScreen) {
-      endScreen.classList.add("hidden");
+    if (window.endScreen) {
+      window.endScreen.classList.add("hidden");
     }
   },
 
   /**
-   * Copies the maze structure and completion time to clipboard
-   * Creates a shareable text representation of the maze and results
-   */
-  copyMazeAndTime: function() {
-    // Convert maze structure to emoji representation
-    const mazeString = JSON.stringify(mazeStructure)
-      .replace(/1/g, "⬛️")    // Replace walls (1) with black squares
-      .replace(/0/g, "⬜️")    // Replace paths (0) with white squares
-      .replace(/],\[/g, "\n") // Replace array separators with newlines
-      .replace(/\[|\]|,/g, ""); // Remove JSON formatting characters
-
-    // Get the completion time from the end screen
-    const timeTaken = document.getElementById("end-time-taken").textContent;
-
-    // Create sharing text
-    const textToCopy = "The Traze Maze Challenge\n" + 
-                      "Maze:\n" + mazeString + "\n\n" + timeTaken + "\n" + 
-                      "Try The Traze Maze here: drummingcoder.github.io";
-
-    // Copy to clipboard using temporary textarea method
-    this.copyToClipboard(textToCopy);
-    
-    // Show confirmation to user
-    alert("Maze and time have been copied to the clipboard!");
-  },
-
-  /**
-   * Utility function to copy text to clipboard
-   * Uses the legacy document.execCommand method for broad browser support
-   * @param {string} text - The text to copy to clipboard
-   */
-  copyToClipboard: function(text) {
-    // Create temporary textarea element
-    const tempTextArea = document.createElement("textarea");
-    tempTextArea.value = text;
-    
-    // Add to DOM temporarily
-    document.body.appendChild(tempTextArea);
-    
-    // Select the text
-    tempTextArea.select();
-    
-    // Copy to clipboard using legacy method
-    document.execCommand("copy");
-    
-    // Remove temporary element
-    document.body.removeChild(tempTextArea);
-  },
-
-  /**
    * Modern clipboard API implementation (for future use)
-   * @param {string} text - The text to copy to clipboard
    * @returns {Promise} Promise that resolves when copy is complete
    */
-  copyToClipboardModern: function(text) {
-    // Check if modern Clipboard API is available
+  copyToClipboard: function() {
+    const level = window.selectedLevel || 1;
+    const timeTaken = window.GameTimer.getTime();
+
+    // Create sharing text
+    const textToCopy = "The Traze Maze\n" + 
+                      "Level:\n" + level + "\n\n" + timeTaken + "\n" + 
+                      "Try The Traze Maze here: drummingcoder.github.io/thetrazemaze\n\n";
+
+    // Use modern Clipboard API if available
     if (navigator.clipboard && window.isSecureContext) {
-      // Use modern Clipboard API
-      return navigator.clipboard.writeText(text);
+      navigator.clipboard.writeText(textToCopy)
+        .then(() => {
+          alert("Maze and time have been copied to the clipboard!");
+        })
+        .catch(err => {
+          alert("Failed to copy to clipboard: " + err);
+        });
     } else {
-      // Fall back to legacy method
-      return new Promise((resolve, reject) => {
-        try {
-          this.copyToClipboard(text);
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-      });
+      // Fallback to legacy method
+      const tempTextArea = document.createElement("textarea");
+      tempTextArea.value = textToCopy;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempTextArea);
+      alert("Maze and time have been copied to the clipboard!");
     }
   },
 
@@ -146,9 +115,6 @@ const GameActions = {
       if (timeElement) {
         timeElement.textContent = "Time taken: " + formattedTime;
       }
-      
-      // Keep the h2 title as "Congratulations!" - don't overwrite it
-      // endContent should remain "Congratulations!" from initialization
       
       // Handle personal best tracking (now level-aware)
       PersonalBestManager.displayPersonalBestTime(timeTaken, personalbest, newpersonalbest);

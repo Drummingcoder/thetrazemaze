@@ -158,7 +158,6 @@
     let time = 0;
     let interval = false, startTime, startMaze;
     let first = 0;
-    var mazecount = 0; // Make global for library.js
     
     // Canvas rendering system - smooth pixel-based movement system
     // FORCE RESET to 0 to prevent any persistence across reloads
@@ -214,6 +213,7 @@
     window.ctx = ctx;
     window.playerCanvas = playerCanvas;
     window.playerCtx = playerCtx;
+    window.controlsHint = controlsHint;
     window.mazeStructure = mazeStructure;
     window.startRow = startRow;
     window.startCol = startCol;
@@ -228,7 +228,6 @@
     window.interval = interval;
     window.startTime = startTime;
     window.first = first;
-    window.mazecount = mazecount;
     
     // FORCE CLEAR all browser storage to prevent any data persistence between sessions
     try {

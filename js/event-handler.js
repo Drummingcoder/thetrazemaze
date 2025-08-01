@@ -1,6 +1,22 @@
 /**
  * EventHandler Module
- * Manages all keyboard and window event handling for the maze game
+ * Manages all keyboard, timer, and audio event handling for the maze game
+ *
+ * ---
+ * EventHandler.js Function Reference
+ * ---
+ * 1. setupEventListeners: Sets up all event listeners for the game
+ * 2. handleKeyDown: Handles keydown events
+ * 3. handleKeyUp: Handles key up events
+ * 4. isMovementKey: Checks if a key is a movement key
+ * 5. handleDebugKey: Handles debug key press (Y)
+ * 6. handleDashKey: Handles dash key press (Shift or Space)
+ * 7. handleMovementKey: Handles movement key press
+ * 8. startGameTimer: Starts the game timer
+ * 9. startGameMusic: Starts game music
+ * 10. playMusic: Plays music using available audio system
+ * 11. setupAudioCheck: Sets up audio check interval for delayed music start
+ * 12. handlePlayerMovement: Handles player movement through PlayerController
  */
 
 const EventHandler = {
@@ -12,22 +28,7 @@ const EventHandler = {
    * Sets up all event listeners for the game
    */
   setupEventListeners: function() {
-    console.log('EventHandler: Setting up game event listeners');
-    
-    // Set up keyboard event listeners
-    this.setupKeyboardEvents();
-    
-    // Set up window event listeners
-    this.setupWindowEvents();
-    
-    console.log('EventHandler: All event listeners registered');
-  },
-
-  /**
-   * Sets up keyboard event listeners
-   */
-  setupKeyboardEvents: function() {
-    // Keydown event handler
+    // Keydown event handlers
     window.addEventListener("keydown", (event) => {
       this.handleKeyDown(event);
     });
@@ -36,16 +37,8 @@ const EventHandler = {
     window.addEventListener("keyup", (event) => {
       this.handleKeyUp(event);
     });
-  },
-
-  /**
-   * Sets up window event listeners
-   */
-  setupWindowEvents: function() {
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-      this.handlePageUnload();
-    });
+    
+    console.log('EventHandler: All event listeners registered');
   },
 
   /**
@@ -79,7 +72,7 @@ const EventHandler = {
   },
 
   /**
-   * Handles keyup events
+   * Handles key up events
    * @param {KeyboardEvent} event - The keyboard event
    */
   handleKeyUp: function(event) {
@@ -97,8 +90,7 @@ const EventHandler = {
    * @returns {boolean} True if it's a movement key
    */
   isMovementKey: function(key) {
-    return key.includes("Arrow") || 
-           key === "w" || key === "a" || key === "s" || key === "d";
+    return key.includes("Arrow") || key === "w" || key === "a" || key === "s" || key === "d";
   },
 
   /**
@@ -158,12 +150,6 @@ const EventHandler = {
       if (timerResult && timerResult.startTime) {
         window.startTime = timerResult.startTime;
       }
-    } else {
-      console.warn('GameTimer module not available, using myLibrary fallback');
-      const timerResult = window.myLibrary.startTimer(window.timerElement);
-      if (timerResult && timerResult.startTime) {
-        window.startTime = timerResult.startTime;
-      }
     }
   },
 
@@ -189,15 +175,9 @@ const EventHandler = {
    */
   playMusic: function() {
     try {
-      // Use AudioManager directly instead of myLibrary
       if (window.AudioManager) {
         window.AudioManager.playMusic();
         console.log('Music started successfully via AudioManager');
-      } else {
-        console.warn('AudioManager not available, trying myLibrary fallback');
-        window.myLibrary.playMusic();
-        window.musicStarted = true;
-        console.log('Music started successfully via myLibrary');
       }
     } catch (error) {
       console.warn('Could not start music:', error);
@@ -232,10 +212,8 @@ const EventHandler = {
    */
   handlePlayerMovement: function(key) {
     if (window.PlayerController) {
-      // Hide controls hint when user starts moving
-      const controlsHint = document.getElementById('controls-hint');
-      if (controlsHint && !controlsHint.classList.contains('hidden')) {
-        controlsHint.classList.add('hidden');
+      if (window.controlsHint && !window.controlsHint.classList.contains('hidden')) {
+        window.controlsHint.classList.add('hidden');
       }
       
       // Start smooth movement system if not already running
@@ -244,21 +222,6 @@ const EventHandler = {
       }
       
       window.PlayerController.handleKeyDown(key);
-    }
-  },
-
-  /**
-   * Handles page unload cleanup
-   */
-  handlePageUnload: function() {
-    if (window.GameInitializer && window.GameInitializer.cleanupGameSystems) {
-      window.GameInitializer.cleanupGameSystems();
-    }
-    
-    // Clear any intervals
-    if (this.audioCheckInterval) {
-      clearInterval(this.audioCheckInterval);
-      this.audioCheckInterval = null;
     }
   }
 };

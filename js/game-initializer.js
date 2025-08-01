@@ -2,6 +2,22 @@
  * Game Initializer Module
  * Handles game setup, cleanup, and state management
  */
+/**
+ * Function Reference (GameInitializer)
+ * 1. initializeStartScreen() - Set up the start screen using StartScreenManager
+ * 2. restartGame(num) - Restart the game (num=0: full restart, num!=0: level/maze restart)
+ * 3. clearCanvases() - Clear all game canvases
+ * 4. stopAllSystems() - Stop all running game systems and intervals
+ * 5. resetGameState() - Reset all game state variables
+ * 6. resetPlayerState() - Reset player position and state
+ * 7. resetUIElements() - Reset UI elements to initial state
+ * 8. resetModules() - Reset all modules to initial state
+ * 9. cleanupGameSystems() - Comprehensive cleanup to prevent memory leaks
+ * 10. initializeGame() - Initialize the complete game system
+ * 11. createVirtualPlayer() - Create virtual player object for compatibility
+ * 12. preloadAudioAsync() - Placeholder for audio preloading
+ * 13. setupEventListeners() - Set up event listeners for controls and lifecycle
+ */
 
 console.log('Game Initializer module loaded');
 
@@ -11,7 +27,6 @@ const GameInitializer = {
    * Initialize start screen using StartScreenManager module
    */
   initializeStartScreen: function() {
-    // Call showOverlay from GameActions
     if (window.GameActions && window.GameActions.showOverlay) {
       window.GameActions.showOverlay();
     }
@@ -27,9 +42,7 @@ const GameInitializer = {
    * Complete game restart function - equivalent to page reload
    * Resets all game state and reinitializes everything from scratch
    */
-  restartGameFromScratch: function() {
-    console.log('GameInitializer: Starting complete game restart...');
-    
+  restartGame: function(num) {
     // Step 1: Stop all running systems
     this.stopAllSystems();
     
@@ -45,45 +58,19 @@ const GameInitializer = {
     // Step 5: Reset modules
     this.resetModules();
     
-    // Step 6: Reinitialize the complete game
-    this.initializeGame();
+    // Step 6: Reinitialize the complete game or clear canvases to prepare for new maze
+    if (num == 0)
+      this.initializeGame();
+    else
+      this.clearCanvases();
     
     console.log('GameInitializer: Complete game restart finished');
-  },
-
-  /**
-   * Restart for new level - similar to restartGameFromScratch but optimized for level switching
-   */
-  restartForNewLevel: function() {
-    console.log('GameInitializer: Starting restart for new level...');
-    
-    // Step 1: Stop all running systems
-    this.stopAllSystems();
-    
-    // Step 2: Reset all game state variables (including timer)
-    this.resetGameState();
-    
-    // Step 3: Reset player position and state (will be updated after maze data loads)
-    this.resetPlayerState();
-    
-    // Step 4: Reset UI elements completely
-    this.resetUIElements();
-    
-    // Step 5: Reset modules
-    this.resetModules();
-    
-    // Step 6: Clear canvases to prepare for new maze
-    this.clearCanvases();
-    
-    console.log('GameInitializer: Restart for new level complete');
   },
 
   /**
    * Clear all canvases
    */
   clearCanvases: function() {
-    console.log('GameInitializer: Clearing canvases...');
-    
     if (window.canvas && window.ctx) {
       window.ctx.clearRect(0, 0, window.canvas.width, window.canvas.height);
     }
@@ -219,12 +206,9 @@ const GameInitializer = {
     }
     
     // Reset personal best display
-    const personalBestElem = document.getElementById('personal-best');
-    const newPersonalBestElem = document.getElementById('new-personal-best');
-    const endTimeTakenElem = document.getElementById('end-time-taken');
-    if (personalBestElem) personalBestElem.style.display = '';
-    if (newPersonalBestElem) newPersonalBestElem.style.display = 'none';
-    if (endTimeTakenElem) endTimeTakenElem.style.display = ''; // Ensure time display is visible for new games
+    window.personalbest.style.display = '';
+    window.newpersonalbest.style.display = 'none';
+    window.endContent.style.display = ''; // Ensure time display is visible for new games
     
     // Reset heart system
     window.playerHearts = 3;
@@ -316,56 +300,6 @@ const GameInitializer = {
         window.PlayerController.isMovementActive = false;
       }
     }
-  },
-
-  /**
-   * Setup debug console system
-   */
-  setupDebugConsole: function() {
-    // Debug logging function
-    window.debugLog = function(message, type = 'info') {
-      const debugConsole = document.getElementById('debug-console');
-      if (!debugConsole) return;
-      
-      const timestamp = new Date().toLocaleTimeString() + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
-      const entry = document.createElement('div');
-      entry.className = `debug-entry debug-${type}`;
-      entry.innerHTML = `<span class="debug-timestamp">[${timestamp}]</span> ${message}`;
-      
-      debugConsole.appendChild(entry);
-      
-      // Auto-scroll to bottom
-      debugConsole.scrollTop = debugConsole.scrollHeight;
-      
-      // Keep only last 100 entries to prevent memory issues
-      const entries = debugConsole.querySelectorAll('.debug-entry');
-      if (entries.length > 100) {
-        entries[0].remove();
-      }
-    };
-
-    // Clear debug console function
-    window.clearDebug = function() {
-      const debugConsole = document.getElementById('debug-console');
-      if (debugConsole) debugConsole.innerHTML = '';
-    };
-  },
-
-  /**
-   * Setup loading overlay with fade out effect
-   */
-  setupLoadingOverlay: function() {
-    window.addEventListener('DOMContentLoaded', function() {
-      var loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) {
-        setTimeout(function() {
-          loadingOverlay.style.opacity = '0';
-          setTimeout(function() {
-            loadingOverlay.style.display = 'none';
-          }, 400);
-        }, 750);
-      }
-    });
   },
 
   /**
@@ -511,28 +445,18 @@ const GameInitializer = {
     if (restartButton && !restartButton.hasAttribute('data-initialized')) {
       restartButton.addEventListener("click", function() {
         console.log('Restart button clicked - starting complete game restart');
-        GameInitializer.restartGameFromScratch();
+        GameInitializer.restartGame(0);
       });
       restartButton.setAttribute('data-initialized', 'true');
     }
     
     if (backButton && !backButton.hasAttribute('data-initialized')) {
-      backButton.addEventListener("click", myLibrary.goBack);
+      backButton.addEventListener("click", window.GameActions.goBack);
       backButton.style.display = "inline-block";
-      backButton.addEventListener("click", myLibrary.hideEndScreen);
+      backButton.addEventListener("click", window.GameActions.hideEndScreen);
       backButton.setAttribute('data-initialized', 'true');
     }
 
-    // Setup page lifecycle event listeners
-    this.setupPageLifecycleListeners();
-
-    // Note: Resize handler is now managed by CameraSystem module
-  },
-
-  /**
-   * Setup page lifecycle event listeners (window load only)
-   */
-  setupPageLifecycleListeners: function() {
     // Setup DOMContentLoaded listener to initialize start screen
     if (!window.domContentLoadedInitialized) {
       window.addEventListener('DOMContentLoaded', function() {
@@ -582,7 +506,7 @@ window.GameInitializer = GameInitializer;
 // Create convenient global alias for the restart function
 window.restartMaze = function() {
   console.log('Global restartMaze() called');
-  GameInitializer.restartGameFromScratch();
+  GameInitializer.restartGame(0);
 };
 
 // Also make it available as a shorter alias
