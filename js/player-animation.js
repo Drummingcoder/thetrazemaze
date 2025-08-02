@@ -1,6 +1,33 @@
 /**
  * Player Animation System
  * Handles all player sprite animations including movement, dash, and ground pound
+ *
+ * ---
+ * PlayerAnimation.js Function Reference
+ * ---
+ *
+ * 1. init: Initializes animation system, player element, and starts loop.
+ * 2. startAnimationLoop: Starts the independent animation loop.
+ * 3. stopAnimationLoop: Stops the animation loop.
+ * 4. shouldAnimationContinue: Checks if any animation should continue running.
+ * 5. updateAnimation: Main entry point for updating animation state.
+ * 6. updateDirection: Updates player facing direction based on input.
+ * 7. startDash: Begins dash animation state.
+ * 8. handleDashAnimation: Advances dash animation frames.
+ * 9. startDashRecovery: Begins dash recovery animation state.
+ * 10. handleDashRecovery: Advances dash recovery frames.
+ * 11. updateGroundPoundAnimationState: Handles ground pound state transitions.
+ * 12. handleGroundPoundAnimation: Advances ground pound animation frames.
+ * 13. updateGroundPoundPhase: Handles ground pound phase changes.
+ * 14. resetToMovementAnimation: Resets to normal movement animation state.
+ * 15. updateSpriteFrame: Updates the sprite frame display.
+ * 16. getAnimationState: Returns current animation state for debugging.
+ * 17. cleanup: Cleans up and resets the animation system.
+ */
+
+/**
+ * Player Animation System
+ * Handles all player sprite animations including movement, dash, and ground pound
  */
 
 console.log('Player Animation module loaded');
@@ -124,7 +151,7 @@ const PlayerAnimation = {
     console.log('⏹️ Stopped independent animation loop');
   },
 
-  /**
+    /**
    * Check if any animations need to continue running
    */
   shouldAnimationContinue: function() {
@@ -271,7 +298,6 @@ const PlayerAnimation = {
 
   /**
    * Start dash animation, called by PlayerController
-   * @param {number} directionX - Direction of the dash (-1 for left, 1 for right)
    */
   startDash: function() {
     // Initialize dash animation state
@@ -390,16 +416,24 @@ const PlayerAnimation = {
   },
 
   /**
+   * Start ground pound animation
+   */
+  startGroundPound: function() {
+    this.groundPoundActive = true;
+    this.groundPoundHovering = true;
+    this.groundPoundRecovering = false;
+    this.groundPoundDirection = this.lastDirection;
+    this.groundPoundAnimationFrame = 0;
+    this.lastGroundPoundAnimationTime = performance.now();
+    if (window.debugLog) window.debugLog('🌪️ GROUND POUND START: direction=' + this.groundPoundDirection + ', hovering=true, frame=0', 'info');
+  },
+
+  /**
    * Update ground pound animation state
    */
   updateGroundPoundAnimationState: function(isGroundPounding) {
     if (isGroundPounding && !this.groundPoundActive) {
-      this.groundPoundActive = true;
-      this.groundPoundHovering = true;
-      this.groundPoundRecovering = false;
-      this.groundPoundDirection = this.lastDirection;
-      this.groundPoundAnimationFrame = 0;
-      this.lastGroundPoundAnimationTime = performance.now();
+      this.startGroundPound();
     } else if (!isGroundPounding && this.groundPoundActive && this.groundPoundHovering) {
       // Ground pound ended while hovering - start recovery
       this.groundPoundHovering = false;
@@ -546,13 +580,6 @@ const PlayerAnimation = {
     const bgPosY = -(this.currentRow * scaledFrameHeight);
     
     this.playerElement.style.backgroundPosition = `${bgPosX}px ${bgPosY}px`;
-  },
-
-  /**
-   * Check if player is currently in ground pound recovery (blocks movement/dashing)
-   */
-  isInGroundPoundRecovery: function() {
-    return this.groundPoundRecovering;
   },
 
   /**

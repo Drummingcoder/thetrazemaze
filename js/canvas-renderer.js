@@ -155,7 +155,7 @@ const CanvasRenderer = {
     // this.playerElement.style.border = '2px solid red'; // DEBUG: Removed red border
     
     // Set size based on cell size for better scaling with maze
-    const cellSize = window.cellSize || 32;
+    const cellSize = window.cellSize;
     // Clamp sprite size to a larger range (e.g., 1.5x to 2.0x cell size)
     const spriteSize = Math.max(2.5 * cellSize, Math.min(3.5 * cellSize, 128));
     this.playerElement.style.width = spriteSize + 'px';

@@ -311,6 +311,8 @@ const GameInitializer = {
       window.PlayerController.cleanupMovementSystems();
     }
     
+    window.playerAnimation.cleanup();
+    
     // Clear any audio check intervals
     /* DISABLED: Audio intervals commented out for performance
     if (audioCheckInterval) {

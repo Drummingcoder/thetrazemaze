@@ -287,9 +287,8 @@ const PlayerController = {
    */
   startDash: function(dirX, dirY) {
     if (this.isDashing || this.dashCooldownTimer > 0) return;
-    
     // Block dashing during ground pound recovery
-    if (window.PlayerAnimation && window.PlayerAnimation.isInGroundPoundRecovery()) {
+    if (window.PlayerAnimation && window.PlayerAnimation.groundPoundRecovering) {
       return;
     }
     
@@ -653,25 +652,6 @@ const PlayerController = {
       this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
       return;
     }
-
-    // Block movement and dashing during ground pound recovery
-    if (window.PlayerAnimation && window.PlayerAnimation.isInGroundPoundRecovery()) {
-      // During recovery, only apply gravity and continue the loop
-      if (this.gravityEnabled) {
-        this.applyGravity();
-      }
-
-      // Update camera and render
-      this.updateCameraAndRender();
-
-      // Continue animation loop
-      this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
-      return;
-    }
-
-    // Track movement direction for dash system
-    let currentMovementX = 0;
-    let currentMovementY = 0;
     
     // Calculate movement based on pressed keys
     if (this.smoothMovementKeys["ArrowUp"] || this.smoothMovementKeys["w"]) {
@@ -740,7 +720,7 @@ const PlayerController = {
           
           // Start ground pound animation
           if (window.PlayerAnimation) {
-            window.PlayerAnimation.updateGroundPoundAnimationState(true);
+            window.PlayerAnimation.startGroundPound();
           }
           
           window.debugLog(`Ground pound initiated! Hovering for ${this.groundPoundHoverTime} frames`, 'warn');
