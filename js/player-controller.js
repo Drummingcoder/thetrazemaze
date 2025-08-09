@@ -2,6 +2,40 @@
  * Player Controller
  * Handles player movement, collision detection, and position tracking
  */
+/**
+ * ---
+ * PlayerController.js Function Reference
+ * ---
+ *
+ * 1. getSpriteBounds: Calculates sprite boundaries for collision and ground detection.
+ * 2. checkCollision: Checks for collision at a given position.
+ * 3. checkEndReached: Checks if player reached the end position.
+ * 4. findGroundRow: Finds the first solid ground row below a position.
+ * 5. checkGrounded: Checks if player is standing on solid ground.
+ * 6. calculateJumpVelocity: Calculates jump velocity based on hold time.
+ * 7. handleDash: Handles dash movement and collision.
+ * 8. startDash: Initiates a dash in a given direction.
+ * 9. endDashFromAnimation: Ends dash from animation system.
+ * 10. handleGroundPoundLanding: Handles ground pound landing with precise positioning.
+ * 11. applyGravity: Applies gravity and handles ground pound logic.
+ * 12. smoothMovementLoop: Main movement animation loop.
+ * 13. cleanupMovementSystems: Cleans up movement systems and resets states.
+ * 14. resetPlayerState: Resets player state for game restart.
+ * 15. updatePlayerPosition: Updates player position for compatibility.
+ * 16. updateCameraAndRender: Updates camera and rendering.
+ * 17. movePlayer: Handles player movement based on keyboard input.
+ * 18. handleSingleGoalMode: Handles logic for single goal mode completion.
+ * 19. setGravity: Toggles gravity on/off.
+ * 20. startSmoothMovement: Starts the smooth movement system.
+ * 21. initializePlayerPosition: Initializes player position for smooth movement.
+ * 22. createVirtualPlayer: Creates virtual player object for positioning.
+ * 23. handleKeyDown: Handles key down events for movement.
+ * 24. handleKeyUp: Handles key up events for movement.
+ * 25. updateDashIndicator: Updates dash indicator UI.
+ * 26. updateJumpChargeIndicator: Updates jump charge indicator UI.
+ * 27. handleDashKey: Handles dedicated dash key press (Shift).
+ * 28. updateGroundPoundIndicator: Updates ground pound indicator UI.
+ */
 
 console.log('Player Controller module loaded');
 

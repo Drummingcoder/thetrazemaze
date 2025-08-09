@@ -1,7 +1,19 @@
-// =================================================================
-// START SCREEN MANAGER MODULE
-// =================================================================
-// This module handles all start screen, level select, and navigation functionality
+/**
+ * Start Screen Manager
+ * Handles all start screen, level select, and navigation functionality
+ */
+/**
+ * ---
+ * start-screen-manager.js Function Reference
+ * ---
+ *
+ * 1. initializeStartScreen: Initializes the start screen and hides game elements.
+ * 2. showLevelSelect: Shows the level select screen and sets up listeners.
+ * 3. setupLevelSelectListeners: Sets up event listeners for level select and navigation.
+ * 4. showStartScreen: Returns to the start screen and cleans up game systems.
+ * 5. loadLevelBestTimes: Loads personal best times for all levels.
+ * 6. updateLevelBestTime: Updates best time for a specific level.
+ */
 
 window.StartScreenManager = (function() {
     'use strict';

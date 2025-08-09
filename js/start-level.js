@@ -1,8 +1,15 @@
-// =================================================================
-// START LEVEL MODULE
-// =================================================================
-// This module handles game level initialization and starting functionality.
-// It manages the transition from level selection to actual gameplay.
+/**
+ * Start Level
+ * Handles game level initialization and starting functionality
+ */
+/**
+ * ---
+ * start-level.js Function Reference
+ * ---
+ *
+ * 1. startGameWithLevel: Initializes and starts the game with a specific level.
+ * 2. startGame: Starts the actual game, manages UI transitions and initialization.
+ */
 
 const startLevel = {
     // Start game with specific level
@@ -30,11 +37,14 @@ const startLevel = {
         window.endRow = mazeData.endRow;
         window.endCol = mazeData.endCol;
         
-        // Recalculate cell size for the new maze dimensions
+        // Use consistent cell size across all levels (based on level 1 dimensions)
+        // Level 1 is 48x47, so we'll use that as our reference for cell size calculation
+        const referenceWidth = 48;
+        const referenceHeight = 48;
         const availableWidth = window.innerWidth;
         const availableHeight = window.innerHeight;
-        const maxCellSizeWidth = Math.floor(availableWidth / window.mazeWidth);
-        const maxCellSizeHeight = Math.floor(availableHeight / window.mazeHeight);
+        const maxCellSizeWidth = Math.floor(availableWidth / referenceWidth);
+        const maxCellSizeHeight = Math.floor(availableHeight / referenceHeight);
         window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
         
         // Ensure minimum cell size
@@ -43,6 +53,7 @@ const startLevel = {
         }
         
         // Update canvas sizes
+        console.log('Maze dimensions:', window.mazeWidth, 'x', window.mazeHeight, 'with cell size:', window.cellSize);
         const mazeWidthPx = window.mazeWidth * window.cellSize;
         const mazeHeightPx = window.mazeHeight * window.cellSize;
 

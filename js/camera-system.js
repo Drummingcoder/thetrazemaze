@@ -265,15 +265,16 @@ const CameraSystem = {
    * Handle game/canvas resizing (consolidated from game-initializer)
    */
   handleGameResize: function() {
-    // Recalculate the maximum possible cell size to fill the screen
+    // Use consistent cell size across all levels (based on level 1 dimensions)
+    // Level 1 is 48x47, so we'll use that as our reference for cell size calculation
+    const referenceWidth = 48;
+    const referenceHeight = 48;
     const availableWidth = window.innerWidth;
     const availableHeight = window.innerHeight;
-    
-    // Calculate cell size based on screen dimensions and maze dimensions
-    const maxCellSizeWidth = Math.floor(availableWidth / window.mazeWidth);
-    const maxCellSizeHeight = Math.floor(availableHeight / window.mazeHeight);
-    // Use the smaller of the two to ensure the maze fits in both dimensions
+    const maxCellSizeWidth = Math.floor(availableWidth / referenceWidth);
+    const maxCellSizeHeight = Math.floor(availableHeight / referenceHeight);
     window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
+    
     // Ensure minimum cell size for playability
     if (window.cellSize < 3) {
       window.cellSize = 3;
