@@ -35,7 +35,7 @@ remove), better guns, and faster shooting.
 - Pause menu
 
 ### Bugs:
-- Timer doesn't immediately stop upon touching the end square
+- Timer doesn't immediately stop upon touching the end square (sometimes)
 - Resizing the window breaks the maze
 - Collision detection is still funky and not the best
 - Spike detection is too wide
