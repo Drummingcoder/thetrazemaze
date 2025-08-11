@@ -22,8 +22,7 @@ sounded like a good and fun thing to do, but its implementation proved to be
 not the funnest. It's hard to tell what makes you good in this game and 
 honestly it's hard for me to recommend this project. I leave the original goals
 of this game at the bottom in case I ever want to come back and redesign the 
-game so that it's more fun, but for right now, I'm putting this project into
-quick wrap-up mode.
+game so that it's more fun.
 
 ## Original Details:
 - 10 levels, starting from easy to hard (1 level already implemented)
