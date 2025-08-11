@@ -43,6 +43,7 @@ const GameInitializer = {
    * Resets all game state and reinitializes everything from scratch
    */
   restartGame: function(num) {
+    window.GameActions.showOverlay();
     // Step 1: Stop all running systems
     this.stopAllSystems();
     
@@ -142,12 +143,16 @@ const GameInitializer = {
     }
     
     // Reset audio state through AudioManager
-    /* DISABLED: Audio state reset commented out for performance
     if (window.AudioManager) {
       window.AudioManager.musicStarted = false;
       // Don't reset audioPreloaded - keep loaded audio
+      // Gently initialize music in background (non-blocking)
+      setTimeout(() => {
+        if (window.AudioManager && window.AudioManager.initMusicSafely) {
+          window.AudioManager.initMusicSafely();
+        }
+      }, 2000); // Wait 2 seconds after game start to avoid interference
     }
-    */
     
     // Reset EventHandler state
     if (window.EventHandler) {
@@ -311,7 +316,9 @@ const GameInitializer = {
       window.PlayerController.cleanupMovementSystems();
     }
     
-    window.playerAnimation.cleanup();
+    if (window.playerAnimation && typeof window.playerAnimation.cleanup === 'function') {
+      window.playerAnimation.cleanup();
+    }
     
     // Clear any audio check intervals
     /* DISABLED: Audio intervals commented out for performance
@@ -447,6 +454,7 @@ const GameInitializer = {
     if (restartButton && !restartButton.hasAttribute('data-initialized')) {
       restartButton.addEventListener("click", function() {
         console.log('Restart button clicked - starting complete game restart');
+        window.GameActions.showOverlay();
         GameInitializer.restartGame(0);
       });
       restartButton.setAttribute('data-initialized', 'true');

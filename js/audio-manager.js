@@ -51,6 +51,32 @@ const AudioManager = {
   },
 
   /**
+   * Manual music trigger - only plays when explicitly called
+   * Safe for user interaction without disrupting gameplay
+   */
+  startMusicManually: function() {
+    if (this.musicStarted) {
+      console.log('Music already started');
+      return;
+    }
+    
+    console.log('Manual music start requested...');
+    
+    if (this.audioPreloaded && this.preloadedAudio) {
+      try {
+        this.playMusic();
+        this.musicStarted = true;
+        console.log('Music started successfully via manual trigger');
+      } catch (error) {
+        console.warn('Manual music start failed:', error);
+      }
+    } else {
+      console.log('Audio not ready for manual start, initializing...');
+      this.initMusicSafely();
+    }
+  },
+
+  /**
    * Plays the background music
    * Handles both preloaded audio and fallback scenarios
    */
@@ -93,6 +119,21 @@ const AudioManager = {
     if (this.preloadedAudio) {
       this.preloadedAudio.pause();
     }
+  },
+
+  /**
+   * Safe music initialization - only preloads, doesn't auto-play
+   * This prevents performance issues during game startup
+   */
+  initMusicSafely: function() {
+    // Only initialize if not already done and game is stable
+    if (this.audioPreloaded || this.audioLoadingInProgress) {
+      console.log('Audio already initialized, skipping...');
+      return;
+    }
+    
+    console.log('Safe music initialization starting...');
+    this.preloadAudioAsync();
   },
 
   /**

@@ -270,6 +270,9 @@ const CameraSystem = {
       console.warn('Resize handler: missing mazeWidth, mazeHeight, or canvas. Resize aborted.');
       return;
     }
+    // Preserve player's logical grid position before resizing
+    let playerColBefore = Math.round(window.playerX / window.cellSize);
+    let playerRowBefore = Math.round(window.playerY / window.cellSize);
 
     // Use consistent cell size across all levels (based on level 1 dimensions)
     // Level 1 is 48x48, so we'll use that as our reference for cell size calculation
@@ -280,8 +283,7 @@ const CameraSystem = {
     const maxCellSizeWidth = Math.floor(availableWidth / referenceWidth);
     const maxCellSizeHeight = Math.floor(availableHeight / referenceHeight);
     window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
-
-    // Ensure minimum cell size for playability
+    
     if (window.cellSize < 3 || isNaN(window.cellSize)) {
       window.cellSize = 3;
     }
@@ -328,10 +330,9 @@ const CameraSystem = {
     }
 
     // Update player position to match new cell size
-    const currentCol = Math.round(window.playerX / (window.canvas.width / window.mazeWidth));
-    const currentRow = Math.round(window.playerY / (window.canvas.height / window.mazeHeight));
-    window.playerX = currentCol * window.cellSize;
-    window.playerY = currentRow * window.cellSize;
+    window.playerX = playerColBefore * window.cellSize;
+    window.playerY = playerRowBefore * window.cellSize;
+    console.log('[Resize] Player logical position restored:', playerColBefore, playerRowBefore, '->', window.playerX, window.playerY);
   },
 
   /**

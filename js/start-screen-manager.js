@@ -85,7 +85,7 @@ window.StartScreenManager = (function() {
         if (aboutCorner) {
             aboutCorner.addEventListener('click', function() {
                 console.log('About corner clicked');
-                alert('The Traze Maze v2.0\n\nNavigate through the maze as fast as you can!\n\nControls:\n• Arrow Keys/WASD: Move\n• Shift/Space: Dash\n• Hold Up/W: Charge Jump\n• Down/S (in air): Ground Pound\n\nCreated by Drummingcoder');
+                alert('The Traze Maze v2.0\n\nNavigate through the maze as fast as you can!\n\nControls:\n• Arrow Keys/WASD: Move\n• Shift/Space: Dash\n• Hold Up/W: Charge Jump\n• Down/S (in air): Ground Pound\n• M: Toggle Music\n\nCreated by Drummingcoder');
             });
         }
     }

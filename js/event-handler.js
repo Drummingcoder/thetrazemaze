@@ -57,6 +57,12 @@ const EventHandler = {
       return;
     }
     
+    // Handle music toggle key (M key)
+    if (event.key === "m" || event.key === "M") {
+      this.handleMusicToggle();
+      return;
+    }
+
     // Handle dash key separately
     if (event.key === "Shift" || event.key === " ") {
       event.preventDefault();
@@ -94,7 +100,25 @@ const EventHandler = {
   },
 
   /**
-   * Handles debug key press (Y)
+   * Handles music toggle functionality
+   */
+  handleMusicToggle: function() {
+    if (window.AudioManager) {
+      if (!window.AudioManager.musicStarted) {
+        console.log('User requested music start (M key)');
+        window.AudioManager.startMusicManually();
+      } else {
+        console.log('User requested music pause (M key)');
+        window.AudioManager.pauseMusic();
+        window.AudioManager.musicStarted = false;
+      }
+    } else {
+      console.log('AudioManager not available');
+    }
+  },
+
+  /**
+   * Handles debug functionality
    */
   handleDebugKey: function() {
     // Calculate player's grid position for debugging
