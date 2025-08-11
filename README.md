@@ -25,9 +25,6 @@ of this game at the bottom in case I ever want to come back and redesign the
 game so that it's more fun, but for right now, I'm putting this project into
 quick wrap-up mode.
 
-## New Goals (to be achieved 08/12/2025):
-- Make level 2 maze
-
 ## Original Details:
 - 10 levels, starting from easy to hard (1 level already implemented)
 - Running, dashing, ground pounding (implemented), jumping, and shooting mechanics (want to separate charge jump and jump)
