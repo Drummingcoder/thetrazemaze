@@ -1,6 +1,17 @@
 /**
  * Performance Monitor Module
  * Lightweight performance tracking to identify lag spikes
+ *
+ * ---
+ * PerformanceMonitor.js Function Reference
+ * ---
+ *
+ * 1. init: Initialize performance monitoring.
+ * 2. startMeasure: Start a performance measurement for an operation.
+ * 3. endMeasure: End a performance measurement and log if slow.
+ * 4. monitorFrameRate: Monitor frame rate and detect lag spikes.
+ * 5. getPerformanceReport: Get a report of recent slow operations.
+ *
  */
 
 console.log('Performance Monitor module loaded');

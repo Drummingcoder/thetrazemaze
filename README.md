@@ -10,11 +10,21 @@ the maze generation and movement.
 
 Going to add more levels and upgrades, as well as more features soon!
 
-The goal of the maze: 10 levels, progressively getting harder and bigger (not so much bigger than harder), a 
-Settings menu, and an Upgrades shop. After reaching the point of having 10 functioning levels (hopefully by Aug 31st), I will slow down
-development of the game (although I'll come back from time to time). 
+## Updated Goals (08/10/2025):
+I want to transition to a different kind of game, for two reasons. Number one:
+this kind of game (building the physics engine and rendering from scratch) is
+good for learning, but it's slow to develop and isn't a good long-term project.
+I pretty much understand the concepts of game design now and to keep going
+with this project won't benefit me as much anymore compared to starting a new
+project with an engine like Unity or Godot.
+Number two: the whole premise of the game is boring, running through a maze
+sounded like a good and fun thing to do, but its implementation proved to be 
+not the funnest. It's hard to tell what makes you good in this game and 
+honestly it's hard for me to recommend this project. I leave the original goals
+of this game at the bottom in case I ever want to come back and redesign the 
+game so that it's more fun.
 
-## Details:
+## Original Details:
 - 10 levels, starting from easy to hard (1 level already implemented)
 - Running, dashing, ground pounding (implemented), jumping, and shooting mechanics (want to separate charge jump and jump)
 - After grabbing coins in the maze, you could use those to buy upgrades.
@@ -23,24 +33,19 @@ remove), better guns, and faster shooting.
 - The maze have enemies that you need to shoot and spikes and obstacles you need to dodge to reach the end (only spike implemented)
 - The end goal is to reach the final level and defeat the boss.
 - Settings menu would allow you to turn off the volume, rebind keys, clear best time data, and perhaps more.
-- There might also be a leaderboard showing the best times on the maze.
 
 ### Things to fix/add:
 - Better start screen and level select
 - More exciting maze
 - Enemies
 - Guns
-- Better organization and commenting of code
 - Functioning music and a better soundtrack
 - Pause menu
 
 ### Bugs:
-- Timer doesn't immediately stop upon touching the end square
-- Dashing while ground pound recovery is still ongoing allows the player to dash and no dash animation to play
-- Resizing the window breaks the maze
+- Timer doesn't immediately stop upon touching the end square (sometimes)
 - Collision detection is still funky and not the best
 - Spike detection is too wide
-- Cell size is inconsistent from level to level
 - Player can start running even if sprite isn't loaded in
 - Game runs slowly if chromebook is on battery saver
 

@@ -1,7 +1,19 @@
-// =================================================================
-// START SCREEN MANAGER MODULE
-// =================================================================
-// This module handles all start screen, level select, and navigation functionality
+/**
+ * Start Screen Manager
+ * Handles all start screen, level select, and navigation functionality
+ */
+/**
+ * ---
+ * start-screen-manager.js Function Reference
+ * ---
+ *
+ * 1. initializeStartScreen: Initializes the start screen and hides game elements.
+ * 2. showLevelSelect: Shows the level select screen and sets up listeners.
+ * 3. setupLevelSelectListeners: Sets up event listeners for level select and navigation.
+ * 4. showStartScreen: Returns to the start screen and cleans up game systems.
+ * 5. loadLevelBestTimes: Loads personal best times for all levels.
+ * 6. updateLevelBestTime: Updates best time for a specific level.
+ */
 
 window.StartScreenManager = (function() {
     'use strict';
@@ -73,7 +85,7 @@ window.StartScreenManager = (function() {
         if (aboutCorner) {
             aboutCorner.addEventListener('click', function() {
                 console.log('About corner clicked');
-                alert('The Traze Maze v2.0\n\nNavigate through the maze as fast as you can!\n\nControls:\n• Arrow Keys/WASD: Move\n• Shift/Space: Dash\n• Hold Up/W: Charge Jump\n• Down/S (in air): Ground Pound\n\nCreated by Drummingcoder');
+                alert('The Traze Maze v2.0\n\nNavigate through the maze as fast as you can!\n\nControls:\n• Arrow Keys/WASD: Move\n• Shift/Space: Dash\n• Hold Up/W: Charge Jump\n• Down/S (in air): Ground Pound\n• M: Toggle Music\n\nCreated by Drummingcoder');
             });
         }
     }

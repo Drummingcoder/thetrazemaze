@@ -17,6 +17,8 @@
  * 9. resetCamera: Resets camera state, removes handlers, applies default transform to canvas and player sprite.
  * 10. setupResizeHandler: Sets up debounced window resize handler, recalculates zoom/position, forces re-render.
  * 11. debounce: Utility, limits how often a function runs (used for resize).
+ * 12. handleGameResize: Handles resizing of the game/canvas and recalculates cell size and positions.
+ * 13. handleCameraResize: Handles camera-specific resizing, recalculates zoom, and re-centers camera.
  *
  */
 
@@ -263,58 +265,80 @@ const CameraSystem = {
    * Handle game/canvas resizing (consolidated from game-initializer)
    */
   handleGameResize: function() {
-    // Recalculate the maximum possible cell size to fill the screen
+    // Defensive checks for required globals and DOM elements
+    if (typeof window.mazeWidth !== 'number' || typeof window.mazeHeight !== 'number' || !window.canvas) {
+      console.warn('Resize handler: missing mazeWidth, mazeHeight, or canvas. Resize aborted.');
+      return;
+    }
+    // Preserve player's logical grid position before resizing
+    let playerColBefore = Math.round(window.playerX / window.cellSize);
+    let playerRowBefore = Math.round(window.playerY / window.cellSize);
+
+    // Use consistent cell size across all levels (based on level 1 dimensions)
+    // Level 1 is 48x48, so we'll use that as our reference for cell size calculation
+    const referenceWidth = 48;
+    const referenceHeight = 48;
     const availableWidth = window.innerWidth;
     const availableHeight = window.innerHeight;
-    
-    // Calculate cell size based on screen dimensions and maze size
-    const maxCellSizeWidth = Math.floor(availableWidth / window.mazeSize);
-    const maxCellSizeHeight = Math.floor(availableHeight / window.mazeSize);
-    
-    // Use the smaller of the two to ensure the maze fits in both dimensions
+    const maxCellSizeWidth = Math.floor(availableWidth / referenceWidth);
+    const maxCellSizeHeight = Math.floor(availableHeight / referenceHeight);
     window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
     
-    // Ensure minimum cell size for playability
-    if (window.cellSize < 3) {
+    if (window.cellSize < 3 || isNaN(window.cellSize)) {
       window.cellSize = 3;
     }
-    
+
     // Calculate actual maze dimensions in pixels
-    const mazeWidthPx = window.mazeSize * window.cellSize;
-    const mazeHeightPx = window.mazeSize * window.cellSize;
-    
+    const mazeWidthPx = window.mazeWidth * window.cellSize;
+    const mazeHeightPx = window.mazeHeight * window.cellSize;
+
     // Update canvas size
     if (window.canvas) {
       window.canvas.width = mazeWidthPx;
       window.canvas.height = mazeHeightPx;
+      // Debug log canvas size and CSS
+      console.log('[Resize] Maze canvas width:', window.canvas.width, 'height:', window.canvas.height);
+      console.log('[Resize] Maze canvas CSS width:', window.canvas.style.width, 'height:', window.canvas.style.height, 'display:', window.canvas.style.display);
+      // Force maze rerender after resize
+      if (window.CanvasRenderer && window.CanvasRenderer.forceRedraw) {
+        window.CanvasRenderer.forceRedraw();
+        console.log('[Resize] Forced maze redraw.');
+      }
     }
-    
+
     // Update player canvas size
     if (window.playerCanvas) {
       window.playerCanvas.width = mazeWidthPx;
       window.playerCanvas.height = mazeHeightPx;
+      // Debug log player canvas size and CSS
+      console.log('[Resize] Player canvas width:', window.playerCanvas.width, 'height:', window.playerCanvas.height);
+      console.log('[Resize] Player canvas CSS width:', window.playerCanvas.style.width, 'height:', window.playerCanvas.style.height, 'display:', window.playerCanvas.style.display);
     }
-    
+
     // Update container size
     if (window.mazeContainer) {
       window.mazeContainer.style.width = mazeWidthPx + 'px';
       window.mazeContainer.style.height = mazeHeightPx + 'px';
+      // Debug log container CSS
+      console.log('[Resize] Maze container CSS width:', window.mazeContainer.style.width, 'height:', window.mazeContainer.style.height, 'display:', window.mazeContainer.style.display);
     }
-    
+
+    // Defensive checks for player position calculation
+    if (window.canvas.width === 0 || window.canvas.height === 0 || window.mazeWidth === 0 || window.mazeHeight === 0) {
+      console.warn('Resize handler: invalid canvas or maze dimensions. Player position not updated.');
+      return;
+    }
+
     // Update player position to match new cell size
-    const currentCol = Math.round(window.playerX / (window.canvas.width / window.mazeSize));
-    const currentRow = Math.round(window.playerY / (window.canvas.height / window.mazeSize));
-    window.playerX = currentCol * window.cellSize;
-    window.playerY = currentRow * window.cellSize;
+    window.playerX = playerColBefore * window.cellSize;
+    window.playerY = playerRowBefore * window.cellSize;
+    console.log('[Resize] Player logical position restored:', playerColBefore, playerRowBefore, '->', window.playerX, window.playerY);
   },
 
   /**
    * Handle camera-specific resizing
    */
   handleCameraResize: function() {
-    // Store old zoom for calculations
-    const oldZoom = this.currentZoom;
-    
     // Recalculate zoom for new window size
     this.calculateOptimalZoom();
     

@@ -2,6 +2,13 @@
  * Debug Console System
  * Provides debug logging functionality for development
  */
+/**
+ * Function Reference (DebugConsole)
+ * 1. log(message, type = 'info') - Log a message to the debug console with timestamp and type
+ * 2. clear() - Clear all entries from the debug console
+ * 3. window.debugLog(message, type = 'info') - Global shortcut for logging
+ * 4. window.clearDebug() - Global shortcut for clearing the console
+ */
 
 console.log('Debug Console module loaded');
 

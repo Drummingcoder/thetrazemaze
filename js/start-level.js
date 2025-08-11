@@ -1,8 +1,15 @@
-// =================================================================
-// START LEVEL MODULE
-// =================================================================
-// This module handles game level initialization and starting functionality.
-// It manages the transition from level selection to actual gameplay.
+/**
+ * Start Level
+ * Handles game level initialization and starting functionality
+ */
+/**
+ * ---
+ * start-level.js Function Reference
+ * ---
+ *
+ * 1. startGameWithLevel: Initializes and starts the game with a specific level.
+ * 2. startGame: Starts the actual game, manages UI transitions and initialization.
+ */
 
 const startLevel = {
     // Start game with specific level
@@ -14,27 +21,30 @@ const startLevel = {
         
         // CRITICAL: Use existing GameInitializer reset functions
         if (window.GameInitializer) {
-            console.log('Calling GameInitializer.restartForNewLevel() for level', levelNumber);
-            window.GameInitializer.restartForNewLevel();
+            window.GameInitializer.restartGame(1);
         }
         
         // Re-initialize maze data for the selected level AFTER reset
-        const mazeData = window.MazeGenerator.getMazeData(levelNumber);
+        const mazeData = window.MazeRenderer.getMazeData(levelNumber);
         console.log('Loading maze data for level', levelNumber, ':', mazeData);
         
         // Update global maze variables
         window.mazeStructure = mazeData.mazeStructure;
-        window.mazeSize = mazeData.mazeSize;
+        window.mazeWidth = mazeData.mazeWidth;
+        window.mazeHeight = mazeData.mazeHeight;
         window.startRow = mazeData.startRow;
         window.startCol = mazeData.startCol;
         window.endRow = mazeData.endRow;
         window.endCol = mazeData.endCol;
         
-        // Recalculate cell size for the new maze size
+        // Use consistent cell size across all levels (based on level 1 dimensions)
+        // Level 1 is 48x47, so we'll use that as our reference for cell size calculation
+        const referenceWidth = 48;
+        const referenceHeight = 48;
         const availableWidth = window.innerWidth;
         const availableHeight = window.innerHeight;
-        const maxCellSizeWidth = Math.floor(availableWidth / window.mazeSize);
-        const maxCellSizeHeight = Math.floor(availableHeight / window.mazeSize);
+        const maxCellSizeWidth = Math.floor(availableWidth / referenceWidth);
+        const maxCellSizeHeight = Math.floor(availableHeight / referenceHeight);
         window.cellSize = Math.min(maxCellSizeWidth, maxCellSizeHeight);
         
         // Ensure minimum cell size
@@ -43,15 +53,16 @@ const startLevel = {
         }
         
         // Update canvas sizes
-        const mazeWidthPx = window.mazeSize * window.cellSize;
-        const mazeHeightPx = window.mazeSize * window.cellSize;
-        
+        console.log('Maze dimensions:', window.mazeWidth, 'x', window.mazeHeight, 'with cell size:', window.cellSize);
+        const mazeWidthPx = window.mazeWidth * window.cellSize;
+        const mazeHeightPx = window.mazeHeight * window.cellSize;
+
         if (window.canvas) {
             window.canvas.width = mazeWidthPx;
             window.canvas.height = mazeHeightPx;
             console.log('Canvas resized to:', mazeWidthPx, 'x', mazeHeightPx);
         }
-        
+
         if (window.playerCanvas) {
             window.playerCanvas.width = mazeWidthPx;
             window.playerCanvas.height = mazeHeightPx;

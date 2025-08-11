@@ -2,12 +2,21 @@
  * Game Timer Module
  * Handles timing functionality for the maze game
  */
+/**
+ * Function Reference (GameTimer)
+ * 1. startTimer(timer) - Start the game timer and update display
+ * 2. stopTimer() - Stop the current timer
+ * 3. resetTimer() - Reset the timer to zero
+ * 4. formatTime(time) - Format milliseconds to MM:SS.mmm
+ * 5. padTime(value, length=2) - Pad a number with leading zeros
+ * 6. getTime() - Get the current elapsed time formatted as a string
+ */
 
 console.log('Game Timer module loaded');
 
 const GameTimer = {
   timeElapsed: 0,    // Total time elapsed in milliseconds
-  interval: 0,       // Timer interval ID
+  interval: 0,       // Interval ID
 
   /**
    * Starts the game timer and updates the display
@@ -27,7 +36,7 @@ const GameTimer = {
       
       // Update the timer display with formatted time
       timer.textContent = this.formatTime(this.timeElapsed);
-    }, 10); // Update every 10ms for precise timing
+    }, 10);
 
     // Return both start time and interval for external use
     return { startTime, interval: this.interval };
@@ -57,6 +66,10 @@ const GameTimer = {
    * @returns {string} Formatted time string (e.g., "01:23.456")
    */
   formatTime: function(time) {
+    if (!time || isNaN(time)) {
+      return '--:--';
+    }
+
     // Extract minutes, seconds, and milliseconds from total time
     const minutes = Math.floor(time / 60000);           // 60000ms = 1 minute
     const seconds = Math.floor((time % 60000) / 1000);  // Remaining seconds
@@ -77,18 +90,10 @@ const GameTimer = {
   },
 
   /**
-   * Gets the current elapsed time
-   * @returns {number} Elapsed time in milliseconds
-   */
-  getElapsedTime: function() {
-    return this.timeElapsed;
-  },
-
-  /**
    * Gets the current elapsed time formatted as a string
    * @returns {string} Formatted elapsed time
    */
-  getFormattedElapsedTime: function() {
+  getTime: function() {
     return this.formatTime(this.timeElapsed);
   }
 };

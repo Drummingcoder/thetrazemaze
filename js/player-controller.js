@@ -2,6 +2,40 @@
  * Player Controller
  * Handles player movement, collision detection, and position tracking
  */
+/**
+ * ---
+ * PlayerController.js Function Reference
+ * ---
+ *
+ * 1. getSpriteBounds: Calculates sprite boundaries for collision and ground detection.
+ * 2. checkCollision: Checks for collision at a given position.
+ * 3. checkEndReached: Checks if player reached the end position.
+ * 4. findGroundRow: Finds the first solid ground row below a position.
+ * 5. checkGrounded: Checks if player is standing on solid ground.
+ * 6. calculateJumpVelocity: Calculates jump velocity based on hold time.
+ * 7. handleDash: Handles dash movement and collision.
+ * 8. startDash: Initiates a dash in a given direction.
+ * 9. endDashFromAnimation: Ends dash from animation system.
+ * 10. handleGroundPoundLanding: Handles ground pound landing with precise positioning.
+ * 11. applyGravity: Applies gravity and handles ground pound logic.
+ * 12. smoothMovementLoop: Main movement animation loop.
+ * 13. cleanupMovementSystems: Cleans up movement systems and resets states.
+ * 14. resetPlayerState: Resets player state for game restart.
+ * 15. updatePlayerPosition: Updates player position for compatibility.
+ * 16. updateCameraAndRender: Updates camera and rendering.
+ * 17. movePlayer: Handles player movement based on keyboard input.
+ * 18. handleSingleGoalMode: Handles logic for single goal mode completion.
+ * 19. setGravity: Toggles gravity on/off.
+ * 20. startSmoothMovement: Starts the smooth movement system.
+ * 21. initializePlayerPosition: Initializes player position for smooth movement.
+ * 22. createVirtualPlayer: Creates virtual player object for positioning.
+ * 23. handleKeyDown: Handles key down events for movement.
+ * 24. handleKeyUp: Handles key up events for movement.
+ * 25. updateDashIndicator: Updates dash indicator UI.
+ * 26. updateJumpChargeIndicator: Updates jump charge indicator UI.
+ * 27. handleDashKey: Handles dedicated dash key press (Shift).
+ * 28. updateGroundPoundIndicator: Updates ground pound indicator UI.
+ */
 
 console.log('Player Controller module loaded');
 
@@ -88,7 +122,7 @@ const PlayerController = {
    */
   checkCollision: function(newX, newY) {
     // Safety check: ensure we have valid window globals
-    if (!window.cellSize || !window.mazeSize || !window.mazeStructure) {
+    if (!window.cellSize || !window.mazeWidth || !window.mazeHeight || !window.mazeStructure) {
       console.warn('Missing maze globals in checkCollision');
       return true; // Assume collision if globals are missing
     }
@@ -109,7 +143,7 @@ const PlayerController = {
     const bottomRow = Math.floor((bounds.bottom - 1) / window.cellSize); // -1 to handle exact edge cases
     
     // Check bounds first
-    if (leftCol < 0 || rightCol >= window.mazeSize || topRow < 0 || bottomRow >= window.mazeSize) {
+    if (leftCol < 0 || rightCol >= window.mazeWidth || topRow < 0 || bottomRow >= window.mazeHeight) {
       return true; // Collision with maze boundary
     }
     
@@ -162,10 +196,10 @@ const PlayerController = {
     let checkRow = Math.floor(spriteBottom / window.cellSize);
     
     // Look for solid ground below current position
-    while (checkRow < window.mazeSize) {
+    while (checkRow < window.mazeHeight) {
       let foundGround = false;
       for (let col = leftCol; col <= rightCol; col++) {
-        if (col >= 0 && col < window.mazeSize && 
+        if (col >= 0 && col < window.mazeWidth && 
             window.mazeStructure[checkRow] && window.mazeStructure[checkRow][col] === 1) {
           foundGround = true;
           break;
@@ -196,12 +230,12 @@ const PlayerController = {
     const rightCol = Math.floor((bounds.right - 1) / window.cellSize);
     
     // Check bounds - maze edges act as solid ground
-    if (bottomRow >= window.mazeSize) return true;
-    if (leftCol < 0 || rightCol >= window.mazeSize) return false;
+    if (bottomRow >= window.mazeHeight) return true;
+    if (leftCol < 0 || rightCol >= window.mazeWidth) return false;
     
     // Check if there's solid ground under any part of the player
     for (let col = leftCol; col <= rightCol; col++) {
-      if (col >= 0 && col < window.mazeSize) {
+      if (col >= 0 && col < window.mazeWidth) {
         if (window.mazeStructure[bottomRow] && window.mazeStructure[bottomRow][col] === 1) {
           return true; // Standing on a wall (solid ground)
         }
@@ -287,6 +321,10 @@ const PlayerController = {
    */
   startDash: function(dirX, dirY) {
     if (this.isDashing || this.dashCooldownTimer > 0) return;
+    // Block dashing during ground pound recovery
+    if (window.PlayerAnimation && window.PlayerAnimation.groundPoundRecovering) {
+      return;
+    }
     
     // Normalize direction if diagonal
     const magnitude = Math.sqrt(dirX * dirX + dirY * dirY);
@@ -299,7 +337,7 @@ const PlayerController = {
       
       // Start dash animation
       if (window.PlayerAnimation) {
-        window.PlayerAnimation.startDash(dirX);
+        window.PlayerAnimation.startDash();
       }
       
       if (window.debugLog) {
@@ -344,7 +382,7 @@ const PlayerController = {
     const bottomRow = Math.floor((bounds.bottom - 1) / window.cellSize);
     
     // Check if we're going out of bounds
-    if (leftCol < 0 || rightCol >= window.mazeSize || topRow < 0 || bottomRow >= window.mazeSize) {
+    if (leftCol < 0 || rightCol >= window.mazeWidth || topRow < 0 || bottomRow >= window.mazeHeight) {
       return { landed: false, landingY: targetY, groundRow: null };
     }
     
@@ -379,7 +417,7 @@ const PlayerController = {
       let testHasCollision = false;
       for (let row = Math.floor(testBounds.top / window.cellSize); row <= testBottomRow; row++) {
         for (let col = leftCol; col <= rightCol; col++) {
-          if (row >= 0 && row < window.mazeSize && col >= 0 && col < window.mazeSize) {
+          if (row >= 0 && row < window.mazeHeight && col >= 0 && col < window.mazeWidth) {
             if (window.mazeStructure[row][col] === 1) { // Wall
               testHasCollision = true;
               break;
@@ -491,7 +529,7 @@ const PlayerController = {
       
       // Safety check: ensure player doesn't go out of bounds
       const minY = 0;
-      const maxY = (window.mazeSize - 1) * window.cellSize;
+      const maxY = (window.mazeHeight - 1) * window.cellSize;
       const safeNewY = Math.max(minY, Math.min(maxY, newY));
       
       // Special handling for ground pound collision
@@ -640,18 +678,14 @@ const PlayerController = {
       if (this.gravityEnabled) {
         this.applyGravity();
       }
-      
+
       // Update camera and render
       this.updateCameraAndRender();
-      
+
       // Continue animation loop
       this.animationFrameId = requestAnimationFrame(() => this.smoothMovementLoop());
       return;
     }
-    
-    // Track movement direction for dash system
-    let currentMovementX = 0;
-    let currentMovementY = 0;
     
     // Calculate movement based on pressed keys
     if (this.smoothMovementKeys["ArrowUp"] || this.smoothMovementKeys["w"]) {
@@ -796,8 +830,8 @@ const PlayerController = {
       
       // Trigger end game
       setTimeout(() => {
-        if (typeof window.myLibrary !== 'undefined' && typeof window.endScreen !== 'undefined') {
-          window.myLibrary.endGame(window.endScreen, window.startTime, window.endContent, window.personalbest, window.newpersonalbest, window.interval);
+        if (typeof window.GameActions !== 'undefined' && typeof window.endScreen !== 'undefined') {
+          window.GameActions.endGame(window.endScreen, window.startTime, window.endContent, window.personalbest, window.newpersonalbest, window.interval);
         }
       }, 100);
       return; // Exit early to prevent further processing
@@ -974,11 +1008,11 @@ const PlayerController = {
       // Try to recover by ensuring player position is valid
       if (window.playerX < 0) window.playerX = 0;
       if (window.playerY < 0) window.playerY = 0;
-      if (window.playerX > (window.mazeSize - 1) * window.cellSize) {
-        window.playerX = (window.mazeSize - 1) * window.cellSize;
+      if (window.playerX > (window.mazeWidth - 1) * window.cellSize) {
+        window.playerX = (window.mazeWidth - 1) * window.cellSize;
       }
-      if (window.playerY > (window.mazeSize - 1) * window.cellSize) {
-        window.playerY = (window.mazeSize - 1) * window.cellSize;
+      if (window.playerY > (window.mazeHeight - 1) * window.cellSize) {
+        window.playerY = (window.mazeHeight - 1) * window.cellSize;
       }
     }
   },
@@ -1030,9 +1064,9 @@ const PlayerController = {
     // Enhanced boundary and collision checking
     if (
       topPos >= 1 &&                    // Keep player away from top border (row 0)
-      topPos < mazeSize - 1 &&          // Keep player away from bottom border
+      topPos < window.mazeHeight - 1 && // Keep player away from bottom border
       leftPos >= 1 &&                   // Keep player away from left border (col 0)
-      leftPos < mazeSize - 1 &&         // Keep player away from right border
+      leftPos < window.mazeWidth - 1 && // Keep player away from right border
       mazeStructure[Math.floor(topPos)] &&                              // Ensure row exists
       mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== undefined && // Ensure cell exists
       mazeStructure[Math.floor(topPos)][Math.floor(leftPos)] !== 1      // Ensure it's not a wall
@@ -1084,7 +1118,7 @@ const PlayerController = {
       // Calculate completion time
       const endTime = new Date();
       const timeTaken = endTime - startTime;
-      const formattedTime = GameTimer.formatTime(timeTaken);
+      const formattedTime = window.GameTimer.formatTime(timeTaken);
 
       // Show completion screen after brief delay
       setTimeout(() => {
