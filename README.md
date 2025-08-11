@@ -8,8 +8,6 @@ Simply go to the website: https://drummingcoder.github.io/thetrazemaze/ to play 
 AI (Github Copilot) is used to help design the look of the website and augment its functionality. I just did some of
 the maze generation and movement.
 
-Going to add more levels and upgrades, as well as more features soon!
-
 ## Updated Goals (08/10/2025):
 I want to transition to a different kind of game, for two reasons. Number one:
 this kind of game (building the physics engine and rendering from scratch) is
